@@ -15,6 +15,7 @@ proc getOpt*(key: static[string]; parseProc: proc; default: any;
   ## Examples:
   ##
   ## .. code-block:: nim
+  ##   import strutils, json                                  ## Imports just for the example.
   ##   echo getOpt("foo", parseInt, 0)                        ## --foo=42
   ##   echo getOpt("bar", parseBool, false)                   ## --bar:true
   ##   echo getOpt("baz", parseHexStr, "f0f0")                ## --baz:bebe
@@ -22,7 +23,7 @@ proc getOpt*(key: static[string]; parseProc: proc; default: any;
   ##   echo getOpt("bay", json.parseFile, %*{"key": "value"}) ## --bay:data.json
   ##   echo getOpt("?", parseOctInt, 0o666)                   ## --?=0o777
   ##   echo getOpt("x", parseBinInt, 1010, shortOpts = true)  ## -x=1111
-  ##   echo getOpt("owo", parseUInt, 9, shortOpts=true, prefix='+', seps={'@'}) ## +owo@42
+  ##   echo getOpt("owo", parseUInt, 9.uint, shortOpts=true, prefix='+', seps={'@'}) ## +owo@42
   ##
   ## Works with any arbitrary custom types and custom parse procs too:
   ##
