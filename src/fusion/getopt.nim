@@ -4,6 +4,7 @@ proc getOpt*(key: static[string]; parseProc: proc; default: any;
     cmdline: seq[TaintedString] = os.commandLineParams();
     shortOpts: static[bool] = false, prefix = '-', seps = {':', '='}): auto {.inline.} =
   ## Fast simple `parseopt` alternative, parse anything, returns concrete type value directly.
+  ## This is a convenience proc.
   ##
   ## * `key` is the Key to parse from `os.commandLineParams()`, must not be empty string.
   ## * `parseProc` is whatever `proc` parses the value of `key`, any `proc` should work.
@@ -47,6 +48,7 @@ proc getOpt*(key: static[string]; parseProc: proc; default: any;
   ## * `parseopt <https://nim-lang.org/docs/parseopt.html>`_
   ## * `options <https://nim-lang.org/docs/options.html>`_
   assert key.len > 0, "Key must not be empty string"
+  assert prefix != ' ' and ' ' notin seps, "prefix and seps must not be empty char"
   result = default
   for x in cmdline:
     if x[0] == prefix and x[1] == prefix and x[static(key.len + 2)] in seps:
