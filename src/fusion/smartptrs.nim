@@ -46,7 +46,7 @@ converter convertUniquePtrToObj*[T](p: UniquePtr[T]): var T {.inline.} =
 proc isNil*[T](p: UniquePtr[T]): bool {.inline.} =
   p.val == nil
 
-proc get*[T](p: UniquePtr[T]): var T {.inline.} =
+proc `[]`*[T](p: UniquePtr[T]): var T {.inline.} =
   when compileOption("boundChecks"):
     assert(p.val != nil, "deferencing nil unique pointer")
   p.val.value
@@ -65,9 +65,11 @@ type
 proc `=destroy`*[T](p: var SharedPtr[T]) =
   mixin `=destroy`
   if p.val != nil:
-    if atomicDec(p.val[].atomicCounter) < 0:
+    if atomicLoadN(addr p.val[].atomicCounter, ATOMIC_CONSUME) == 0:
       `=destroy`(p.val[])
       deallocShared(p.val)
+    else:
+      discard atomicDec(p.val[].atomicCounter)
     p.val = nil
 
 proc `=sink`*[T](dest: var SharedPtr[T], src: SharedPtr[T]) {.inline.} =
@@ -96,7 +98,7 @@ converter convertSharedPtrToObj*[T](p: SharedPtr[T]): var T {.inline.} =
 proc isNil*[T](p: SharedPtr[T]): bool {.inline.} =
   p.val == nil
 
-proc get*[T](p: SharedPtr[T]): var T {.inline.} =
+proc `[]`*[T](p: SharedPtr[T]): var T {.inline.} =
   when compileOption("boundChecks"):
     doAssert(p.val != nil, "deferencing nil shared pointer")
   p.val.value
@@ -123,7 +125,7 @@ proc isNil*[T](p: ConstPtr[T]): bool {.inline.} =
     doAssert(p.val != nil, "deferencing nil const pointer")
   p.val == nil
 
-proc get*[T](p: ConstPtr[T]): lent T {.inline.} =
+proc `[]`*[T](p: ConstPtr[T]): lent T {.inline.} =
   when compileOption("boundChecks"):
     doAssert(p.val != nil, "deferencing nil const pointer")
   p.val.value
