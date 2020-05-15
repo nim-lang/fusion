@@ -35,7 +35,10 @@ proc newNode*[T](p: var Pool[T]): ptr T =
   if p.len >= p.lastCap:
     if p.lastCap == 0: p.lastCap = 4
     elif p.lastCap < 65_000: p.lastCap *= 2
-    var n = cast[ptr Chunk[T]](allocShared0(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
+    when not supportsCopyMem(T):
+      var n = cast[ptr Chunk[T]](allocShared0(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
+    else:
+      var n = cast[ptr Chunk[T]](allocShared(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
     n.next = nil
     n.next = p.last
     p.last = n
