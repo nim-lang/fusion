@@ -18,6 +18,8 @@
 ## every object constructed by the Pool. Pools cannot be
 ## copied.
 
+from typetraits import supportsCopyMem
+
 type
   Chunk[T] = object
     next: ptr Chunk[T]
@@ -33,7 +35,7 @@ proc newNode*[T](p: var Pool[T]): ptr T =
   if p.len >= p.lastCap:
     if p.lastCap == 0: p.lastCap = 4
     elif p.lastCap < 65_000: p.lastCap *= 2
-    var n = cast[ptr Chunk[T]](allocShared(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
+    var n = cast[ptr Chunk[T]](allocShared0(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
     n.next = nil
     n.next = p.last
     p.last = n
@@ -47,8 +49,9 @@ proc `=`[T](dest: var Pool[T]; src: Pool[T]) {.error.}
 proc `=destroy`[T](p: var Pool[T]) =
   var it = p.last
   while it != nil:
-    for i in 0..<it.len:
-      `=destroy`(it.elems[i])
+    when not supportsCopyMem(T):
+      for i in 0..<it.len:
+        `=destroy`(it.elems[i])
     let next = it.next
     deallocShared(it)
     it = next
@@ -57,11 +60,14 @@ proc `=destroy`[T](p: var Pool[T]) =
   p.last = nil
 
 when isMainModule:
+  const withNonTrivialDestructor = false
   include prelude
 
   type
     NodeObj = object
       le, ri: Node
+      when withNonTrivialDestructor:
+        s: string
     Node = ptr NodeObj
 
   proc checkTree(n: Node): int =
@@ -70,6 +76,8 @@ when isMainModule:
 
   proc makeTree(p: var Pool; depth: int): Node =
     result = newNode(p)
+    when withNonTrivialDestructor:
+      result.s = $depth
     if depth == 0:
       result.le = nil
       result.ri = nil
@@ -102,7 +110,7 @@ when isMainModule:
       iterations = iterations div 4
 
   let t = epochTime()
-  dumpAllocstats:
-    main()
+  #dumpAllocstats:
+  main()
   echo("Completed in ", $(epochTime() - t), "s. Success! Peak mem ", formatSize getMaxMem())
   # use '21' as the command line argument
