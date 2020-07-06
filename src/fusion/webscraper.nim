@@ -105,16 +105,36 @@ template hasAttrImpl(node: XmlNode; attr: string): bool =
   attr.len == 0 or (node.attrs != nil and node.attrs.hasKey(attr) and node.attr(attr).len > 0)
 
 iterator scrap*(body, tag, attr, attrValue: string; reversedIter = false): XmlNode {.since: (1, 3).} =
+  ## Web scraper iterator that searchs by tag, attribute, attribute value.
+  ##
+  ## * `body` is the HTML DOM `string`, feed it with `htmlclient.getContent`.
+  ## * `tag` is the HTML DOM Tag, must not be empty string, for example to search for `<a>` links use `"a"`, etc.
+  ## * `attr` is an *Attribute key* that the `tag` should match, if you do *not* want to filter by Attribute key then use empty string.
+  ## * `attrValue` is an *Attribute value* that the `attr` should match, can be empty string.
+  ## * `reversedIter` Reverses the iteration order, set to `true` to find from bottom to top of the page.
   assert tag.len > 0, "tag must not be empty string"
   for n in parseFindImpl(body, tag, reversedIter):
     if hasAttrImpl(n, attr) and contains(n.attr(attr).toLowerAscii, attrValue): yield n
 
 iterator scrap*(body, tag, attr: string; pred: proc (n: XmlNode): bool; reversedIter = false): XmlNode {.since: (1, 3).} =
+  ## Web scraper iterator that searchs by tag, attribute and a user-provided arbitrary filtering function.
+  ##
+  ## * `body` is the HTML DOM `string`, feed it with `htmlclient.getContent`.
+  ## * `tag` is the HTML DOM Tag, must not be empty string, for example to search for `<a>` links use `"a"`, etc.
+  ## * `attr` is an *Attribute key* that the `tag` should match, if you do *not* want to filter by Attribute key then use empty string.
+  ## * `pred` is a user-provided arbitrary filtering function that takes `XmlNode` and returns `bool`.
+  ## * `reversedIter` Reverses the iteration order, set to `true` to scan from bottom to top of the page.
   assert tag.len > 0, "tag must not be empty string"
   for n in parseFindImpl(body, tag, reversedIter):
     if hasAttrImpl(n, attr) and pred(n): yield n
 
 iterator scrap*(body, tag, cssSelector: string; reversedIter = false): XmlNode {.since: (1, 3).} =
+  ## Web scraper iterator that searchs by tag and CSS Selector.
+  ##
+  ## * `body` is the HTML DOM `string`, feed it with `htmlclient.getContent`.
+  ## * `tag` is the HTML DOM Tag, must not be empty string, for example to search for `<a>` links use `"a"`, etc.
+  ## * `cssSelector` is a CSS Selector to filter by, must not be empty string nor Regex syntax.
+  ## * `reversedIter` Reverses the iteration order, set to `true` to scan from bottom to top of the page.
   assert tag.len > 0, "tag must not be empty string"
   assert cssSelector.len > 0, "cssSelector must not be empty string"
   for n in findCssImpl(parseFindImpl(body, tag, reversedIter), cssSelector): yield n
