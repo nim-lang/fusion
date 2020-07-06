@@ -6,12 +6,6 @@
 ## Feed it the HTML DOM using `httpclient.getContent` and find tags, attributes, values, etc.
 ## If you need a `seq` as output, see `sugar.collect` or `sequtils.toSeq`. **Since:** 1.3
 ##
-## .. code-block:: nim
-##   let body: string = newHttpClient().getContent("https://example.io/data.html")
-##   for item in scrap(body, tag = "textarea", attr = "", pred = nimbleModule.filterData):
-##     var myDataset = nimbleModule.processData(item) # Pseudocode, see below for more examples.
-##     # customModule.someFunctionToProcessData(item)
-##
 ## **See also:**
 ## * `httpclient <https://nim-lang.org/docs/httpclient.html>`_
 
@@ -71,7 +65,7 @@ proc parseSelector(token: string): tuple[id: string, tag: string, combi: char, c
   else: discard
 
 proc findCssImpl(node: seq[XmlNode], cssSelector: string): seq[XmlNode] {.noinline.} =
-  if unlikely(cssSelector.strip.len == 0): return
+  assert cssSelector.len > 0, "cssSelector must not be empty string"
   result = node
   var
     i: int
