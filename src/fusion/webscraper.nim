@@ -2,23 +2,106 @@
 ## ===========
 ##
 ## * `webscraper` can help you implement a *simple basic* web scraper with standard library.
-## `webscraper` builds on top of `htmlparser`, `xmltree`, `strtabs`, `strutils`.
-## Feed it the HTML `body` using `httpclient` and find tags, attributes, values, etc.
-## If you need a `seq` as output, see `sugar.collect` or `sequtils.toSeq`. Since: 1.3
+## `webscraper` builds on top of `htmlparser`, `xmltree`, `strtabs`, `strutils`, `pegs`.
+## Feed it the HTML DOM using `httpclient.getContent` and find tags, attributes, values, etc.
+## If you need a `seq` as output, see `sugar.collect` or `sequtils.toSeq`. **Since:** 1.3
 ##
 ## .. code-block:: nim
 ##   let body: string = newHttpClient().getContent("https://example.io/data.html")
 ##   for item in scrap(body, tag = "textarea", attr = "", pred = nimbleModule.filterData):
-##     var myDataset = nimbleModule.processData(item) # Pseudocode example.
+##     var myDataset = nimbleModule.processData(item) # Pseudocode, see below for more examples.
 ##     # customModule.someFunctionToProcessData(item)
 ##
-## Future directions: Better filtering capabilities for the HTML.
-##
-## See also:
+## **See also:**
 ## * `httpclient <https://nim-lang.org/docs/httpclient.html>`_
 
-import htmlparser, xmltree, strtabs, strutils, algorithm, std/private/since
+import htmlparser, xmltree, strtabs, strutils, algorithm, pegs, std/private/since
 export xmltree, strtabs, strutils
+
+func match(n: XmlNode, s: tuple[id: string, tag: string, combi: char, class: seq[string]]): bool =
+  result = (s.tag.len == 0 or s.tag == "*" or s.tag == n.tag)
+  if result and s.id.len > 0: result = s.id == n.attr"id"
+  if result and s.class.len > 0:
+    for class in s.class: result = n.attr("class").len > 0 and class in n.attr("class").split
+
+func find(parent: XmlNode, selector: tuple[id: string, tag: string, combi: char, class: seq[string]], found: var seq[XmlNode]) =
+  for child in parent.items:
+    if child.kind != xnElement: continue
+    if match(child, selector): found.add(child)
+    if selector.combi != '>': child.find(selector, found)
+
+template find(parents: var seq[XmlNode], selector: tuple[id: string, tag: string, combi: char, class: seq[string]]) =
+  var found: seq[XmlNode]
+  for p in parents: find(p, selector, found)
+  parents = found
+
+template multiFind(parent: XmlNode, selectors: seq[tuple[id: string, tag: string, combi: char, class: seq[string]]], found: var seq[XmlNode]) =
+  var matches: seq[int]
+  var start: seq[int]
+  start = @[0]
+  for i in 0 ..< selectors.len:
+    var selector = selectors[i]
+    matches = @[]
+    for j in start:
+      for k in j ..< parent.len:
+        var child = parent[k]
+        if child.kind != xnElement: continue
+        if match(child, selector):
+          if i < selectors.len - 1: matches.add(k + 1)
+          else:
+            if not found.contains(child): found.add(child)
+          if selector.combi == '+': break
+    start = matches
+
+template multiFind(parents: var seq[XmlNode], selectors: seq[tuple[id: string, tag: string, combi: char, class: seq[string]]]) =
+  var found: seq[XmlNode]
+  for p in parents: multiFind(p, selectors, found)
+  parents = found
+
+proc parseSelector(token: string): tuple[id: string, tag: string, combi: char, class: seq[string]] =
+  result = (id: "", tag: "", combi: ' ', class: @[])
+  if unlikely(token == "*"): result.tag = "*"
+  elif token =~ peg"""\s*{\ident}?({'#'\ident})? ({\.[a-zA-Z0-9_][a-zA-Z0-9_\-]*})* {\[[a-zA-Z][a-zA-Z0-9_\-]*\s*([\*\^\$\~]?\=\s*[\'""]?(\s*\ident\s*)+[\'""]?)?\]}*""":
+    for i in 0 ..< matches.len:
+      if matches[i].len == 0: continue
+      case matches[i][0]:
+      of '#': result.id = matches[i][1..^1]
+      of '.': result.class.add(matches[i][1..^1])
+      else: result.tag = matches[i]
+  else: discard
+
+proc findCssImpl(node: seq[XmlNode], cssSelector: string): seq[XmlNode] {.noinline.} =
+  if unlikely(cssSelector.strip.len == 0): return
+  result = node
+  var
+    i: int
+    isSimple: bool
+    nextCombi, nextToken: string
+    tokens: seq[string]
+    selector, temp: tuple[id: string, tag: string, combi: char, class: seq[string]]
+    selectors: seq[tuple[id: string, tag: string, combi: char, class: seq[string]]]
+  tokens = cssSelector.strip.split
+  for pos in 0 ..< tokens.len:
+    isSimple = true
+    if pos > 0 and (tokens[pos - 1] == "+" or tokens[pos - 1] == "~"): continue
+    if tokens[pos] in [">", "~", "+"]: continue
+    selector = parseSelector(tokens[pos])
+    if pos > 0 and tokens[pos-1] == ">": selector.combi = '>'
+    selectors = @[selector]
+    i = 1
+    while true:
+      if pos + i >= tokens.len: break
+      nextCombi = tokens[pos + i]
+      if nextCombi == "+" or nextCombi == "~":
+        if unlikely(pos + i + 1 >= tokens.len): assert false, "Selector not found"
+      else: break
+      isSimple = false
+      nextToken = tokens[pos + i + 1]
+      inc i, 2
+      temp = parseSelector(nextToken)
+      temp.combi = nextCombi[0]
+      selectors.add(temp)
+    if isSimple: result.find(selectors[0]) else: result.multiFind(selectors)
 
 proc parseFindImpl(body, tag: string; reversedIter: bool): seq[XmlNode] {.inline.} =
   result = xmltree.findAll(htmlparser.parseHtml(body), tag, true)
@@ -37,40 +120,80 @@ iterator scrap*(body, tag, attr: string; pred: proc (n: XmlNode): bool; reversed
   for n in parseFindImpl(body, tag, reversedIter):
     if hasAttrImpl(n, attr) and pred(n): yield n
 
-iterator scrap*(body: string; tag: string; reversedIter = false): XmlNode {.since: (1, 3).} =
+iterator scrap*(body, tag, cssSelector: string; reversedIter = false): XmlNode {.since: (1, 3).} =
   assert tag.len > 0, "tag must not be empty string"
-  for n in parseFindImpl(body, tag, false): yield n
+  assert cssSelector.len > 0, "cssSelector must not be empty string"
+  for n in findCssImpl(parseFindImpl(body, tag, reversedIter), cssSelector): yield n
+
 
 runnableExamples:
   static:
-    const body = """
-    <body><script>console.log(42)</script>
-      <h1>This is a test HTML Sample</h1>
-      <p id="owo" key="value"> text </p>
-      <p class="owo" id="value"> text </p>
-      <hr><br><style>*{color:red}</style>
-    </body><!-- Compile-Time Web Scraper -->
-    """  ## Just an example html body string.
-    func example(n: XmlNode): bool = """ key="value" """ in $n ## Just an example proc
+    block:
+      const body = """
+      <body><script>console.log(42)</script>
+        <h1>This is a test HTML Sample</h1>
+        <p id="owo" key="value"> text </p>
+        <p class="owo" id="value"> text </p>
+        <hr><br><style>*{color:red}</style>
+      </body><!-- Compile-Time Web Scraper -->
+      """  ## Just an example html body string.
+      func example(n: XmlNode): bool = """ key="value" """ in $n ## Just an example proc
 
-    ## Scrap data by searching by HTML Tag.
-    for item in scrap(body = body, tag = "p"):
-      doAssert $item == """<p key="value" id="owo"> text </p>"""
-      break
+      ## Scrap data by searching by HTML tag, attribute key and a predicate function.
+      for item in scrap(body = body, tag = "p", attr = "key", pred = example):
+        doAssert $item == """<p key="value" id="owo"> text </p>"""
 
-    ## Scrap data by searching by HTML Tag in reverse from bottom to top of page.
-    for item in scrap(body = body, tag = "p", reversedIter = true):
-      doAssert $item == """<p key="value" id="owo"> text </p>"""
-      break
+      ## Scrap data by searching by HTML tag and a predicate function.
+      for item in scrap(body = body, tag = "p", attr = "", pred = example):
+        doAssert $item == """<p key="value" id="owo"> text </p>"""
 
-    ## Scrap data by searching by HTML tag, attribute key and a predicate function.
-    for item in scrap(body = body, tag = "p", attr = "key", pred = example):
-      doAssert $item == """<p key="value" id="owo"> text </p>"""
+      ## Scrap data by searching by HTML Tag, attribute key and attribute value.
+      for item in scrap(body = body, tag = "p", attr = "key", attrValue = "value"):
+        doAssert $item == """<p key="value" id="owo"> text </p>"""
 
-    ## Scrap data by searching by HTML tag and a predicate function.
-    for item in scrap(body = body, tag = "p", attr = "", pred = example):
-      doAssert $item == """<p key="value" id="owo"> text </p>"""
+    block:
+      const body = """
+      <html>
+      <head>
+        <title>Title</title>
+      </head>
+      <body>
+        <nav>
+          <p>OwO</p>
+          <ul class="menu">
+            <li>
+              <a href="#">Linky</a>
+            </li>
+          </ul>
+        </nav>
+        <form>
+          <div>
+            <input type="email" class="mail"/>
+          </div>
+          <div>
+            <button id="stuff" type="submit"></button>
+          </div>
+        </form>
+      </body>
+      </html> """  ## Just an example HTML.
 
-    ## Scrap data by searching by HTML Tag, attribute key and attribute value.
-    for item in scrap(body = body, tag = "p", attr = "key", attrValue = "value"):
-      doAssert $item == """<p key="value" id="owo"> text </p>"""
+      ## Scrap data by searching by CSS Selector value (No Regex).
+      for item in scrap(body = body, tag = "body", cssSelector = "nav p"):
+        doAssert $item == """<p>OwO</p>"""
+
+      ## Uses "tag" because most of the time you want to get data from <body>,
+      ## this allows to quickly ignore <head>, <template>, <script>, etc.
+      for item in scrap(body = body, tag = "body", cssSelector = "head *"):
+        doAssert $item == """<title>Title</title>"""
+
+      for item in scrap(body = body, tag = "body", cssSelector = "body nav ul.menu > li > a"):
+        doAssert $item == """<a href="#">Linky</a>"""
+
+      for item in scrap(body = body, tag = "body", cssSelector = "body form div input.mail"):
+        doAssert $item == """<input type="email" class="mail" />"""
+
+      for item in scrap(body = body, tag = "body", cssSelector = "body form div button#stuff"):
+        doAssert $item == """<button type="submit" id="stuff" />"""
+
+      for item in scrap(body = body, tag = "body", cssSelector = "#stuff"):
+        doAssert $item == """<button type="submit" id="stuff" />"""
