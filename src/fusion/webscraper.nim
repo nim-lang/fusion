@@ -39,8 +39,7 @@ proc multiFind(parent: XmlNode, selectors: seq[tuple[id: string, tag: string, co
     for j in start:
       for k in j ..< parent.len:
         var child = parent[k]
-        if child.kind != xnElement: continue
-        if match(child, selector):
+        if child.kind == xnElement and match(child, selector):
           if i < selectors.len - 1: matches.add(k + 1)
           else:
             if not found.contains(child): found.add(child)
