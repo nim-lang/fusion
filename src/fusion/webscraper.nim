@@ -20,9 +20,9 @@ func match(n: XmlNode, s: tuple[id: string, tag: string, combi: char, class: seq
 
 func find(parent: XmlNode, selector: tuple[id: string, tag: string, combi: char, class: seq[string]], found: var seq[XmlNode]) =
   for child in parent.items:
-    if child.kind != xnElement: continue
-    if match(child, selector): found.add(child)
-    if selector.combi != '>': child.find(selector, found)
+    if child.kind == xnElement:
+      if match(child, selector): found.add(child)
+      if selector.combi != '>': child.find(selector, found)
 
 proc find(parents: var seq[XmlNode], selector: tuple[id: string, tag: string, combi: char, class: seq[string]]) =
   var found: seq[XmlNode]
