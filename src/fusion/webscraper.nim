@@ -130,7 +130,7 @@ iterator scrap*(body: XmlNode; tag: string; cssSelector: string; reversedIter = 
 
 
 runnableExamples:
-  import htmlparser
+  import htmlparser, strutils
   static:
     block:
       const htmls = """
