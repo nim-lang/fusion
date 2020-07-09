@@ -67,32 +67,25 @@ proc parseSelector(token: string): tuple[id: string, tag: string, combi: char, c
 proc findCssImpl(node: seq[XmlNode], cssSelector: string): seq[XmlNode] {.noinline.} =
   assert cssSelector.len > 0, "cssSelector must not be empty string"
   result = node
-  var
-    i: int
-    isSimple: bool
-    nextCombi, nextToken: string
-    tokens: seq[string]
-    selector, temp: tuple[id: string, tag: string, combi: char, class: seq[string]]
-    selectors: seq[tuple[id: string, tag: string, combi: char, class: seq[string]]]
-  tokens = cssSelector.strip.split
+  var tokens = cssSelector.strip.split
   for pos in 0 ..< tokens.len:
-    isSimple = true
+    var isSimple = true
     if pos > 0 and (tokens[pos - 1] == "+" or tokens[pos - 1] == "~"): continue
     if tokens[pos] in [">", "~", "+"]: continue
-    selector = parseSelector(tokens[pos])
+    var selector = parseSelector(tokens[pos])
     if pos > 0 and tokens[pos-1] == ">": selector.combi = '>'
-    selectors = @[selector]
-    i = 1
+    var selectors = @[selector]
+    var i = 1
     while true:
       if pos + i >= tokens.len: break
-      nextCombi = tokens[pos + i]
+      var nextCombi = tokens[pos + i]
       if nextCombi == "+" or nextCombi == "~":
         if pos + i + 1 >= tokens.len: assert false, "Selector not found"
       else: break
       isSimple = false
-      nextToken = tokens[pos + i + 1]
+      var nextToken = tokens[pos + i + 1]
       inc i, 2
-      temp = parseSelector(nextToken)
+      var temp = parseSelector(nextToken)
       temp.combi = nextCombi[0]
       selectors.add(temp)
     if isSimple: result.find(selectors[0]) else: result.multiFind(selectors)
