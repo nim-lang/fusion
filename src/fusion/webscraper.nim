@@ -4,13 +4,13 @@
 ## * `webscraper` can help you implement a *simple basic* web scraper with standard library.
 ## `webscraper` builds on top of `htmlparser`, `xmltree`, `strtabs`, `strutils`, `pegs`.
 ## Feed it the HTML DOM using `httpclient.getContent` and find tags, attributes, values, etc.
-## If you need a `seq` as output, see `sugar.collect` or `sequtils.toSeq`. **Since:** 1.3
+## If you need a `seq` as output, see `sugar.collect` or `sequtils.toSeq`.
 ##
 ## **See also:**
 ## * `httpclient <https://nim-lang.org/docs/httpclient.html>`_
 
-import xmltree, strtabs, strutils, algorithm, pegs, std/private/since
-export xmltree, strtabs, strutils
+import xmltree, strtabs, strutils, algorithm, pegs
+export xmltree, strtabs
 
 func match(n: XmlNode, s: tuple[id: string, tag: string, combi: char, class: seq[string]]): bool =
   result = (s.tag.len == 0 or s.tag == "*" or s.tag == n.tag)
@@ -24,12 +24,12 @@ func find(parent: XmlNode, selector: tuple[id: string, tag: string, combi: char,
     if match(child, selector): found.add(child)
     if selector.combi != '>': child.find(selector, found)
 
-template find(parents: var seq[XmlNode], selector: tuple[id: string, tag: string, combi: char, class: seq[string]]) =
+proc find(parents: var seq[XmlNode], selector: tuple[id: string, tag: string, combi: char, class: seq[string]]) =
   var found: seq[XmlNode]
   for p in parents: find(p, selector, found)
   parents = found
 
-template multiFind(parent: XmlNode, selectors: seq[tuple[id: string, tag: string, combi: char, class: seq[string]]], found: var seq[XmlNode]) =
+proc multiFind(parent: XmlNode, selectors: seq[tuple[id: string, tag: string, combi: char, class: seq[string]]], found: var seq[XmlNode]) =
   var matches: seq[int]
   var start: seq[int]
   start = @[0]
@@ -47,14 +47,14 @@ template multiFind(parent: XmlNode, selectors: seq[tuple[id: string, tag: string
           if selector.combi == '+': break
     start = matches
 
-template multiFind(parents: var seq[XmlNode], selectors: seq[tuple[id: string, tag: string, combi: char, class: seq[string]]]) =
+proc multiFind(parents: var seq[XmlNode], selectors: seq[tuple[id: string, tag: string, combi: char, class: seq[string]]]) =
   var found: seq[XmlNode]
   for p in parents: multiFind(p, selectors, found)
   parents = found
 
 proc parseSelector(token: string): tuple[id: string, tag: string, combi: char, class: seq[string]] =
   result = (id: "", tag: "", combi: ' ', class: @[])
-  if unlikely(token == "*"): result.tag = "*"
+  if token == "*": result.tag = "*"
   elif token =~ peg"""\s*{\ident}?({'#'\ident})? ({\.[a-zA-Z0-9_][a-zA-Z0-9_\-]*})* {\[[a-zA-Z][a-zA-Z0-9_\-]*\s*([\*\^\$\~]?\=\s*[\'""]?(\s*\ident\s*)+[\'""]?)?\]}*""":
     for i in 0 ..< matches.len:
       if matches[i].len == 0: continue
@@ -87,7 +87,7 @@ proc findCssImpl(node: seq[XmlNode], cssSelector: string): seq[XmlNode] {.noinli
       if pos + i >= tokens.len: break
       nextCombi = tokens[pos + i]
       if nextCombi == "+" or nextCombi == "~":
-        if unlikely(pos + i + 1 >= tokens.len): assert false, "Selector not found"
+        if pos + i + 1 >= tokens.len: assert false, "Selector not found"
       else: break
       isSimple = false
       nextToken = tokens[pos + i + 1]
@@ -105,7 +105,7 @@ func parseFindImpl(body: XmlNode; tag: string; reversedIter: bool): seq[XmlNode]
 template hasAttrImpl(node: XmlNode; attr: string): bool =
   attr.len == 0 or (node.attrs != nil and node.attrs.hasKey(attr) and node.attr(attr).len > 0)
 
-iterator scrap*(body: XmlNode; tag: string; attr: string; attrValue: string; reversedIter = false): XmlNode {.since: (1, 3).} =
+iterator scrap*(body: XmlNode; tag: string; attr: string; attrValue: string; reversedIter = false): XmlNode =
   ## Web scraper iterator that searchs by tag, attribute, attribute value.
   ##
   ## * `body` is the HTML DOM `XmlNode`, feed it with `htmlclient.getContent` and `htmlparser.parseHtml`.
@@ -116,7 +116,7 @@ iterator scrap*(body: XmlNode; tag: string; attr: string; attrValue: string; rev
   for n in parseFindImpl(body, tag, reversedIter):
     if hasAttrImpl(n, attr) and contains(n.attr(attr).toLowerAscii, attrValue): yield n
 
-iterator scrap*(body: XmlNode; tag: string; attr: string; pred: proc (n: XmlNode): bool; reversedIter = false): XmlNode {.since: (1, 3).} =
+iterator scrap*(body: XmlNode; tag: string; attr: string; pred: proc (n: XmlNode): bool; reversedIter = false): XmlNode =
   ## Web scraper iterator that searchs by tag, attribute and a user-provided arbitrary filtering function.
   ##
   ## * `body` is the HTML DOM `XmlNode`, feed it with `htmlclient.getContent` and `htmlparser.parseHtml`.
@@ -127,7 +127,7 @@ iterator scrap*(body: XmlNode; tag: string; attr: string; pred: proc (n: XmlNode
   for n in parseFindImpl(body, tag, reversedIter):
     if hasAttrImpl(n, attr) and pred(n): yield n
 
-iterator scrap*(body: XmlNode; tag: string; cssSelector: string; reversedIter = false): XmlNode {.since: (1, 3).} =
+iterator scrap*(body: XmlNode; tag: string; cssSelector: string; reversedIter = false): XmlNode =
   ## Web scraper iterator that searchs by tag and CSS Selector.
   ##
   ## * `body` is the HTML DOM `XmlNode`, feed it with `htmlclient.getContent` and `htmlparser.parseHtml`.
