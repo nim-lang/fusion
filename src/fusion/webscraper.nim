@@ -61,7 +61,6 @@ proc parseSelector(token: string): tuple[id: string, tag: string, combi: char, c
       of '#': result.id = matches[i][1..^1]
       of '.': result.class.add(matches[i][1..^1])
       else: result.tag = matches[i]
-  else: discard
 
 proc findCssImpl(node: seq[XmlNode], cssSelector: string): seq[XmlNode] {.noinline.} =
   assert cssSelector.len > 0, "cssSelector must not be empty string"
