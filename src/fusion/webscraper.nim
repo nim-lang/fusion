@@ -61,9 +61,8 @@ proc parseSelector(token: string): tuple[id: string, tag: string, combi: char, c
       of '.': result.class.add(matches[i][1..^1])
       else: result.tag = matches[i]
 
-proc findCssImpl(node: seq[XmlNode], cssSelector: string): seq[XmlNode] {.noinline.} =
+proc findCssImpl(node: var seq[XmlNode], cssSelector: string) {.noinline.} =
   assert cssSelector.len > 0, "cssSelector must not be empty string"
-  result = node
   var tokens = cssSelector.strip.split
   for pos in 0 ..< tokens.len:
     var isSimple = true
@@ -85,7 +84,7 @@ proc findCssImpl(node: seq[XmlNode], cssSelector: string): seq[XmlNode] {.noinli
       var temp = parseSelector(nextToken)
       temp.combi = nextCombi[0]
       selectors.add(temp)
-    if isSimple: result.find(selectors[0]) else: result.multiFind(selectors)
+    if isSimple: node.find(selectors[0]) else: node.multiFind(selectors)
 
 func parseFindImpl(body: XmlNode; tag: string; reversedIter: bool): seq[XmlNode] {.inline.} =
   assert tag.len > 0, "tag must not be empty string"
@@ -125,7 +124,9 @@ iterator scrap*(body: XmlNode; tag: string; cssSelector: string; reversedIter = 
   ## * `cssSelector` is a CSS selector to filter by, must not be empty string nor Regex syntax.
   ## * `reversedIter` Reverses the iteration order, set to `true` to scan from bottom to top of the page.
   assert cssSelector.len > 0, "cssSelector must not be empty string"
-  for n in findCssImpl(parseFindImpl(body, tag, reversedIter), cssSelector): yield n
+  var temp = parseFindImpl(body, tag, reversedIter)
+  findCssImpl(temp, cssSelector)
+  for n in temp: yield n
 
 
 runnableExamples:
