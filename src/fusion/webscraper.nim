@@ -13,7 +13,7 @@ import xmltree, strtabs, strutils, algorithm, pegs
 export xmltree, strtabs
 
 func match(n: XmlNode, s: tuple[id: string, tag: string, combi: char, class: seq[string]]): bool =
-  result = (s.tag.len == 0 or s.tag == "*" or s.tag == n.tag)
+  result = (s.tag.len == 0 or s.tag == n.tag)
   if result and s.id.len > 0: result = s.id == n.attr"id"
   if result and s.class.len > 0:
     for class in s.class: result = n.attr("class").len > 0 and class in n.attr("class").split
