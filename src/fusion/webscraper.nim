@@ -9,7 +9,7 @@
 ## **See also:**
 ## * `httpclient <https://nim-lang.org/docs/httpclient.html>`_
 
-import xmltree, strtabs, strutils, algorithm, pegs
+import xmltree, strtabs, strutils, pegs
 export xmltree, strtabs
 
 func match(n: XmlNode, s: tuple[id: string, tag: string, combi: char, class: seq[string]]): bool =
@@ -86,45 +86,31 @@ proc findCssImpl(node: var seq[XmlNode], cssSelector: string) {.noinline.} =
       selectors.add(temp)
     if isSimple: node.find(selectors[0]) else: node.multiFind(selectors)
 
-func parseFindImpl(body: XmlNode; tag: string; reversedIter: bool): seq[XmlNode] {.inline.} =
+func parseFindImpl(body: XmlNode; tag: string): seq[XmlNode] {.inline.} =
   assert tag.len > 0, "tag must not be empty string"
   result = xmltree.findAll(body, tag, true)
-  if reversedIter: reverse(result)
 
 template hasAttrImpl(node: XmlNode; attr: string): bool =
   attr.len == 0 or (node.attrs != nil and node.attrs.hasKey(attr) and node.attr(attr).len > 0)
 
-iterator scrap*(body: XmlNode; tag: string; attr: string; attrValue: string; reversedIter = false): XmlNode =
+iterator scrap*(body: XmlNode; tag: string; attr: string; attrValue: string): XmlNode =
   ## Web scraper iterator that searchs by tag, attribute, attribute value.
   ##
   ## * `body` is the HTML DOM `XmlNode`, feed it with `htmlclient.getContent` and `htmlparser.parseHtml`.
   ## * `tag` is the HTML DOM tag, must not be empty string, for example to search for `<a>` links use `"a"`, etc.
   ## * `attr` is an *attribute key* that the `tag` should match, if you do *not* want to filter by Attribute key then use empty string.
   ## * `attrValue` is an *attribute value* that the `attr` should match, can be empty string.
-  ## * `reversedIter` Reverses the iteration order, set to `true` to scan from bottom to top of the page.
-  for n in parseFindImpl(body, tag, reversedIter):
+  for n in parseFindImpl(body, tag):
     if hasAttrImpl(n, attr) and contains(n.attr(attr).toLowerAscii, attrValue): yield n
 
-iterator scrap*(body: XmlNode; tag: string; attr: string; pred: proc (n: XmlNode): bool; reversedIter = false): XmlNode =
-  ## Web scraper iterator that searchs by tag, attribute and a user-provided arbitrary filtering function.
-  ##
-  ## * `body` is the HTML DOM `XmlNode`, feed it with `htmlclient.getContent` and `htmlparser.parseHtml`.
-  ## * `tag` is the HTML DOM tag, must not be empty string, for example to search for `<a>` links use `"a"`, etc.
-  ## * `attr` is an *attribute key* that the `tag` should match, if you do *not* want to filter by attribute key then use empty string.
-  ## * `pred` is a user-provided arbitrary filtering function that takes `XmlNode` and returns `bool`.
-  ## * `reversedIter` Reverses the iteration order, set to `true` to scan from bottom to top of the page.
-  for n in parseFindImpl(body, tag, reversedIter):
-    if hasAttrImpl(n, attr) and pred(n): yield n
-
-iterator scrap*(body: XmlNode; tag: string; cssSelector: string; reversedIter = false): XmlNode =
+iterator scrap*(body: XmlNode; tag: string; cssSelector: string): XmlNode =
   ## Web scraper iterator that searchs by tag and CSS Selector.
   ##
   ## * `body` is the HTML DOM `XmlNode`, feed it with `htmlclient.getContent` and `htmlparser.parseHtml`.
   ## * `tag` is the HTML DOM tag, must not be empty string, for example to search for `<a>` links use `"a"`, etc.
   ## * `cssSelector` is a CSS selector to filter by, must not be empty string nor Regex syntax.
-  ## * `reversedIter` Reverses the iteration order, set to `true` to scan from bottom to top of the page.
   assert cssSelector.len > 0, "cssSelector must not be empty string"
-  var temp = parseFindImpl(body, tag, reversedIter)
+  var temp = parseFindImpl(body, tag)
   findCssImpl(temp, cssSelector)
   for n in temp: yield n
 
@@ -142,15 +128,6 @@ runnableExamples:
       </body><!-- Compile-Time Web Scraper -->
       """  ## Just an example html body string.
       let body: XmlNode = htmlparser.parseHtml(htmls)
-      func example(n: XmlNode): bool = """ key="value" """ in $n ## Just an example proc
-
-      ## Scrap data by searching by HTML tag, attribute key and a predicate function.
-      for item in scrap(body = body, tag = "p", attr = "key", pred = example):
-        doAssert $item == """<p key="value" id="owo"> text </p>"""
-
-      ## Scrap data by searching by HTML tag and a predicate function.
-      for item in scrap(body = body, tag = "p", attr = "", pred = example):
-        doAssert $item == """<p key="value" id="owo"> text </p>"""
 
       ## Scrap data by searching by HTML Tag, attribute key and attribute value.
       for item in scrap(body = body, tag = "p", attr = "key", attrValue = "value"):
