@@ -35,6 +35,7 @@
 ## * `htmlgen module <htmlgen.html>`_ for html code generator
 
 import macros, strtabs, strutils
+import std/private/since
 include "system/inclrtl"
 
 type
@@ -45,7 +46,7 @@ type
 
   XmlNodeKind* = enum ## Different kinds of XML nodes.
     xnText,           ## a text element
-    xnVerbatimText,   ## 
+    xnVerbatimText,   ##
     xnElement,        ## an element with 0 or more children
     xnCData,          ## a CDATA node
     xnEntity,         ## an entity (like ``&thing;``)
@@ -70,7 +71,7 @@ type
     # HTML4: the slash is technically invalid. However, it's accepted by W3C's HTML validator.
     # XHTML: The slash is REQUIRED.
 const SingleTags = ["area", "base", "basefont",
-    "br", "col","embed", "frame", "hr", "img", 
+    "br", "col","embed", "frame", "hr", "img",
     "input","source","track",
     "isindex", # obsolete HTML 4.01
     "link", "meta", "param", "wbr",
@@ -115,7 +116,7 @@ proc newText*(text: string): XmlNode =
   result = newXmlNode(xnText)
   result.fText = text
 
-proc newVerbatimText*(text: string): XmlNode {.since:(1, 3).} = 
+proc newVerbatimText*(text: string): XmlNode {.since: (1, 3).} =
   ## Creates a new ``XmlNode`` of kind ``xnVerbatimText`` with the text `text`.
   ## **Since**: Version 1.3.
   result = newXmlNode(xnVerbatimText)

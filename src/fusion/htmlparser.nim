@@ -2028,17 +2028,3 @@ proc loadHtml*(path: string): XmlNode =
   ## a ``XmlNode``. All parsing errors are ignored.
   var errors: seq[string] = @[]
   result = loadHtml(path, errors)
-
-when not defined(testing) and isMainModule:
-  import os
-
-  var errors: seq[string] = @[]
-  var x = loadHtml(paramStr(1), errors)
-  for e in items(errors): echo e
-
-  var f: File
-  if open(f, "test.txt", fmWrite):
-    f.write($x)
-    f.close()
-  else:
-    quit("cannot write test.txt")
