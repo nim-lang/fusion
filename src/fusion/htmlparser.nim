@@ -30,7 +30,6 @@
 ## ending with the extension ``.rst`` and convert them to ``.html``.
 ##
 ## .. code-block:: Nim
-##     :test:
 ##
 ##   import htmlparser
 ##   import xmltree  # To use '$' for XmlNode
