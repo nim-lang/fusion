@@ -36,6 +36,7 @@
 
 import macros, strtabs, strutils
 include "system/inclrtl"
+import std/private/since
 
 type
   XmlNode* = ref XmlNodeObj ## An XML tree consisting of XML nodes.
