@@ -1,2 +1,2 @@
 *        text=auto
-*.html   text diff=html
+*.html   text diff=html eol=lf
