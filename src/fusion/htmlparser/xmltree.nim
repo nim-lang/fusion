@@ -65,6 +65,18 @@ type
       s: seq[XmlNode]
       fAttr: XmlAttributes
     fClientData: int    ## for other clients
+    # Is the Ending Slash Optional?
+    # HTML5: the slash is optional.
+    # HTML4: the slash is technically invalid. However, it's accepted by W3C's HTML validator.
+    # XHTML: The slash is REQUIRED.
+const SingleTags = ["area", "base", "basefont",
+    "br", "col","embed", "frame", "hr", "img",
+    "input","source","track",
+    "isindex", # obsolete HTML 4.01
+    "link", "meta", "param", "wbr",
+    "command", # obsolete
+    "keygen", # obsolete
+    ]
 
 const
   xmlHeader* = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"
@@ -85,7 +97,8 @@ proc newElement*(tag: string): XmlNode =
     a.add newElement("childTag")
     assert a.kind == xnElement
     assert $a == """<firstTag>
-  <childTag />
+  <childTag>
+  </childTag>
 </firstTag>"""
 
   result = newXmlNode(xnElement)
@@ -218,7 +231,8 @@ proc tag*(n: XmlNode): string {.inline.} =
     var a = newElement("firstTag")
     a.add newElement("childTag")
     assert $a == """<firstTag>
-  <childTag />
+  <childTag>
+  </childTag>
 </firstTag>"""
     assert a.tag == "firstTag"
 
@@ -238,11 +252,13 @@ proc `tag=`*(n: XmlNode, tag: string) {.inline.} =
     var a = newElement("firstTag")
     a.add newElement("childTag")
     assert $a == """<firstTag>
-  <childTag />
+  <childTag>
+  </childTag>
 </firstTag>"""
     a.tag = "newTag"
     assert $a == """<newTag>
-  <childTag />
+  <childTag>
+  </childTag>
 </newTag>"""
 
   assert n.k == xnElement
@@ -308,7 +324,7 @@ proc add*(father, son: XmlNode) {.inline.} =
     f.add newText("my text")
     f.add newElement("sonTag")
     f.add newEntity("my entity")
-    assert $f == "<myTag>my text<sonTag />&my entity;</myTag>"
+    assert $f == "<myTag>my text<sonTag></sonTag>&my entity;</myTag>"
   add(father.s, son)
 
 proc insert*(father, son: XmlNode, index: int) {.inline.} =
@@ -324,8 +340,10 @@ proc insert*(father, son: XmlNode, index: int) {.inline.} =
     f.add newElement("first")
     f.insert(newElement("second"), 0)
     assert $f == """<myTag>
-  <second />
-  <first />
+  <second>
+  </second>
+  <first>
+  </first>
 </myTag>"""
 
   assert father.k == xnElement and son.k == xnElement
@@ -346,7 +364,8 @@ proc delete*(n: XmlNode, i: Natural) {.noSideEffect.} =
     f.insert(newElement("second"), 0)
     f.delete(0)
     assert $f == """<myTag>
-  <first />
+  <first>
+  </first>
 </myTag>"""
 
   assert n.k == xnElement
@@ -376,8 +395,10 @@ proc `[]`*(n: XmlNode, i: int): XmlNode {.inline.} =
     var f = newElement("myTag")
     f.add newElement("first")
     f.insert(newElement("second"), 0)
-    assert $f[1] == "<first />"
-    assert $f[0] == "<second />"
+    assert $f[1] == """<first>
+</first>"""
+    assert $f[0] == """<second>
+</second>"""
 
   assert n.k == xnElement
   result = n.s[i]
@@ -591,9 +612,10 @@ proc add*(result: var string, n: XmlNode, indent = 0, indWidth = 2,
       c = newComment("my comment")
       s = ""
     s.add(c)
+    a.add b
     s.add(a)
-    s.add(b)
-    assert s == "<!-- my comment --><firstTag />my text"
+    # s.add(b)
+    assert s == "<!-- my comment --><firstTag>my text</firstTag>"
 
   proc noWhitespace(n: XmlNode): bool =
     for i in 0 ..< n.len:
@@ -633,8 +655,11 @@ proc add*(result: var string, n: XmlNode, indent = 0, indWidth = 2,
         result.addEscapedAttr(val)
         result.add('"')
 
-    if n.len == 0:
-      result.add(" />")
+    if n.len == 0 and n.fTag in SingleTags:
+      result.add("/>")
+      # result.add("</")
+      # result.add(n.fTag)
+      # result.add(">")
       return
 
     let
@@ -685,7 +710,8 @@ proc child*(n: XmlNode, name: string): XmlNode =
     f.add newElement("firstSon")
     f.add newElement("secondSon")
     f.add newElement("thirdSon")
-    assert $(f.child("secondSon")) == "<secondSon />"
+    assert $(f.child("secondSon")) == """<secondSon>
+</secondSon>"""
 
   assert n.kind == xnElement
   for i in items(n):
