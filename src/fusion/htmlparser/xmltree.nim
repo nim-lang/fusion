@@ -65,18 +65,6 @@ type
       s: seq[XmlNode]
       fAttr: XmlAttributes
     fClientData: int    ## for other clients
-    # Is the Ending Slash Optional?
-    # HTML5: the slash is optional.
-    # HTML4: the slash is technically invalid. However, it's accepted by W3C's HTML validator.
-    # XHTML: The slash is REQUIRED.
-const SingleTags = ["area", "base", "basefont",
-    "br", "col","embed", "frame", "hr", "img",
-    "input","source","track",
-    "isindex", # obsolete HTML 4.01
-    "link", "meta", "param", "wbr",
-    "command", # obsolete
-    "keygen", # obsolete
-    ]
 
 const
   xmlHeader* = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"
@@ -645,11 +633,8 @@ proc add*(result: var string, n: XmlNode, indent = 0, indWidth = 2,
         result.addEscapedAttr(val)
         result.add('"')
 
-    if n.len == 0 and n.fTag in SingleTags:
-      result.add("/>")
-      # result.add("</")
-      # result.add(n.fTag)
-      # result.add(">")
+    if n.len == 0:
+      result.add(" />")
       return
 
     let
