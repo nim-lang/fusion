@@ -7,6 +7,7 @@ func toFilePermissions*(perm: Natural): set[FilePermission] =
   ## * `getFilePermissions <#getFilePermissions,string>`_
   ## * `setFilePermissions <#setFilePermissions,string,set[FilePermission]>`_
   runnableExamples:
+    import os
     doAssert toFilePermissions(0o700) == {fpUserExec, fpUserRead, fpUserWrite}
     doAssert toFilePermissions(0o070) == {fpGroupExec, fpGroupRead, fpGroupWrite}
     doAssert toFilePermissions(0o007) == {fpOthersExec, fpOthersRead, fpOthersWrite}
