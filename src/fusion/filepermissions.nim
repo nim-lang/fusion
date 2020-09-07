@@ -20,3 +20,13 @@ func toFilePermissions*(perm: Natural): set[FilePermission] =
     if (perm and 2) != 0: result.incl permBase.succ()  # Read
     if (perm and 4) != 0: result.incl permBase.succ(2) # Write
     perm = perm shr 3  # Shift to next permission group
+
+
+proc chmod*(filename: string; permissions: Natural) {.inline.} =
+  ## Convenience proc for `os.setFilePermissions("file.ext", filepermissions.toFilePermissions(0o666))`
+  ## to change file permissions using Unix like octal file permission.
+  ##
+  ## See also:
+  ## * `setFilePermissions <#setFilePermissions,string,set[FilePermission]>`_
+  assert filename.len > 0, "filename must not be empty string"
+  setFilePermissions(filename, toFilePermissions(permissions))
