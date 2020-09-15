@@ -46,3 +46,14 @@ func fromFilePermissions*(perm: set[FilePermission]): uint =
   if fpOthersExec in perm:  inc result, 0o001  # Others
   if fpOthersWrite in perm: inc result, 0o002
   if fpOthersRead in perm:  inc result, 0o004
+
+
+runnableExamples:
+  import os
+  static:
+    doAssert 0o700.toFilePermissions.fromFilePermissions == 0o700
+    doAssert 0o070.toFilePermissions.fromFilePermissions == 0o070
+    doAssert 0o007.toFilePermissions.fromFilePermissions == 0o007
+    doAssert 0o644.toFilePermissions.fromFilePermissions == 0o644
+    doAssert 0o777.toFilePermissions.fromFilePermissions == 0o777
+    doAssert 0o000.toFilePermissions.fromFilePermissions == 0o000
