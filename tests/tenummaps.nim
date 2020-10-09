@@ -1,4 +1,4 @@
-import std/enummaps
+import fusion/enummaps
 from sequtils import toSeq
 
 template isDefault[T](a: T): bool = a == default(type(a))
