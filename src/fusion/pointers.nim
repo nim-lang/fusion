@@ -17,6 +17,7 @@ proc toUncheckedArray*[T](a: ptr T): ptr UncheckedArray[T] {.inline.} =
   cast[ptr UncheckedArray[T]](a)
 
 template `+`*[T](p: ptr T, off: int): ptr T =
+  ## Unsafe.
   runnableExamples:
     var a = @[10, 11, 12]
     let pa = a[0].addr
@@ -28,18 +29,23 @@ template `+`*[T](p: ptr T, off: int): ptr T =
   cast[ptr T](cast[ByteAddress](p) +% off * sizeof(T))
 
 template `-`*[T](p: ptr T, off: int): ptr T =
+  ## Unsafe.
   type T = typeof(p[])
   cast[ptr T](cast[ByteAddress](p) -% off * sizeof(T))
 
 template `[]`*[T](p: ptr T, off: int): T =
+  ## Unsafe.
   (p + off)[]
 
 template `[]=`*[T](p: ptr T, off: int, val: T) =
+  ## Unsafe.
   (p + off)[] = val
 
 proc `+=`*[T](p: var ptr T, off: int) {.inline.} =
+  ## Unsafe.
   # not a template to avoid double evaluation issues
   p = p + off
 
 proc `-=`*[T](p: var ptr T, off: int) {.inline.} =
+  ## Unsafe.
   p = p - off
