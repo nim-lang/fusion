@@ -1,4 +1,4 @@
-import std/enummaps
+import fusion/enummaps
 
 enumMap:
   type Foo* = enum

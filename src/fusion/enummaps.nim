@@ -29,7 +29,7 @@ const nimHasArrayEnumIndex = compiles(block:
   # for bootstrap; remove pending csources2 https://github.com/timotheecour/Nim/issues/251
 
 runnableExamples:
-  ## See `tests/stdlib/tenummaps.nim` for more examples.
+  ## See `tests/tenummaps.nim` for more examples.
   enumMap:
     type MyHoly = enum
       kDefault = -1 ## sentinel, when reverse lookup fails in `byVal`
