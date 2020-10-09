@@ -7,3 +7,5 @@
   convenience functions to change file permissions using Unix like octal file permissions.
 - Added module `scripting` providing `withDir` to switch the directory temporarily. This
   was previously only available in the `nimscript` module.
+- Added module `pointers` containing `toUncheckedArray`
+- Add `enummaps` module which enables a DRY and flexible syntax to attach metadata to enums.
