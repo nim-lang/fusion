@@ -9,7 +9,7 @@ Note: experimental module, unstable API
 
 #[
 ## TODO
-* pending https://github.com/nim-lang/RFCs/issues/150 or https://github.com/nim-lang/Nim/pull/8903,
+* pending https://github.com/nim-lang/RFCs/issues/150 or https://github.com/nim-lang/Nim/pull/8903
 reattach doc comments to enum members (+ show enummap attached values)
 
 * pending #13830, you'll be able to write instead:
