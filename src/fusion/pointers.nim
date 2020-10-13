@@ -15,3 +15,11 @@ proc toUncheckedArray*[T](a: ptr T): ptr UncheckedArray[T] {.inline.} =
     pa[0] += 5
     doAssert a[1] == 105
   cast[ptr UncheckedArray[T]](a)
+
+proc `cast`*[T](a:T, T2: typedesc): T2 =
+  ## allows running `cast` in UFCS/method call syntax chains.
+  ## Unsafe as it calls `cast`.
+  runnableExamples:
+    proc square(a: auto): auto = a*a
+    doAssert 3.square.cast(float).square == cast[float](3.square).square
+  cast[T2](a)
