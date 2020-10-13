@@ -183,6 +183,7 @@ jobs:
           nimble test
 
       - name: docs
+        if: matrix.branch == 'devel'
         run: |
           cd fusion
           nimble docs
