@@ -1,4 +1,5 @@
 # Nim Fusion
+docs: https://nim-lang.github.io/fusion/theindex.html
 
 Fusion contains Nim modules that are to be bundled with the Nim installation in order to give us something like the "Nim distribution". 
 Fusion fullfills multiple purposes: 
