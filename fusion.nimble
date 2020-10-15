@@ -13,4 +13,4 @@ requires "nim >= 1.0.0"
 task docs, "":
   # can customize, eg: 
   # exec "nim r src/fusion/docutils " & srcDir & " --outdir:htmldocs2 -d:foo"
-  exec "nim r src/fusion/docutils " & srcDir
+  exec "nim c -r src/fusion/docutils " & srcDir
