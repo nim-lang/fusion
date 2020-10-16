@@ -28,5 +28,4 @@ proc chmod*(filename: string; permissions: Natural) {.inline.} =
   ##
   ## See also:
   ## * `setFilePermissions <#setFilePermissions,string,set[FilePermission]>`_
-  assert filename.len > 0, "filename must not be empty string"
   setFilePermissions(filename, toFilePermissions(permissions))
