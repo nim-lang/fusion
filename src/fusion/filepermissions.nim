@@ -22,10 +22,10 @@ func toFilePermissions*(perm: Natural): set[FilePermission] =
     perm = perm shr 3  # Shift to next permission group
 
 
-proc chmod*(filename: string; permissions: Natural) {.inline.} =
+proc chmod*(path: string; permissions: Natural) {.inline.} =
   ## Convenience proc for `os.setFilePermissions("file.ext", filepermissions.toFilePermissions(0o666))`
   ## to change file permissions using Unix like octal file permission.
   ##
   ## See also:
   ## * `setFilePermissions <#setFilePermissions,string,set[FilePermission]>`_
-  setFilePermissions(filename, toFilePermissions(permissions))
+  setFilePermissions(path, toFilePermissions(permissions))
