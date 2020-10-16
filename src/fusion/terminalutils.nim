@@ -1,11 +1,11 @@
 ## * Terminal prompt that asks a `question` and returns 1 answer from `answers`.
 ##
 ## .. code-block:: Nim
-##   echo promptInteractive("is Schrödinger's Cat alive?", ["maybe", "maybe", "maybe"])
+##   echo promptInteractive("is Schrödinger's Cat alive?", ["yes", "no", "maybe"])
 import terminal
 
 
-proc promptInteractive*(question: string, answers: openarray[string], width: Positive = 80): string =
+proc promptInteractive*(question: string, answers: openArray[string], width: Positive = 80): string =
   ## Terminal prompt that asks a `question` and returns 1 answer from `answers`.
   # Adapted from Nimble source code to stdlib, adding width optional argument.
   assert question.len > 0, "question must not be empty string"
