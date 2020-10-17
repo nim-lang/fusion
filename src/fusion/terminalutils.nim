@@ -6,7 +6,7 @@ import terminal
 
 
 proc promptInteractive*(question: string, answers: openArray[string], width: Positive = 80): string =
-  ## Terminal prompt that asks a `question` and returns 1 answer from `answers`.
+  ## Terminal prompt that asks a `question` and returns only one of the answers from possible `answers`.
   # Adapted from Nimble source code to stdlib, adding width optional argument.
   assert question.len > 0, "question must not be empty string"
   assert answers.len > 0, "There must be at least one possible answer"
