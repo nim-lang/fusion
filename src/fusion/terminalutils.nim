@@ -1,12 +1,16 @@
-## * Terminal prompt that asks a `question` and returns 1 answer from `answers`.
+## * Utilities and convenience procs built on top of `terminal` module.
 ##
-## .. code-block:: Nim
-##   echo promptInteractive("is Schrödinger's Cat alive?", ["yes", "no", "maybe"])
+## See also:
+## * `terminal <terminal.html>`_
 import terminal
 
 
 proc promptInteractive*(question: string, answers: openArray[string], width: Positive = 80): string =
   ## Terminal prompt that asks a `question` and returns only one of the answers from possible `answers`.
+  ##
+  ## .. code-block:: Nim
+  ##   echo promptInteractive("is Schrödinger's Cat alive?", ["yes", "no", "maybe"])
+  ##
   # Adapted from Nimble source code to stdlib, adding width optional argument.
   assert question.len > 0, "Question must not be empty"
   assert answers.len > 0, "There must be at least one possible answer"
