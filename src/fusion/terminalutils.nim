@@ -9,7 +9,7 @@ proc promptInteractive*(question: string, answers: openArray[string], width: Pos
   ## Terminal prompt that asks a `question` and returns 1 answer from `answers`.
   # Adapted from Nimble source code to stdlib, adding width optional argument.
   assert question.len > 0, "question must not be empty string"
-  assert answers.len > 0, "answers must not be empty array"
+  assert answers.len > 0, "There must be at least one possible answer"
   writeStyled(question, {styleBright})
   var
     current = 0
