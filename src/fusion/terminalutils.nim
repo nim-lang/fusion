@@ -5,13 +5,13 @@
 import terminal
 
 
-proc promptInteractive*(question: string, answers: openArray[string], width: Positive = 80): string =
+proc promptInteractive*(question: string; answers: openArray[string]; width: Positive; indicators = ['>', '<']): string =
   ## Terminal prompt that asks a `question` and returns only one of the answers from possible `answers`.
   ##
   ## .. code-block:: Nim
-  ##   echo promptInteractive("is Schrödinger's Cat alive?", ["yes", "no", "maybe"])
+  ##   echo promptInteractive("Is Schrödinger's Cat alive?", ["yes", "no", "maybe"], 40, ['>', '-'])
   ##
-  # Adapted from Nimble source code to stdlib, adding width optional argument.
+  # Adapted from Nimble source code to stdlib, adding width argument.
   assert question.len > 0, "Question must not be empty"
   assert answers.len > 0, "There must be at least one possible answer"
   writeStyled(question, {styleBright})
@@ -32,15 +32,15 @@ proc promptInteractive*(question: string, answers: openArray[string], width: Pos
     for i, arg in answers:
       # Check if the option is the current
       if i == current:
-        writeStyled("> " & arg & " <", {styleBright, styleUnderscore})
+        writeStyled($indicators[0] & " " & arg & " " & $indicators[1], {styleBright, styleUnderscore})
       else:
         writeStyled("  " & arg & "  ", {styleDim})
       # Move the cursor back to the start
-      for s in 0..<(arg.len + 4): cursorBackward(stdout)
+      stdout.cursorBackward(arg.len + 4)
       # Move down for the next item
       cursorDown(stdout)
     # Move the cursor back up to the start of the selection prompt
-    for i in 0..<answers.len: cursorUp(stdout)
+    stdout.cursorUp(answers.len)
     resetAttributes(stdout)
 
     # Ensure that the screen is updated before input
@@ -48,7 +48,7 @@ proc promptInteractive*(question: string, answers: openArray[string], width: Pos
     # Begin key input
     while true:
       case getch():
-      of '\t', char(27):
+      of '\t', '\x1B':
         current = (current + 1) mod answers.len
         break
       of '\r', ' ':
@@ -60,10 +60,10 @@ proc promptInteractive*(question: string, answers: openArray[string], width: Pos
       else: discard
 
   # Erase all lines of the selection
-  for i in 0..<answers.len:
+  for i in 0 ..< answers.len:
     eraseLine(stdout)
     cursorDown(stdout)
   # Move the cursor back up to the initial selection line
-  for i in 0..<answers.len: cursorUp(stdout)
+  stdout.cursorUp(answers.len)
   showCursor(stdout)
-  return answers[current]
+  result = answers[current]
