@@ -1,6 +1,7 @@
 ## * Convenience functions to convert Unix like file permissions to and from ``set[FilePermission]``.
 import os
 
+
 func toFilePermissions*(perm: Natural): set[FilePermission] =
   ## Convenience func to convert Unix like file permission to ``set[FilePermission]``.
   ##
@@ -37,6 +38,7 @@ func fromFilePermissions*(perm: set[FilePermission]): uint =
     doAssert fromFilePermissions({fpUserWrite, fpUserRead, fpGroupRead, fpOthersRead}) == 0o644
     doAssert fromFilePermissions({fpUserExec, fpUserWrite, fpUserRead, fpGroupExec, fpGroupWrite, fpGroupRead, fpOthersExec, fpOthersWrite, fpOthersRead}) == 0o777
     doAssert fromFilePermissions({}) == 0o000
+    static: doAssert 0o777.toFilePermissions.fromFilePermissions == 0o777
   if fpUserExec in perm:    inc result, 0o100  # User
   if fpUserWrite in perm:   inc result, 0o200
   if fpUserRead in perm:    inc result, 0o400
@@ -48,7 +50,10 @@ func fromFilePermissions*(perm: set[FilePermission]): uint =
   if fpOthersRead in perm:  inc result, 0o004
 
 
-runnableExamples:
-  import os
-  static:
-    doAssert 0o777.toFilePermissions.fromFilePermissions == 0o777
+proc chmod*(path: string; permissions: Natural) {.inline.} =
+  ## Convenience proc for `os.setFilePermissions("file.ext", filepermissions.toFilePermissions(0o666))`
+  ## to change file permissions using Unix like octal file permission.
+  ##
+  ## See also:
+  ## * `setFilePermissions <#setFilePermissions,string,set[FilePermission]>`_
+  setFilePermissions(path, toFilePermissions(permissions))
