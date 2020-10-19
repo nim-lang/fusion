@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [version-1-0, version-1-2, devel]
+        branch: [version-1-0, version-1-2, version-1-4, devel]
         target:
           - os: linux
             cpu: amd64
@@ -181,3 +181,24 @@ jobs:
         run: |
           cd fusion
           nimble test
+
+      - name: docs
+        if: matrix.branch == 'devel'
+        run: |
+          cd fusion
+          nimble docs
+
+      - name: Deploy docs
+        # to view docs on your own fork: push a gh-pages branch on your fork,
+        # enable gh-pages in your fork
+        # and remove `github.ref == 'refs/heads/master'` below
+        if: |
+          github.event_name == 'push' && github.ref == 'refs/heads/master' &&
+          matrix.target.os == 'linux' && matrix.target.cpu == 'amd64' &&
+          matrix.branch == 'devel'
+        uses: crazy-max/ghaction-github-pages@v1
+        with:
+          build_dir: fusion/htmldocs
+          target_branch: gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
