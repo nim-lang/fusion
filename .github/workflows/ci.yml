@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [version-1-0, version-1-2, devel]
+        branch: [version-1-0, version-1-2, version-1-4, devel]
         target:
           - os: linux
             cpu: amd64
