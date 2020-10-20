@@ -3,8 +3,9 @@
 ## License
 ## =======
 ##
-## `promptInteractive` code is based and adapted from Nimble source code to Nim stdlib,
-## Nimble is distributed with Nim, Nimble itself is under the following license:
+## `promptInteractive` code is based and adapted from
+## `Nimble source code <https://github.com/nim-lang/nimble/blob/master/src/nimblepkg/cli.nim#L1-L2>`_
+## to Nim stdlib, Nimble is distributed with Nim, Nimble itself is under the following license:
 ##
 ## Copyright (c) 2015, Dominik Picheta
 ## All rights reserved.
