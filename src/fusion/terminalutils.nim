@@ -12,8 +12,6 @@ proc promptInteractive*(question: string; answers: openArray[string]; width: Pos
   ##   echo promptInteractive("Is Schrödinger's Cat alive?", ["yes", "no", "maybe"], 40, ['>', '-'])
   ##
   # Adapted from Nimble source code to stdlib, adding width argument.
-  assert question.len > 0, "Question must not be empty"
-  assert answers.len > 0, "There must be at least one possible answer"
   writeStyled(question, {styleBright})
   var
     current = 0
