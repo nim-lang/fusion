@@ -4,7 +4,7 @@
 ## =======
 ##
 ## `promptInteractive` code is based and adapted from
-## `Nimble source code <https://github.com/nim-lang/nimble/blob/master/src/nimblepkg/cli.nim#L1-L2>`_
+## `Nimble source code <https://github.com/nim-lang/nimble/blob/master/src/nimblepkg/cli.nim>`_
 ## to Nim stdlib, Nimble is distributed with Nim, Nimble itself is under the following license:
 ##
 ## Copyright (c) 2015, Dominik Picheta
