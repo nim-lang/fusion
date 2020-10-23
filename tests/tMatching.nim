@@ -1,7 +1,7 @@
 import sugar, strutils, sequtils, strformat, macros, options, tables
 import json, parseopt
 
-import hmisc/macros/matching
+import fusion/matching
 {.experimental: "caseStmtMacros".}
 # import hmisc/hdebug_misc
 
@@ -646,4 +646,3 @@ suite "Matching":
     let res = @[12,3,3].withItCall do:
       it = it.filterIt(it < 4)
       it.add 99
-
