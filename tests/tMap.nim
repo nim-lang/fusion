@@ -1,10 +1,10 @@
 import sequtils, unittest
-import fusion/btreetables
+import fusion/map
 
 
 # smaller tables
 test "init":
-  var t = initOrderedTable[int, int]()
+  var t = initOrderedMap[int, int]()
   t[1] = 10
   t[2] = 20
   t[3] = 30
@@ -15,14 +15,14 @@ test "init":
 
 test "to ordered":
   var a = [(1, 10), (2, 20), (3, 30)]
-  var t = toOrderedTable(a)
+  var t = toOrderedMap(a)
   doAssert t.len == 3
   doAssert toSeq(keys(t)) == @[1, 2, 3]
   doAssert toSeq(values(t)) == @[10, 20, 30]
   doAssert toSeq(pairs(t)) == @[(1, 10), (2, 20), (3, 30)]
 
 test "getters":
-  var t = {'a': "bc", 'd': "ef", 'g': "hi"}.toOrderedTable
+  var t = {'a': "bc", 'd': "ef", 'g': "hi"}.toOrderedMap
   doAssert t['a'] == "bc"
   doAssertRaises(KeyError): discard t['j']
   doAssert t.hasKey('d')
@@ -36,7 +36,7 @@ test "getters":
   doAssert 'b' notin t
 
 test "repeating keys":
-  var t: OrderedTable[char, int]
+  var t: OrderedMap[char, int]
   for i, c in "abracadabra":
     t[c] = 10*i
   doAssert t.len == 5
@@ -46,7 +46,7 @@ test "repeating keys":
   doAssert toSeq(keys(t)) == @['a', 'b', 'r', 'c', 'd']
 
 test "put":
-  var t: OrderedTable[int, char]
+  var t: OrderedMap[int, char]
   doAssert not t.hasKeyOrPut(1, 'a')
   doAssert t.hasKeyOrPut(1, 'b')
   doAssert t[1] == 'a'
@@ -55,7 +55,7 @@ test "put":
   doAssert t.len == 2
 
 test "remove":
-  var t = {"a": 99, "b": 88, "c": 77}.toOrderedTable
+  var t = {"a": 99, "b": 88, "c": 77}.toOrderedMap
   t.delete("zz")
   doAssert t.len == 3
   t.delete("b")
@@ -77,11 +77,11 @@ test "remove":
   t.clear()
 
 test "equality":
-  var t1 = {1: 10, 2: 20, 3: 30}.toOrderedTable
-  var t2 = {1: 10, 2: 20, 3: 30}.toOrderedTable
-  var t3 = {1: 11, 2: 21, 3: 31}.toOrderedTable
-  var t4 = {1: 10, 3: 30, 2: 20}.toOrderedTable
-  var t5 = {1: 10, 2: 20, 3: 30, 4: 40}.toOrderedTable
+  var t1 = {1: 10, 2: 20, 3: 30}.toOrderedMap
+  var t2 = {1: 10, 2: 20, 3: 30}.toOrderedMap
+  var t3 = {1: 11, 2: 21, 3: 31}.toOrderedMap
+  var t4 = {1: 10, 3: 30, 2: 20}.toOrderedMap
+  var t5 = {1: 10, 2: 20, 3: 30, 4: 40}.toOrderedMap
   doAssert t1 == t2
   doAssert t1 != t3
   doAssert t2 != t4
@@ -94,7 +94,7 @@ test "equality":
   doAssert t2 == t5
 
 test "mvalues and mpairs":
-  var a = {'c': 1, 'b': 2, 'a': 3}.toOrderedTable
+  var a = {'c': 1, 'b': 2, 'a': 3}.toOrderedMap
   for k, v in mpairs(a):
     v += 10
   doAssert a['a'] == 13
@@ -111,7 +111,7 @@ test "mvalues and mpairs":
 
 # larger tables
 test "without init":
-  var t: OrderedTable[int, int]
+  var t: OrderedMap[int, int]
   for i in 1..10:
     t[i] = 10*i
   doAssert t.len == 10
@@ -124,12 +124,12 @@ test "without init":
 test "to ordered":
   var a = {9: 99, 8: 88, 7: 77, 6: 66, 5: 55, 4: 44, 3: 33, 2: 22, 1: 11,
            10: 0, 11: 1, 12: 2, 13: 3, 14: 4, 15: 5, 16: 6, 17: 7, 18: 8}
-  var t = toOrderedTable(a)
+  var t = toOrderedMap(a)
   doAssert t.len == 18
 
 test "getters":
   var t = {9: 99, 8: 88, 7: 77, 6: 66, 5: 55, 4: 44, 3: 33, 2: 22, 1: 11,
-           10: 0, 11: 1, 12: 2, 13: 3, 14: 4, 15: 5, 16: 6}.toOrderedTable
+           10: 0, 11: 1, 12: 2, 13: 3, 14: 4, 15: 5, 16: 6}.toOrderedMap
   doAssert t[9] == 99
   doAssertRaises(KeyError): discard t[29]
   doAssert t.hasKey(8)
@@ -143,7 +143,7 @@ test "getters":
   doAssert 29 notin t
 
 test "repeating keys":
-  var t: OrderedTable[char, int]
+  var t: OrderedMap[char, int]
   for i, c in "abracadabra popocatepetl minimum":
     t[c] = 10*i
   doAssert t.len == 15
@@ -153,7 +153,7 @@ test "repeating keys":
 
 test "put":
   var t = {'a': 99, 'b': 88, 'c': 77, 'd': 66, 'e': 55, 'f': 44,
-           'g': 33, 'h': 22, 'i': 11}.toOrderedTable
+           'g': 33, 'h': 22, 'i': 11}.toOrderedMap
   doAssert not t.hasKeyOrPut('j', 12)
   doAssert t.hasKeyOrPut('j', 34)
   doAssert t['j'] == 12
@@ -163,7 +163,7 @@ test "put":
 
 test "remove":
   var t = {'a': 99, 'b': 88, 'c': 77, 'd': 66, 'e': 55, 'f': 44,
-           'g': 33, 'h': 22, 'i': 11}.toOrderedTable
+           'g': 33, 'h': 22, 'i': 11}.toOrderedMap
   t.delete('j')
   doAssert t.len == 9
   t.delete('b')
@@ -175,11 +175,11 @@ test "remove":
   doAssert t.len == 8
 
 test "equality":
-  var t1 = {'a': 99, 'b': 88, 'c': 77, 'd': 66, 'e': 55, 'f': 44}.toOrderedTable
-  var t2 = {'a': 99, 'b': 88, 'c': 77, 'd': 66, 'e': 55, 'f': 44}.toOrderedTable
-  var t3 = {'a': 94, 'b': 83, 'c': 72, 'd': 61, 'e': 50, 'f': 39}.toOrderedTable
-  var t4 = {'a': 99, 'f': 44, 'b': 88, 'c': 77, 'd': 66, 'e': 55}.toOrderedTable
-  var t5 = {'a': 99, 'b': 88, 'c': 77, 'd': 66, 'e': 55, 'f': 44, 'g': 33}.toOrderedTable
+  var t1 = {'a': 99, 'b': 88, 'c': 77, 'd': 66, 'e': 55, 'f': 44}.toOrderedMap
+  var t2 = {'a': 99, 'b': 88, 'c': 77, 'd': 66, 'e': 55, 'f': 44}.toOrderedMap
+  var t3 = {'a': 94, 'b': 83, 'c': 72, 'd': 61, 'e': 50, 'f': 39}.toOrderedMap
+  var t4 = {'a': 99, 'f': 44, 'b': 88, 'c': 77, 'd': 66, 'e': 55}.toOrderedMap
+  var t5 = {'a': 99, 'b': 88, 'c': 77, 'd': 66, 'e': 55, 'f': 44, 'g': 33}.toOrderedMap
   doAssert t1 == t2
   doAssert t1 != t3
   doAssert t2 != t4
@@ -195,7 +195,7 @@ test "equality":
   doAssert t2 != t5
 
 test "mvalues and mpairs":
-  var a = {'a': 99, 'b': 88, 'c': 77, 'd': 66, 'e': 55, 'f': 44}.toOrderedTable
+  var a = {'a': 99, 'b': 88, 'c': 77, 'd': 66, 'e': 55, 'f': 44}.toOrderedMap
   for k, v in mpairs(a):
     v = v div 11
   doAssert a['a'] == 9

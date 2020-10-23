@@ -1,10 +1,10 @@
 import unittest
-import fusion/btreetables
+import fusion/map
 
 
 test "init":
-  var a = initCountTable[char]()
-  var b: CountTable[char]
+  var a = initCountMap[char]()
+  var b: CountMap[char]
   doAssert a == b
   a['b'] = 3
   b['b'] = 2
@@ -13,7 +13,7 @@ test "init":
   doAssert a == b
 
 test "getters":
-  var a = toCountTable("abracadabra")
+  var a = toCountMap("abracadabra")
   doAssert a.len == 5
   doAssert a['a'] == 5
   doAssert a['b'] == 2
@@ -25,7 +25,7 @@ test "getters":
   doAssert 'z' notin a
 
 test "setters":
-  var a = toCountTable("aab")
+  var a = toCountMap("aab")
   doAssert a.len == 2
   a['a'] = 0
   doAssert a.len == 1
@@ -35,24 +35,24 @@ test "setters":
   doAssert a.len == 1
 
 test "largest and smallest":
-  var a = toCountTable("abracadabra")
+  var a = toCountMap("abracadabra")
   doAssert a.largest() == ('a', 5)
   doAssert a.smallest() == ('c', 1)
-  var b = toCountTable("millimeter")
+  var b = toCountMap("millimeter")
   doAssert b.largest() == ('e', 2)
   doAssert b.smallest() == ('r', 1)
 
 test "equality":
-  var a = toCountTable("aab")
+  var a = toCountMap("aab")
   a.inc('a')
   a.inc('b', 10)
-  doAssert a == toCountTable("aaabbbbbbbbbbb")
-  doAssert a == toCountTable("bbbbbbbbbbbaaa")
-  doAssert a == toCountTable("abbbbbbbbbbbaa")
-  doAssert a != toCountTable("baa")
+  doAssert a == toCountMap("aaabbbbbbbbbbb")
+  doAssert a == toCountMap("bbbbbbbbbbbaaa")
+  doAssert a == toCountMap("abbbbbbbbbbbaa")
+  doAssert a != toCountMap("baa")
 
 test "remove":
-  var a = toCountTable("abracadabra")
+  var a = toCountMap("abracadabra")
   doAssert a.len == 5
   a.del('a')
   doAssert a.len == 4
@@ -77,14 +77,14 @@ test "remove":
   a.clear()
 
 test "merge":
-  var a = toCountTable("aaabbc")
-  var b = toCountTable("aab")
+  var a = toCountMap("aaabbc")
+  var b = toCountMap("aab")
   merge(a, b)
   doAssert a.len == 3
   doAssert a['b'] == 3
 
 test "mvalues and mpairs":
-  var a = toCountTable("aaabbc")
+  var a = toCountMap("aaabbc");
   for k, v in mpairs(a):
     v += 10
   doAssert a['a'] == 13
