@@ -730,3 +730,271 @@ suite "Matching":
           fail()
         of (@a, _):
           assert a == true
+
+suite "Gara tests":
+  ## Test suite copied from gara pattern matching
+  type
+    Rectangle = object
+      a: int
+      b: int
+
+    Repo = ref object
+      name: string
+      author: Author
+      commits: seq[Commit]
+
+    Author = object
+      name: string
+      email: Email
+
+    Email = object
+      raw: string
+
+    # just an example: nice for match
+    CommitType = enum ctNormal, ctMerge, ctFirst, ctFix
+
+    Commit = ref object
+      message: string
+      case kind: CommitType:
+        of ctNormal:
+          diff: string # simplified
+        of ctMerge:
+          original: Commit
+          other: Commit
+        of ctFirst:
+          code: string
+        of ctFix:
+          fix: string
+
+  let repo = Repo(
+    name: "ExampleDB",
+    author: Author(
+      name: "Example Author",
+      email: Email(raw: "example@exampledb.org")),
+    commits: @[
+      Commit(kind: ctFirst, message: "First", code: "e:0"),
+      Commit(kind: ctNormal, message: "Normal", diff: "+e:2\n-e:0")
+  ])
+
+  test "Capturing":
+    let a = 2
+    case [a]: ## Wrap in `[]` to trigger `match` macro, otherwise it
+              ## will be treated as regular case match.
+      of [@b == 2]:
+        assertEq b, 2
+      else:
+        fail()
+
+
+  test "Object":
+    let a = Rectangle(a: 2, b: 0)
+
+    case a:
+      of (a: 4, b: 1):
+        fail()
+      of (a: 2, b: @b):
+        assertEq b, 0
+      else :
+        fail()
+
+  test "Subpattern":
+    case repo:
+      of (name: "New", commits: == @[]):
+        fail()
+      of (
+        name: @name,
+        author: (
+          name: "Example Author",
+          email: @email
+        ),
+        commits: @commits
+      ):
+        assertEq name, "ExampleDB"
+        assertEq email.raw, "example@exampledb.org"
+      else:
+        fail()
+
+  test "Sequence":
+    let a = @[Rectangle(a: 2, b: 4), Rectangle(a: 4, b: 4), Rectangle(a: 4, b: 4)]
+
+    case a:
+      of []:
+        fail()
+      of [_, all @others is (a: 4, b: 4)]:
+        check(others == a[1 .. ^1])
+      else:
+        fail()
+
+    # _ is always true, (a: 4, b: 4) didn't match element 2
+
+    # _ is alway.. a.a was 4, but a.b wasn't 4 => not a match
+
+
+
+  test "Sequence subpattern":
+    let a = @[
+      Rectangle(a: 2, b: 4),
+      Rectangle(a: 4, b: 0),
+      Rectangle(a: 4, b: 4),
+      Rectangle(a: 4, b: 4)
+    ]
+
+    case a:
+      of []:
+        fail()
+      of [_, _, all (a: @list)]:
+        check(list == @[4, 4])
+      else:
+        fail()
+
+  test "Variant":
+    let a = Commit(kind: ctNormal, message: "e", diff: "z")
+
+    case a:
+      of Merge(original: @original, other: @other):
+        fail()
+      of Normal(message: @message):
+        check(message == "e")
+      else:
+        fail()
+
+  test "Custom unpackers":
+    let email = repo.author.email
+
+    proc data(email: Email): tuple[name: string, domain: string] =
+      let words = email.raw.split('@', 1)
+      (name: words[0], domain: words[1])
+
+    proc tokens(email: Email): seq[string] =
+      # work for js slow
+      result = @[]
+      var token = ""
+      for i, c in email.raw:
+        if not c.isAlphaNumeric():
+          if token.len > 0:
+            result.add(token)
+            token = ""
+          result.add($c)
+        else:
+          token.add(c)
+      if token.len > 0:
+        result.add(token)
+
+    case email:
+      of (data: (name: "academy")):
+        fail()
+
+      # WARNING FIXME multiple calls for `tokens`
+      of (tokens: [_, _, _, _, @token]):
+        check(token == "org")
+
+  test "if":
+    let b = @[4, 0]
+
+    case b:
+      of [_, @t(it mod 2 == 0)]:
+        check(t == 0)
+      else:
+        fail()
+
+  test "unification":
+    let b = @["nim", "nim", "c++"]
+
+    var res = ""
+    case ["nim", "nim", "C++"]:
+      of [@x, @x, @x]: discard
+      of [@x, @x, _]: res = x
+
+    assertEq res, "nim"
+
+
+
+    case b:
+      of [@x, @x, @x]:
+        fail()
+      of [@x, @x, _]:
+        check(x == "nim")
+      else:
+        fail()
+
+  test "option":
+    let a = some[int](3)
+
+    case a:
+      of Some(@i):
+        check(i == 3)
+      else:
+        fail()
+
+
+  test "nameless tuple":
+    let a = ("a", "b")
+
+    case a:
+      of ("a", "c"):
+        fail()
+      of ("a", "c"):
+        fail()
+      of ("a", @c):
+        check(c == "b")
+      else:
+        fail()
+
+  test "ref":
+    type
+      Node = ref object
+        name: string
+        children: seq[Node]
+
+    let node = Node(name: "2")
+
+    case node:
+      of (name: @name):
+        check(name == "2")
+      else:
+        fail()
+
+    let node2: Node = nil
+
+    case node2:
+      of (isNil: false, name: "4"):
+        fail()
+      else:
+        check(true)
+
+  test "weird integers":
+    let a = 4
+
+    case [a]:
+      of [4'i8]:
+        check(true)
+      else:
+        fail()
+
+  test "dot access":
+    let a = Rectangle(b: 4)
+
+    case a:
+      of (b: == a.b):
+        check(true)
+      else:
+        fail()
+
+  test "arrays":
+    let a = [1, 2, 3, 4]
+
+    case a:
+      of [1, @a, 3, @b, 5]:
+        fail()
+      of [1, @a, 3, @b]:
+        check(a == 2 and b == 4)
+      else:
+        fail()
+
+  test "bool":
+    let a = Rectangle(a: 0, b: 0)
+
+    if a.matches((b: 0)):
+      check(true)
+    else:
+      fail()

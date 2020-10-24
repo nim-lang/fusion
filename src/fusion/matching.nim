@@ -540,7 +540,7 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
       var (elem, opKind) = (elem, lkPos)
       let seqKwds = [lkAny, lkAll, lkNone, lkOpt, lkUntil, lkPref]
       if elem.kind in {nnkCall, nnkCommand} and
-         elem[0].kind notin {nnkDotExpr} and
+         elem[0].kind in {nnkSym, nnkIdent} and
          elem[0].strVal() in seqKwds:
         opKind = toKwd(elem[0])
         elem = elem[1]
@@ -598,7 +598,7 @@ func splitOpt(n: NimNode): tuple[
 func parseMatchExpr*(n: NimNode): Match =
   ## Parse match expression from nim node
   case n.kind:
-    of nnkIdent, nnkSym, nnkIntLit, nnkStrLit, nnkCharLit:
+    of nnkIdent, nnkSym, nnkIntKinds, nnkStrKinds, nnkFloatKinds:
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
       if n == ident "_":
         result.isPlaceholder = true
@@ -828,8 +828,11 @@ template makeElemMatch(): untyped {.dirty.} =
           "Set variable " & bindv.strVal() & " " &
             $vtable[bindv.strVal()].varKind)
 
-        result.add nnkDiscardStmt.newTree(
-          makeVarSet(bindv, parent.toAccs(mainExpr), vtable))
+
+        let vars = makeVarSet(bindv, parent.toAccs(mainExpr), vtable)
+        result.add quote do:
+          if not `vars`:
+            `failBreak`
 
       if elem.patt.kind == kItem and
          elem.patt.itemMatch == imkInfixEq and
