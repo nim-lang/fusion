@@ -1,8 +1,7 @@
 ##[
 This module implements enum maps, which are syntax sugar for compiletime or runtime
-mapping from enum members to a value type. This can be used as a type safe
-generalization of enum with holes, or any application where you have a
-collection of values.
+mapping from enum members to a value type. Enummaps can be used as a type safe
+generalization of enum with holes.
 
 Note: experimental module, unstable API
 ]##
