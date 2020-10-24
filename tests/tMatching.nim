@@ -722,4 +722,11 @@ suite "Matching":
     block:
       let val = (1, 2, "fa")
       assert (_, _, _) ?= val
-      # assert not ((@a, @a, _) ?= val)
+      assert not ((@a, @a, _) ?= val)
+
+    block:
+      case (true, false):
+        of (@a, @a):
+          fail()
+        of (@a, _):
+          assert a == true

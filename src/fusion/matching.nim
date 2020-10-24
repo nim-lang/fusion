@@ -336,23 +336,33 @@ func makeVarSet(varn: NimNode, expr: NimNode, vtable: VarTable): NimNode =
     of vkSequence:
       return quote do:
         `varn`.add `expr` ## Append item to sequence
+        true
 
     of vkOption:
       return quote do:
         `varn` = some(`expr`) ## Set optional value
+        true
 
     of vkSet:
       return quote do:
         `varn`.incl some(`expr`) ## Add element to set
+        true
 
     of vkRegular:
       let wasSet = ident(varn.strVal() & "WasSet")
       return quote do:
-        if not `wasSet`:
+        if `wasSet`:
+          `varn` == `expr`
+        else:
           `varn` = `expr`
+          `wasSet` = true
+          true
+        # (`wasSet` and `varn` == `expr`) or (`varn` = `expr`; true)
 
     of vkAlt:
-      return nnkAsgn.newTree(varn, expr)
+      return quote do: # WARNING
+        `varn` = `expr`
+        true
 
 func toAccs*(path: Path, name: string): NimNode =
   ## Convert path in object to expression for getting element at path.
@@ -814,8 +824,12 @@ template makeElemMatch(): untyped {.dirty.} =
       inc minLen
       inc maxLen
       if elem.bindVar.getSome(bindv):
-        result.add makeVarSet(bindv, parent.toAccs(mainExpr), vtable)
-        # vtable.addvar(bindv, parent) # XXXX
+        result.add newCommentStmtNode(
+          "Set variable " & bindv.strVal() & " " &
+            $vtable[bindv.strVal()].varKind)
+
+        result.add nnkDiscardStmt.newTree(
+          makeVarSet(bindv, parent.toAccs(mainExpr), vtable))
 
       if elem.patt.kind == kItem and
          elem.patt.itemMatch == imkInfixEq and
@@ -842,13 +856,13 @@ template makeElemMatch(): untyped {.dirty.} =
           var check: NimNode
           if expr.kind in {nnkSym, nnkIdent} and expr.eqIdent("true"):
             check = quote do:
-              `varset`
+              discard `varset`
           else:
             check = quote do:
               if not `expr`:
                 `allOk` = false
               else:
-                `varset`
+                discard `varset`
 
           result.add quote do:
             block:
@@ -866,14 +880,14 @@ template makeElemMatch(): untyped {.dirty.} =
             for tmp in `rangeExpr`:
               `posid` = tmp
               if `posid` < `getLen` and `expr`:
-                `varset`
+                discard `varset`
               else:
                 break `failBlock`
 
         of lkUntil:
           result.add quote do:
             while (`posid` < `getLen`) and (not `expr`):
-              `varset`
+              discard `varset`
               inc `posid`
 
           if idx == seqm.seqElems.len - 1:
@@ -888,7 +902,7 @@ template makeElemMatch(): untyped {.dirty.} =
               while `posid` < `getLen`:
                 if `expr`:
                   foundOk = true
-                  `varset`
+                  discard `varset`
 
                 inc `posid`
 
@@ -897,10 +911,10 @@ template makeElemMatch(): untyped {.dirty.} =
         of lkPref:
           result.add quote do:
             while `posid` < `getLen` and `expr`:
-              `varset`
+              discard `varset`
               inc `posid`
         of lkOpt:
-          var default = nnkDiscardStmt.newTree(newEmptyNode())
+          var default = newLit(true)
           if elem.patt.isOptional and
              elem.bindVar.getSome(bindv) and
              elem.patt.fallback.getSome(fallback):
@@ -908,10 +922,10 @@ template makeElemMatch(): untyped {.dirty.} =
             default = makeVarSet(bindv, fallback, vtable)
           result.add quote do:
             if `posid` < `getLen`:
-              `varset`
+              discard `varset`
               inc `posid`
             else:
-              `default`
+              discard `default` ## Default
         of lkNone:
           let allOk = genSym(nskVar, "allOk")
           var check: NimNode
@@ -924,7 +938,7 @@ template makeElemMatch(): untyped {.dirty.} =
               if `expr`:
                 `allOk` = false
               else:
-                `varset`
+                discard `varset`
 
           result.add quote do:
             block:
@@ -1037,14 +1051,12 @@ func makeMatchExpr*(
             # vtable.addvar(vname, path) # XXXX
             let bindVar = makeVarSet(vname, parent, vtable)
             if inf == newLit(true):
-              return quote do:
-                (`bindVar`; true)
+              return bindVar
             else:
               return quote do:
                 block:
                   if `inf`:
                     `bindVar`
-                    true
                   else:
                     false
           else:
@@ -1055,12 +1067,13 @@ func makeMatchExpr*(
           if m.bindVar.getSome(vname):
             # vtable.addvar(vname, path) # XXXX
             bindVar = makeVarSet(vname, parent, vtable)
+          else:
+            bindVar = newLit(true)
 
           result = quote do:
             let it {.inject.} = `parent`
             if `pred`:
               `bindVar`
-              true
             else:
               false
 
@@ -1120,14 +1133,12 @@ func makeMatchExpr*(
                   `varsetOk`
                 else:
                   `varsetFail`
-
-                true
           else:
             conds.add quote do:
               if `incheck`:
                 `varsetOk`
-
-              true
+              else:
+                true
 
 
 
@@ -1228,6 +1239,8 @@ macro match*(n: untyped): untyped =
       let pos {.inject.}: int = 0
       `matchcase`
 
+  # echo result.toStrLit()
+
 
 macro assertMatch*(input, pattern: untyped): untyped =
   let
@@ -1244,7 +1257,7 @@ macro assertMatch*(input, pattern: untyped): untyped =
     if not ok:
       raiseAssert("Pattern match failed `" & `patt` & "`")
 
-  # echo result.toStrLIt()
+  # echo result.toStrLit()
 
 macro matches*(input, pattern: untyped): untyped =
   let
@@ -1252,9 +1265,11 @@ macro matches*(input, pattern: untyped): untyped =
     matched = pattern.parseMatchExpr().
       makeMatchExpr(expr.repr).toNode(expr.repr)
 
-  return quote do:
+  result = quote do:
     let `expr` = `input`
     `matched`
+
+  # echo result.toStrLit()
 
 func buildTreeMaker(
   prefix: string, resType: NimNode, match: Match): NimNode =
