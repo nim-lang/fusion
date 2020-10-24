@@ -30,9 +30,10 @@ This module implements pattern matching DSL.
 
 ## Element access
 
-Where ``expr`` is a result of evaluation for case head. If case head is
-an identifier it will be used as-is in pat subsitution. Otherwise ``let expr = <case-head>`` will be injected in scope. ``expr`` is not gensymed,
-making it possible to access it when necessary.
+Where ``expr`` is a result of evaluation for case head. If case head
+is an identifier it will be used as-is in pat subsitution. Otherwise
+``let expr = <case-head>`` will be injected in scope. ``expr`` is not
+gensymed, making it possible to access it when necessary.
 
 ``(fld: "3")``
     Match field ``fld`` against ``"0"``. Generated access is
@@ -60,7 +61,8 @@ sequence length.
 ## Checks
 
 - Any operator with exception of ``is`` is considered final comparison
-  and just pasted as-is into generated pattern match code. E.g. ``fld: in {2,3,4}`` will generate ``expr.fld in {2,3,4}``
+  and just pasted as-is into generated pattern match code. E.g. ``fld:
+  in {2,3,4}`` will generate ``expr.fld in {2,3,4}``
 
 - ``(fld: is Patt())`` - check if ``expr.fld`` matches pattern ``Patt()``
 
@@ -85,7 +87,8 @@ example
   be generated. Any for of prefix operator will be converted to
   ``expr.fld <op> <rhs>``.
 
-- ``(fld: in {1, 3, 3})`` or ``(fld: in Anything)`` creates ``fld.expr in Anything``. Either ``in`` or ``notin`` can be used.
+- ``(fld: in {1, 3, 3})`` or ``(fld: in Anything)`` creates ``fld.expr
+  in Anything``. Either ``in`` or ``notin`` can be used.
 
 ## Variable binding
 
@@ -109,9 +112,10 @@ via ``@varname`` syntax.
 ### Bind order
 
 Bind order: if check evaluates to true variable is bound immediately,
-making it possible to use in other checks. ``[@head, any @tail != head]`` is a valid pattern. First match ``head`` and then any number of
-``@tail`` elements. Can use ``any _(if it != head: tail.add it)`` and
-declare ``tail`` externally.
+making it possible to use in other checks. ``[@head, any @tail !=
+head]`` is a valid pattern. First match ``head`` and then any number
+of ``@tail`` elements. Can use ``any _(if it != head: tail.add it)``
+and declare ``tail`` externally.
 
 Variable is never rebound. After it is bound, then it will have the
 value of first binding.
@@ -119,13 +123,9 @@ value of first binding.
 ### Bind variable type
 
 - Any variadics are mapped to sequence
-
 - Only once in alternative is option
-
 - Explicitly optional is option
-
 - Optional with default value is regular value
-
 - Variable can be used only once if in alternative
 
 
@@ -154,11 +154,11 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
  ``[@a]``                          **Fail**                 Input sequence size mismatch
  ``[@a, .._]``                     **Ok**, ``a = 1``
  ``[any @a, .._]``                 **Error**
- ``[any @a.(it < 10)]``            **Ok**, ``a = [1..6]``   Capture all elements that match
+ ``[any @a(it < 10)]``             **Ok**, ``a = [1..6]``   Capture all elements that match
  ``[until @a == 6, .._]``          **Ok**                   All until first ocurrence of ``6``
  ``[all @a == 6, .._]``            **Ok** ``a = []``        All leading ``6``
- ``[any @a.(it > 100)]``           **Fail**                 No elements ``> 100``
- ``[none @a.(it in {6 .. 10})]``   **Fail**                 There is an element ``== 6``
+ ``[any @a(it > 100)]``            **Fail**                 No elements ``> 100``
+ ``[none @a(it in {6 .. 10})]``    **Fail**                 There is an element ``== 6``
 ================================= ======================== ====================================
 
 ``until``
@@ -190,9 +190,8 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
     greedy. Consume all sequence elements until the end and
     succed only if any element has matched. EE
 
-``[m .. n is @capture]``
-    Special syntax for extracing multiple slices from sequence at the
-    same time.
+``[m .. n @capture]``
+    Capture slice of elements from index `m` to `n`
 
 Greedy patterns match until the end of a sequence and cannot be
 followed by anything else.
@@ -292,4 +291,3 @@ Input json string
 ``Some(@x)`` and ``None()`` is a special case that will be rewritten into
 ``(isSome: true, get: @x)`` and ``(isNone: true)`` respectively. This is
 made to allow better integration with optional types.  [9]_ .
-

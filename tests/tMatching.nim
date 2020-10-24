@@ -1,5 +1,5 @@
-import sugar, strutils, sequtils, strformat, macros, options, tables
-import json, parseopt
+import std/[strutils, sequtils, strformat,
+            macros, options, tables, json]
 
 import fusion/matching
 {.experimental: "caseStmtMacros".}
@@ -32,6 +32,7 @@ suite "Matching":
            f2: float
 
     let val = Obj()
+
   test "Pattern parser tests":
     macro main(): untyped =
       template t(body: untyped): untyped =
@@ -42,9 +43,9 @@ suite "Matching":
 
       block:
         let s = t [1, 2, all @b, @a]
-        assert s.listElems[3].bindVar == some(ident("a"))
-        assert s.listElems[2].bindVar == some(ident("b"))
-        assert s.listElems[2].patt.bindVar == none(NimNode)
+        assert s.seqElems[3].bindVar == some(ident("a"))
+        assert s.seqElems[2].bindVar == some(ident("b"))
+        assert s.seqElems[2].patt.bindVar == none(NimNode)
 
       discard t([1,2,3,4])
       discard t((1,2))
@@ -189,14 +190,15 @@ suite "Matching":
       of ZZ(): fail()
 
     case Obj():
-      of {EE, ZZ}(): discard
+      of (kind: in {enEE, enZZ}): discard
       else: fail()
 
 
-    const eKinds = {enEE, enEE1}
-    case Obj():
-      of {EE, +eKinds}(): discard
-      else: fail()
+    when false: # FIXME
+      const eKinds = {enEE, enEE1}
+      case Obj():
+        of (kind: in {enEE} + eKinds): discard
+        else: fail()
 
     case (c: (a: 12)):
       of (c: (a: _)): discard
@@ -458,9 +460,9 @@ suite "Matching":
     func butLast(a: seq[int]): int =
       case a:
         of []: raiseAssert(
-          "Cannot take one but last from empty list!")
+          "Cannot take one but last from empty seq!")
         of [_]: raiseAssert(
-          "Cannot take one but last from list with only one element!")
+          "Cannot take one but last from seq with only one element!")
         of [@pre, _]: pre
         of [_, all @tail]: butLast(tail)
         else: raiseAssert("Not possible")
@@ -470,9 +472,9 @@ suite "Matching":
     func butLastGen[T](a: seq[T]): T =
       expand case a:
         of []: raiseAssert(
-          "Cannot take one but last from empty list!")
+          "Cannot take one but last from empty seq!")
         of [_]: raiseAssert(
-          "Cannot take one but last from list with only one element!")
+          "Cannot take one but last from seq with only one element!")
         of [@pre, _]: pre
         of [_, all @tail]: butLastGen(tail)
         else: raiseAssert("Not possible")
@@ -631,7 +633,10 @@ suite "Matching":
 
       for stmt in body:
         case stmt:
-          of {Call, Command}([@head is Ident(), all @arguments]):
+          of (
+            kind: in {nnkCall, nnkCommand},
+            [@head is Ident(), all @arguments]
+          ):
             result.add newCall(newDotExpr(
               ident "it", head
             ), arguments)
@@ -646,3 +651,75 @@ suite "Matching":
     let res = @[12,3,3].withItCall do:
       it = it.filterIt(it < 4)
       it.add 99
+
+  test "Examples from documentation":
+    block: [@a] := [1]; assert (a is int) and (a == 1)
+    block:
+      {"key" : @val} := {"key" : "val"}.toTable()
+      assert val is string
+      assert val == "val"
+
+    block: [any @a] := [1,2,3]; assert a is seq[int]
+    block:
+      [any @a(it < 3)] := [1, 2, 3]
+      assert a is seq[int]
+      assert a == @[1, 2]
+
+    block:
+      [until @a == 6, _] := [1, 2, 3, 6]
+      assert a is seq[int]
+      assert a == @[1, 2, 3]
+
+    block:
+      [all @a == 6] := [6, 6, 6]
+      assert a is seq[int]
+      assert a == @[6, 6, 6]
+
+    block:
+      [any @a > 100] := [1, 2, 101]
+      assert @a is seq[int]
+      assert @a == @[101]
+
+    block:
+      [any @a(it > 100)] := [1, 2, 101]
+      [any @b > 100] := [1, 2, 101]
+      assert a == b
+
+    block:
+      [_ in {2 .. 10}] := [2]
+
+    block:
+      [any @a in {2 .. 10}] := [1, 2, 3]
+      [any in {2 .. 10}] := [1, 2, 3]
+      [any _ in {2 .. 10}] := [1, 2, 3]
+
+    block:
+      [none @a in {6 .. 10}] := [1, 2, 3]
+      assert a is seq[int]
+      assert a == @[1, 2, 3]
+
+      [none in {6 .. 10}] := [1, 2, 3]
+      [none @b(it in {6 .. 10})] := [1, 2, 3]
+
+    block:
+      [opt @val or 12] := [1]
+      assert val is int
+      assert val  == 1
+
+    block:
+      [_, opt @val] := [1]
+      assert val is Option[int]
+      assert val.isNone()
+
+    block:
+      [0 .. 3 @val, _] := [1, 2, 3, 4, 5]
+      assert val is seq[int]
+      assert val == @[1, 2, 3, 4]
+      [0 .. 1 @val1, 2 .. 3 @val2] := [1, 2, 3, 4]
+      assert val1 is seq[int] and val1 == @[1, 2]
+      assert val2 is seq[int] and val2 == @[3, 4]
+
+    block:
+      let val = (1, 2, "fa")
+      assert (_, _, _) ?= val
+      # assert not ((@a, @a, _) ?= val)
