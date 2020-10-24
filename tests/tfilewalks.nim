@@ -1,12 +1,13 @@
 import std/[sugar,os,strutils,sequtils,algorithm]
-from std/private/globs import nativeToUnixPath
+# from std/private/globs import nativeToUnixPath
 from tfusion/paths import buildDir
 from tfusion/osutils import genTestPaths
 
 import fusion/filewalks
 
 proc processAux[T](a: T): seq[string] =
-  a.mapIt(it.path.nativeToUnixPath)
+  # a.mapIt(it.path.nativeToUnixPath)
+  a.mapIt(it.path)
 
 proc process[T](a: T): seq[string] =
   a.processAux.sorted
@@ -64,10 +65,8 @@ f5
     @[".", "d1", "d1/d1a", "d1/d1a/d1a1", "d1/d1a/d1a1", "d1/d1a/f2.txt", "d1/d1a/f3", "d1/d1a", "d1/d1b", "d1/d1b/d1b1", "d1/d1b/d1b1/f4", "d1/d1b/d1b1", "d1/d1b", "d1/f1.txt", "d1", "d2", "d2", "f5", "."]
   echo toSeq(glob(dir))
 
-# when false:
 when true:
   #[
-  PRTEMP sort this out
   pending https://github.com/nim-lang/Nim/issues/15597 and https://github.com/nim-lang/Nim/issues/15595
   ]#
   static: main()

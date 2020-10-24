@@ -60,7 +60,7 @@ proc initGlobOpt*(
   includeRoot = false, includeEpilogue = false, followSymlinks = false,
   follow: FollowCallback = nil, sortCmp: SortCmpCallback = nil): GlobOpt =
   GlobOpt.ctor(dir, relative, checkDir, globMode, includeRoot, includeEpilogue, followSymlinks, follow, sortCmp)
-import timn/dbgs
+# import timn/dbgs # PRTEMP
 iterator globOpt*(opt: GlobOpt): PathEntry =
   ##[
   Recursively walks `dir`.
@@ -83,7 +83,7 @@ iterator globOpt*(opt: GlobOpt): PathEntry =
   if dirExists(opt.dir):
     stack.addLast entry
   elif checkDir:
-    dbg dirExists(opt.dir)
+    # dbg dirExists(opt.dir)
     raise newException(OSError, "invalid root dir: " & opt.dir)
 
   var dirsLevel: seq[PathEntrySub]
@@ -97,24 +97,28 @@ iterator globOpt*(opt: GlobOpt): PathEntry =
 
     if opt.includeRoot or current.depth > 0:
       yield entry
+    # let isSort = opt.sortCmp != nil # hits: bug #15595
+    let isSort = not opt.sortCmp.isNil
 
     if (current.kind == pcDir or current.kind == pcLinkToDir and opt.followSymlinks) and not current.epilogue:
-      if opt.follow == nil or opt.follow(current):
-        if opt.sortCmp != nil:
+      # if opt.follow == nil or opt.follow(current):
+      if opt.follow.isNil or opt.follow(current):
+        if isSort:
           dirsLevel.setLen 0
         if opt.includeEpilogue:
           stack.addLast PathEntry(depth: current.depth, path: current.path, kind: current.kind, epilogue: true)
         # checkDir is still needed here in first iteration because things could
         # fail for reasons other than `not dirExists`.
-        for k, p in walkDir(opt.dir / current.path, relative = true, checkDir = checkDir):
-          if opt.sortCmp != nil:
+        # for k, p in walkDir(opt.dir / current.path, relative = true, checkDir = checkDir):
+        for k, p in walkDir(opt.dir / current.path, relative = true):
+          if isSort:
             dirsLevel.add PathEntrySub(kind: k, path: p)
           else:
             stack.addLast PathEntry(depth: current.depth + 1, path: current.path / p, kind: k)
         checkDir = false
           # We only check top-level dir, otherwise if a subdir is invalid (eg. wrong
           # permissions), it'll abort iteration and there would be no way to resume iteration.
-        if opt.sortCmp != nil:
+        if isSort:
           sort(dirsLevel, opt.sortCmp)
           for i in 0..<dirsLevel.len:
             let j = if opt.globMode == gDfs: dirsLevel.len-1-i else: i
@@ -124,3 +128,5 @@ iterator globOpt*(opt: GlobOpt): PathEntry =
 template glob*(args: varargs[untyped]): untyped =
   ## convenience wrapper
   globOpt(initGlobOpt(args))
+  # let opt = initGlobOpt(args)
+  # for ai in 
