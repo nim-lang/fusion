@@ -60,7 +60,7 @@ proc initGlobOpt*(
   includeRoot = false, includeEpilogue = false, followSymlinks = false,
   follow: FollowCallback = nil, sortCmp: SortCmpCallback = nil): GlobOpt =
   GlobOpt.ctor(dir, relative, checkDir, globMode, includeRoot, includeEpilogue, followSymlinks, follow, sortCmp)
-# import timn/dbgs # PRTEMP
+
 iterator globOpt*(opt: GlobOpt): PathEntry =
   ##[
   Recursively walks `dir`.
@@ -83,7 +83,6 @@ iterator globOpt*(opt: GlobOpt): PathEntry =
   if dirExists(opt.dir):
     stack.addLast entry
   elif checkDir:
-    # dbg dirExists(opt.dir)
     raise newException(OSError, "invalid root dir: " & opt.dir)
 
   var dirsLevel: seq[PathEntrySub]
@@ -96,12 +95,10 @@ iterator globOpt*(opt: GlobOpt): PathEntry =
     normalizePath(entry.path) # pending https://github.com/timotheecour/Nim/issues/343
 
     if opt.includeRoot or current.depth > 0:
-      yield entry
-    # let isSort = opt.sortCmp != nil # hits: bug #15595
-    let isSort = not opt.sortCmp.isNil
+      yield entry # single `yield` to avoid code bloat
 
+    let isSort = not opt.sortCmp.isNil # != nil # hits: bug #15595
     if (current.kind == pcDir or current.kind == pcLinkToDir and opt.followSymlinks) and not current.epilogue:
-      # if opt.follow == nil or opt.follow(current):
       if opt.follow.isNil or opt.follow(current):
         if isSort:
           dirsLevel.setLen 0
@@ -109,8 +106,7 @@ iterator globOpt*(opt: GlobOpt): PathEntry =
           stack.addLast PathEntry(depth: current.depth, path: current.path, kind: current.kind, epilogue: true)
         # checkDir is still needed here in first iteration because things could
         # fail for reasons other than `not dirExists`.
-        # for k, p in walkDir(opt.dir / current.path, relative = true, checkDir = checkDir):
-        for k, p in walkDir(opt.dir / current.path, relative = true):
+        for k, p in walkDir(opt.dir / current.path, relative = true, checkDir = checkDir):
           if isSort:
             dirsLevel.add PathEntrySub(kind: k, path: p)
           else:
@@ -126,7 +122,5 @@ iterator globOpt*(opt: GlobOpt): PathEntry =
             stack.addLast PathEntry(depth: current.depth + 1, path: current.path / ai.path, kind: ai.kind)
 
 template glob*(args: varargs[untyped]): untyped =
-  ## convenience wrapper
+  ## convenience wrapper around `globOpt`
   globOpt(initGlobOpt(args))
-  # let opt = initGlobOpt(args)
-  # for ai in 
