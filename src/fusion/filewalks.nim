@@ -1,6 +1,6 @@
 #[
 ## Design rationale
-* an intermediate `GlobOpt` is used to allow easier proc forwarding
+* an intermediate `WalkOpt` is used to allow easier proc forwarding
 * a yieldFilter, regex match etc isn't needed because caller can filter at
   call site, without loss of generality, unlike `follow`; this simplifies the API.
 
@@ -17,21 +17,21 @@ type
   PathEntry* = object
     kind*: PathComponent
     path*: string
-      ## absolute or relative path wrt globbed dir
+      ## absolute or relative path wrt walked dir
     depth*: int
-      ## depth wrt GlobOpt.dir (which is at depth 0)
+      ## depth wrt WalkOpt.dir (which is at depth 0)
     epilogue*: bool
-  GlobMode* = enum
-    gDfs ## depth first search
-    gBfs ## breadth first search
+  WalkMode* = enum
+    dfs ## depth first search
+    bfs ## breadth first search
   FollowCallback* = proc(entry: PathEntry): bool
   SortCmpCallback* = proc (x, y: PathEntrySub): int
-  GlobOpt* = object
-    dir*: string ## root of glob
+  WalkOpt* = object
+    dir*: string ## root of walk
     relative: bool ## when true, paths are are returned relative to `dir`, else they start with `dir`
     checkDir: bool ## if true, raises `OSError` when `dir` can't be listed. Deeper
       ## directories do not cause `OSError`, and currently no error reporting is done for those.
-    globMode: GlobMode ## controls how paths are returned
+    walkMode: WalkMode ## controls how paths are returned
     includeRoot: bool ## whether to include root `dir`
     includeEpilogue: bool
       ## when false, yields: someDir, <children of someDir>
@@ -39,7 +39,7 @@ type
       ## yielded a 2nd time. This is useful in applications that aggregate data over dirs.
     followSymlinks: bool ## whether to follow symlinks
     follow: FollowCallback
-      ## if not `nil`, `glob` visits `entry` if `follow(entry) == true`.
+      ## if not `nil`, `walkPath` visits `entry` if `follow(entry) == true`.
     sortCmp: SortCmpCallback
       ## if not `nil`, immediate children of a dir are sorted using `sortCmp`
 
@@ -55,13 +55,13 @@ macro ctor(obj: untyped, a: varargs[untyped]): untyped =
   result = nnkObjConstr.newTree(obj)
   for ai in a: result.add nnkExprColonExpr.newTree(ai, ai)
 
-proc initGlobOpt*(
-  dir: string, relative = false, checkDir = true, globMode = gDfs,
+proc initWalkOpt*(
+  dir: string, relative = false, checkDir = true, walkMode = dfs,
   includeRoot = false, includeEpilogue = false, followSymlinks = false,
-  follow: FollowCallback = nil, sortCmp: SortCmpCallback = nil): GlobOpt =
-  GlobOpt.ctor(dir, relative, checkDir, globMode, includeRoot, includeEpilogue, followSymlinks, follow, sortCmp)
+  follow: FollowCallback = nil, sortCmp: SortCmpCallback = nil): WalkOpt =
+  WalkOpt.ctor(dir, relative, checkDir, walkMode, includeRoot, includeEpilogue, followSymlinks, follow, sortCmp)
 
-iterator globOpt*(opt: GlobOpt): PathEntry =
+iterator walkPathsOpt*(opt: WalkOpt): PathEntry =
   ##[
   Recursively walks `dir`.
   This is more flexible than `os.walkDirRec`.
@@ -70,7 +70,7 @@ iterator globOpt*(opt: GlobOpt): PathEntry =
     import os,sugar
     if false: # see also `tfilewalks.nim`
       # list hidden files of depth <= 2 + 1 in your home.
-      for e in glob(getHomeDir(), follow = a=>a.path.isHidden and a.depth <= 2):
+      for e in walkPaths(getHomeDir(), follow = a=>a.path.isHidden and a.depth <= 2):
         if e.kind in {pcFile, pcLinkToFile}: echo e.path
 
   var entry = PathEntry(depth: 0, path: ".")
@@ -87,7 +87,7 @@ iterator globOpt*(opt: GlobOpt): PathEntry =
 
   var dirsLevel: seq[PathEntrySub]
   while stack.len > 0:
-    let current = if opt.globMode == gDfs: stack.popLast() else: stack.popFirst()
+    let current = if opt.walkMode == dfs: stack.popLast() else: stack.popFirst()
     entry.epilogue = current.epilogue
     entry.depth = current.depth
     entry.kind = current.kind
@@ -117,10 +117,10 @@ iterator globOpt*(opt: GlobOpt): PathEntry =
         if isSort:
           sort(dirsLevel, opt.sortCmp)
           for i in 0..<dirsLevel.len:
-            let j = if opt.globMode == gDfs: dirsLevel.len-1-i else: i
+            let j = if opt.walkMode == dfs: dirsLevel.len-1-i else: i
             let ai = dirsLevel[j]
             stack.addLast PathEntry(depth: current.depth + 1, path: current.path / ai.path, kind: ai.kind)
 
-template glob*(args: varargs[untyped]): untyped =
-  ## convenience wrapper around `globOpt`
-  globOpt(initGlobOpt(args))
+template walkPaths*(args: varargs[untyped]): untyped =
+  ## convenience wrapper around `walkPathsOpt`
+  walkPathsOpt(initWalkOpt(args))
