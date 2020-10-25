@@ -11,10 +11,9 @@ const
   nnkStrKinds* = { nnkStrLit .. nnkTripleStrLit }
   nnkIntKinds* = { nnkCharLit .. nnkUInt64Lit }
   nnkFloatKinds* = { nnkFloatLit .. nnkFloat128Lit }
-  nnkTokenKinds* = nnkStrKinds + nnkIntKinds + nnkFloatKinds + {
-    nnkIdent,
-    nnkSym
-  }
+  nnkIdentKinds* = { nnkIdent, nnkSym, nnkOpenSymChoice }
+  nnkTokenKinds* = nnkStrKinds + nnkIntKinds +
+                   nnkFloatKinds + nnkIdentKinds
 
 template `->`(a, b: bool): bool = (if a: b else: true)
 
@@ -30,6 +29,8 @@ func nodeStr(n: NimNode): string =
   case n.kind:
     of nnkIdent: n.strVal()
     of nnkOpenSymChoice: n[0].strVal()
+    of nnkSym: n.strVal()
+    of nnkStrKinds: n.strVal()
     else: raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
 func startsWith(n: NimNode, str: string): bool =
@@ -41,7 +42,7 @@ func idxTreeRepr(inputNode: NimNode, maxLevel: int = 120): string =
     result.add parent.mapIt(&"[{it}]").join("") &
       "  ".repeat(6) &
       ($node.kind)[3..^1] &
-      (if node.len == 0: " " & node.toStrLit().strVal() else: "")
+      (if node.len == 0: " " & node.toStrLit().nodeStr() else: "")
 
     for idx, subn in node:
       if parent.len + 1 < maxLevel:
@@ -57,9 +58,9 @@ func parseEnumField(fld: NimNode): string =
   ## Get name of enum field from nim node
   case fld.kind:
     of nnkEnumFieldDef:
-      fld[0].strVal
+      fld[0].nodeStr
     of nnkSym:
-      fld.strVal
+      fld.nodeStr
     else:
       raiseAssert(&"#[ IMPLEMENT {fld.kind} ]#")
 
@@ -165,7 +166,7 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
   # identifier is not valid enum name, report immediately.
   let (pref, names) = getKindNames(head)
   kind.assertKind({nnkIdent})
-  let kind = ident(kind.toStrLit().strVal().addPrefix(pref))
+  let kind = ident(kind.toStrLit().nodeStr().addPrefix(pref))
   result = nnkInfix.newTree(ident "==", head, kind)
 
 
@@ -323,16 +324,16 @@ func isNamedTuple(node: NimNode): bool =
     nnkBracket, # `([])`
     nnkTableConstr # `{key: val}`
   }) and
-  node.allIt((it.kind == nnkIdent) -> (it.strVal == "_"))
+  node.allIt((it.kind == nnkIdent) -> (it.nodeStr == "_"))
 
 func isInfixPatt(node: NimNode): bool =
   node.kind == nnkInfix and
   node[0].kind == nnkIdent and
-  node[0].strVal() in ["|"]
+  node[0].nodeStr() in ["|"]
 
 func makeVarSet(varn: NimNode, expr: NimNode, vtable: VarTable): NimNode =
   varn.assertKind({nnkIdent})
-  case vtable[varn.strVal()].varKind:
+  case vtable[varn.nodeStr()].varKind:
     of vkSequence:
       return quote do:
         `varn`.add `expr` ## Append item to sequence
@@ -349,7 +350,7 @@ func makeVarSet(varn: NimNode, expr: NimNode, vtable: VarTable): NimNode =
         true
 
     of vkRegular:
-      let wasSet = ident(varn.strVal() & "WasSet")
+      let wasSet = ident(varn.nodeStr() & "WasSet")
       return quote do:
         if `wasSet`:
           `varn` == `expr`
@@ -405,7 +406,7 @@ func parseKVTuple(n: NimNode): Match =
       # debugecho n[1].lispRepr()
       error(
         "Some(@var) pattern expected, but found " &
-          n[1].toStrLit().strVal(), n[1])
+          n[1].toStrLit().nodeStr(), n[1])
 
     n[1].assertKind({nnkPrefix})
     n[1][0].assertKind({nnkIdent})
@@ -433,7 +434,7 @@ func parseKVTuple(n: NimNode): Match =
       of nnkExprColonExpr:
         elem[0].assertKind({nnkIdent})
         result.fldElems.add((
-          elem[0].strVal(),
+          elem[0].nodeStr(),
           elem[1].parseMatchExpr()))
       of nnkBracket, nnkStmtList:
         result.seqMatches = some(elem.parseMatchExpr())
@@ -541,12 +542,12 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
       let seqKwds = [lkAny, lkAll, lkNone, lkOpt, lkUntil, lkPref]
       if elem.kind in {nnkCall, nnkCommand} and
          elem[0].kind in {nnkSym, nnkIdent} and
-         elem[0].strVal() in seqKwds:
+         elem[0].nodeStr() in seqKwds:
         opKind = toKwd(elem[0])
         elem = elem[1]
       elif elem.kind in {nnkInfix} and
            elem[1].kind in {nnkIdent} and
-           elem[1].strVal() in seqKwds:
+           elem[1].nodeStr() in seqKwds:
         opKind = toKwd(elem[1])
         elem = nnkInfix.newTree(elem[0], ident "_", elem[2])
 
@@ -594,6 +595,7 @@ func splitOpt(n: NimNode): tuple[
   else:
     result.lhs = n[1]
 
+# echo currentSourcePath()
 
 func parseMatchExpr*(n: NimNode): Match =
   ## Parse match expression from nim node
@@ -628,7 +630,7 @@ func parseMatchExpr*(n: NimNode): Match =
 
       else: # Other prefix expression, for example `== 12`
         result = Match(
-          kind: kItem, itemMatch: imkInfixEq, infix: n[0].strVal(),
+          kind: kItem, itemMatch: imkInfixEq, infix: n[0].nodeStr(),
           rhsNode: n[1], declNode: n
         )
 
@@ -670,8 +672,8 @@ func parseMatchExpr*(n: NimNode): Match =
         )
       elif n[0].kind == nnkDotExpr: # `_.call("Arguments")`
         # `(DotExpr (Ident "_") (Ident "<function-name>"))`
-        n[0][1].assertKind({nnkIdent})
-        n[0][0].assertKind({nnkIdent})
+        n[0][1].assertKind({nnkIdent, nnkOpenSymChoice})
+        n[0][0].assertKind({nnkIdent, nnkOpenSymChoice})
         var body = n
         # Replace `_` with `it` to make `it.call("arguments")`
         body[0][0] = ident("it")
@@ -695,7 +697,7 @@ func parseMatchExpr*(n: NimNode): Match =
       if n[1].kind in {nnkPrefix}:
         n[1][1].assertKind({nnkIdent})
 
-      if n[0].strVal() == "is":
+      if n[0].nodeStr() == "is":
         # `@patt is JString()`
         # `@head is 'd'`
         result = Match(
@@ -707,7 +709,7 @@ func parseMatchExpr*(n: NimNode): Match =
         result = Match(
           kind: kItem, itemMatch: imkInfixEq,
           rhsNode: n[2],
-          infix: n[0].strVal(), declNode: n)
+          infix: n[0].nodeStr(), declNode: n)
 
         if result.infix == "or":
           result.isOptional = true
@@ -739,7 +741,7 @@ func classifyPath(path: Path): VarKind =
 func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
   # TODO disallow setting variable again if it has already
   # participated in speculative match.
-  let vs = vsym.strVal()
+  let vs = vsym.nodeStr()
   # echov path
   if vs notin tbl:
     tbl[vs] = VarSpec(
@@ -757,8 +759,10 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
       tbl[vs].varKind = class
       tbl[vs].typePath = path
 
-func makeVarTable(m: Match): VarTable =
-  func aux(sub: Match, vt: var VarTable, path: Path): void =
+func makeVarTable(m: Match): tuple[table: VarTable,
+                                   mixident: seq[string]] =
+
+  func aux(sub: Match, vt: var VarTable, path: Path): seq[string] =
     if sub.bindVar.getSome(bindv):
       # echov sub.rhsNode
       if sub.isOptional and sub.fallback.isNone():
@@ -770,11 +774,17 @@ func makeVarTable(m: Match): VarTable =
         vt.addVar(bindv, path)
 
     case sub.kind:
-      of kItem, kSet:
+      of kItem:
+        if sub.itemMatch == imkInfixEq and
+           sub.isPlaceholder and
+           sub.bindVar.isNone()
+          :
+          result &= "_"
+      of kSet:
         discard
       of kAlt:
         for alt in sub.altElems:
-          aux(alt, vt, path & @[AccsElem(inStruct: kAlt)])
+          result &= aux(alt, vt, path & @[AccsElem(inStruct: kAlt)])
       of kSeq:
         # echov path
         # echov sub[]
@@ -792,26 +802,29 @@ func makeVarTable(m: Match): VarTable =
             else:
               vt.addVar(bindv, parent)
 
-          aux(elem.patt, vt, parent)
+          result &= aux(elem.patt, vt, parent)
 
       of kTuple:
         for idx, it in sub.tupleElems:
-          aux(it, vt, path & @[AccsElem(inStruct: kTuple, idx: idx)])
+          result &= aux(it, vt, path & @[
+            AccsElem(inStruct: kTuple, idx: idx)])
       of kPairs:
         for pair in sub.pairElems:
-          aux(pair.patt, vt, path & @[AccsElem(inStruct: kPairs, key: pair.key)])
+          result &= aux(pair.patt, vt, path & @[
+            AccsElem(inStruct: kPairs, key: pair.key)])
       of kObject:
         for (fld, patt) in sub.fldElems:
-          aux(patt, vt, path & @[AccsElem(inStruct: kObject, fld: fld)])
+          result &= aux(patt, vt, path & @[
+            AccsElem(inStruct: kObject, fld: fld)])
 
         if sub.seqMatches.getSome(seqm):
-          aux(seqm, vt, path)
+          result &= aux(seqm, vt, path)
 
         if sub.kvMatches.getSome(kv):
-          aux(kv, vt, path)
+          result &= aux(kv, vt, path)
 
 
-  aux(m, result, @[])
+  result.mixident = aux(m, result.table, @[]).deduplicate()
   # debugPprint result
 
 
@@ -825,8 +838,8 @@ template makeElemMatch(): untyped {.dirty.} =
       inc maxLen
       if elem.bindVar.getSome(bindv):
         result.add newCommentStmtNode(
-          "Set variable " & bindv.strVal() & " " &
-            $vtable[bindv.strVal()].varKind)
+          "Set variable " & bindv.nodeStr() & " " &
+            $vtable[bindv.nodeStr()].varKind)
 
 
         let vars = makeVarSet(bindv, parent.toAccs(mainExpr), vtable)
@@ -1170,15 +1183,18 @@ func makeMatchExpr*(
 
 
 func makeMatchExpr(m: Match, mainExpr: string): tuple[
-    expr: NimNode, vtable: VarTable] =
-  result.vtable = makeVarTable(m)
+    expr: NimNode,
+  vtable: VarTable,
+  mixident: seq[string]
+    ] =
+
+  (result.vtable, result.mixident) = makeVarTable(m)
   result.expr = makeMatchExpr(m, result.vtable, @[],  mainExpr)
 
 func toNode(
-  input: tuple[expr: NimNode, vtable: VarTable],
+  expr: NimNode,
+  vtable: VarTable,
   mainExpr: string): NimNode =
-  var (expr, vtable) = input
-
   var exprNew = nnkStmtList.newTree()
   for name, spec in vtable:
     let vname = ident(name)
@@ -1200,7 +1216,7 @@ func toNode(
           var `vname`: typeof(`typeExpr`)
 
       of vkRegular:
-        let wasSet = ident(vname.strVal() & "WasSet")
+        let wasSet = ident(vname.nodeStr() & "WasSet")
         exprNew.add quote do:
           var `wasSet`: bool = false
           var `vname`: typeof(`typeExpr`)
@@ -1213,16 +1229,20 @@ macro expand*(body: typed): untyped = body
 
 macro match*(n: untyped): untyped =
   var matchcase = nnkIfStmt.newTree()
+  var mixidents: seq[string]
   for elem in n[1 .. ^1]:
     case elem.kind:
       of nnkOfBranch:
         if elem[0] == ident "_":
           error("To create catch-all match use `else` clause", elem[0])
 
+        let (expr, vtable, mixid) =
+          elem[0].parseMatchExpr().makeMatchExpr( "expr")
+
+        mixidents.add mixid
 
         matchcase.add nnkElifBranch.newTree(
-          elem[0].parseMatchExpr().makeMatchExpr( "expr").
-            toNode("expr").newPar().newPar(),
+          toNode(expr, vtable, "expr").newPar().newPar(),
           elem[1]
         )
 
@@ -1232,25 +1252,32 @@ macro match*(n: untyped): untyped =
         discard
 
   let head = n[0]
-
   let pos = newCommentStmtNode($n.lineInfoObj())
+  var mixinList = newStmtList nnkMixinStmt.newTree(
+    mixidents.deduplicate.mapIt(
+      ident it
+    )
+  )
+
+  if mixidents.len == 0:
+    mixinList = newEmptyNode()
 
   result = quote do:
     block:
+      # `mixinList`
       `pos`
       let expr {.inject.} = `head`
       let pos {.inject.}: int = 0
       `matchcase`
 
-  # echo result.toStrLit()
+  # echo result.treeRepr()
 
 
 macro assertMatch*(input, pattern: untyped): untyped =
   let
     expr = ident genSym(nskLet, "expr").repr
-    matched = pattern.parseMatchExpr().
-      makeMatchExpr(expr.repr).toNode(expr.repr)
-
+    (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(expr.repr)
+    matched = toNode(mexpr, vtable, expr.repr)
 
   let patt = newLit(pattern.repr)
   result = quote do:
@@ -1265,8 +1292,8 @@ macro assertMatch*(input, pattern: untyped): untyped =
 macro matches*(input, pattern: untyped): untyped =
   let
     expr = ident genSym(nskLet, "expr").repr
-    matched = pattern.parseMatchExpr().
-      makeMatchExpr(expr.repr).toNode(expr.repr)
+    (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(expr.repr)
+    matched = toNode(mexpr, vtable, expr.repr)
 
   result = quote do:
     let `expr` = `input`
@@ -1282,7 +1309,7 @@ func buildTreeMaker(
       if (match.itemMatch == imkInfixEq) and (match.infix == "=="):
         if match.isPlaceholder:
           if match.bindVar.getSome(bindv):
-            result = newIdentNode(bindv.strVal())
+            result = newIdentNode(bindv.nodeStr())
           else:
             error(
               "Only variable placeholders allowed for pattern " &
@@ -1304,7 +1331,7 @@ func buildTreeMaker(
           new(`tmp`)
 
       if match.kindCall.getSome(call):
-        let kind = ident call.strVal().addPrefix(prefix)
+        let kind = ident call.nodeStr().addPrefix(prefix)
         res.add quote do:
           {.push warning[CaseTransition]: off.}
           `tmp`.kind = `kind`
@@ -1350,7 +1377,7 @@ func buildTreeMaker(
 func `kind=`*(node: var NimNode, kind: NimNodeKind) =
   node = newNimNode(kind, node)
 
-func str*(node: NimNode): string = node.strVal()
+func str*(node: NimNode): string = node.nodeStr()
 func `str=`*(node: var NimNode, val: string) =
   if node.kind in {nnkIdent, nnkSym}:
     node = ident val

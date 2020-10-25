@@ -3,6 +3,10 @@ import std/[strutils, sequtils, strformat,
 
 import fusion/matching
 {.experimental: "caseStmtMacros".}
+
+# dumpTree:
+#   mixin _
+
 # import hmisc/hdebug_misc
 
 #===========================  implementation  ============================#
@@ -485,6 +489,26 @@ suite "Matching":
     func hello[T](a: seq[T]): T =
       [@head, .._] := a
       return head
+
+    proc g1[T](a: seq[T]): T =
+      case a:
+        of [@a]: discard
+        else: fail()
+
+      expand case a:
+        of [_]: discard
+        else: fail()
+
+      expand case a:
+        of [_.startsWith("--")]: discard
+        else: fail()
+
+      expand case a:
+        of [(len: < 12)]: discard
+        else: fail()
+
+    discard g1(@["---===---=="])
+
 
   test "Predicates":
     case ["hello"]:
