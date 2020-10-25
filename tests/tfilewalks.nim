@@ -66,7 +66,7 @@ f5
     genTestPaths(dir, paths)
     const nim = getCurrentCompilerExe()
     const input = currentSourcePath()
-    let cmd = &"{nim} c -r -d:fusionTfilewalksTesting {input}"
+    let cmd = &"{nim} r -d:fusionTfilewalksTesting {input}"
     when (NimMajor, NimMinor, NimPatch) >= (1, 4, 0):
       # for `nativeToUnixPath`
       let status = execShellCmd(cmd)
