@@ -1,5 +1,5 @@
 import std/[os,strutils]
-# import timn/dbgs
+
 proc genTestPaths*(dir: string, paths: seq[string]) =
   ## generates a filesystem rooted under `dir` from given relative `paths`.
   ## `paths` ending in `/` are treated as directories.
@@ -10,7 +10,6 @@ proc genTestPaths*(dir: string, paths: seq[string]) =
     let a2 = dir / a
     if a.endsWith("/"):
       createDir(a2)
-      # dbg a2
     else:
       createDir(a2.parentDir)
       writeFile(a2, "")
