@@ -45,8 +45,7 @@ when defined(fusionTfilewalksTesting):
     doAssert toSeq(walkPaths(dir, relative = true, sortCmp = mySort, includeEpilogue = true, includeRoot = true)).processAux ==
       @[".", "d1", "d1/d1a", "d1/d1a/d1a1", "d1/d1a/d1a1", "d1/d1a/f2.txt", "d1/d1a/f3", "d1/d1a", "d1/d1b", "d1/d1b/d1b1", "d1/d1b/d1b1/f4", "d1/d1b/d1b1", "d1/d1b", "d1/f1.txt", "d1", "d2", "d2", "f5", "."]
 
-  when (NimMajor, NimMinor, NimPatch) >= (1, 5, 3):
-    # pending https://github.com/nim-lang/Nim/pull/15705
+  when (NimMajor, NimMinor, NimPatch) >= (1, 5, 1):
     static: test()
   test()
 else:
