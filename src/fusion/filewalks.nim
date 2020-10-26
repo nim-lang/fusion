@@ -97,9 +97,9 @@ iterator walkPathsOpt*(opt: WalkOpt): PathEntry =
     if opt.includeRoot or current.depth > 0:
       yield entry # single `yield` to avoid code bloat
 
-    let isSort = not opt.sortCmp.isNil # != nil # hits: bug #15595
+    let isSort = opt.sortCmp != nil
     if (current.kind == pcDir or current.kind == pcLinkToDir and opt.followSymlinks) and not current.epilogue:
-      if opt.follow.isNil or opt.follow(current):
+      if opt.follow == nil or opt.follow(current):
         if isSort:
           dirsLevel.setLen 0
         if opt.includeEpilogue:
