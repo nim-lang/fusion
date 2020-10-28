@@ -20,15 +20,8 @@ proc `=destroy`*[T](p: var UniquePtr[T]) =
   if p.val != nil:
     `=destroy`(p.val[])
     deallocShared(p.val)
-    p.val = nil
 
 proc `=`*[T](dest: var UniquePtr[T], src: UniquePtr[T]) {.error.}
-
-proc `=sink`*[T](dest: var UniquePtr[T], src: UniquePtr[T]) {.inline.} =
-  if dest.val != src.val:
-    if dest.val != nil:
-      `=destroy`(dest)
-    dest.val = src.val
 
 proc newUniquePtr*[T](val: sink T): UniquePtr[T] {.nodestroy.} =
   result.val = cast[ptr T](allocShared(sizeof(T)))
@@ -41,7 +34,7 @@ proc newUniquePtr*[T](val: sink T): UniquePtr[T] {.nodestroy.} =
 converter convertUniquePtrToObj*[T](p: UniquePtr[T]): var T {.inline.} =
   when compileOption("boundChecks"):
     assert(p.val != nil, "deferencing nil unique pointer")
-  p.val.value
+  p.val[]
 
 proc isNil*[T](p: UniquePtr[T]): bool {.inline.} =
   p.val == nil
@@ -49,7 +42,7 @@ proc isNil*[T](p: UniquePtr[T]): bool {.inline.} =
 proc `[]`*[T](p: UniquePtr[T]): var T {.inline.} =
   when compileOption("boundChecks"):
     assert(p.val != nil, "deferencing nil unique pointer")
-  p.val.value
+  p.val[]
 
 proc `$`*[T](p: UniquePtr[T]): string {.inline.} =
   if p.val == nil: "UniquePtr[" & $T & "](nil)"
@@ -70,13 +63,6 @@ proc `=destroy`*[T](p: var SharedPtr[T]) =
       deallocShared(p.val)
     else:
       discard atomicDec(p.val[].atomicCounter)
-    p.val = nil
-
-proc `=sink`*[T](dest: var SharedPtr[T], src: SharedPtr[T]) {.inline.} =
-  if dest.val != src.val:
-    if dest.val != nil:
-      `=destroy`(dest)
-    dest.val = src.val
 
 proc `=`*[T](dest: var SharedPtr[T], src: SharedPtr[T]) =
   if src.val != nil:
@@ -118,21 +104,19 @@ proc newConstPtr*[T](val: sink T): ConstPtr[T] =
   ConstPtr[T](newSharedPtr(val))
 
 converter convertConstPtrToObj*[T](p: ConstPtr[T]): lent T {.inline.} =
-  p.val.value
+  SharedPtr[T](p).val.value
 
 proc isNil*[T](p: ConstPtr[T]): bool {.inline.} =
-  when compileOption("boundChecks"):
-    doAssert(p.val != nil, "deferencing nil const pointer")
-  p.val == nil
+  SharedPtr[T](p).val == nil
 
 proc `[]`*[T](p: ConstPtr[T]): lent T {.inline.} =
   when compileOption("boundChecks"):
-    doAssert(p.val != nil, "deferencing nil const pointer")
-  p.val.value
+    doAssert(SharedPtr[T](p).val != nil, "deferencing nil const pointer")
+  SharedPtr[T](p).val.value
 
 proc `$`*[T](p: ConstPtr[T]): string {.inline.} =
-  if p.val == nil: "ConstPtr[" & $T & "](nil)"
-  else: "ConstPtr[" & $T & "](" & $p.val.value & ")"
+  if SharedPtr[T](p).val == nil: "ConstPtr[" & $T & "](nil)"
+  else: "ConstPtr[" & $T & "](" & $SharedPtr[T](p).val.value & ")"
 
 when isMainModule:
   import unittest
@@ -145,9 +129,24 @@ when isMainModule:
       a1.isNil == true
       $a2 == "UniquePtr[int](0)"
       a2.isNil == false
+      a2[] == 0
 
   test "SharedPtr[T] test":
-    let a = newSharedPtr(0)
+    var a1: SharedPtr[float]
+    let a2 = newSharedPtr(0)
+    check:
+      $a1 == "SharedPtr[float](nil)"
+      a1.isNil == true
+      $a2 == "SharedPtr[int](0)"
+      a2.isNil == false
+      a2[] == 0
 
   test "ConstPtr[T] test":
-    let a = newConstPtr(0)
+    var a1: ConstPtr[float]
+    let a2 = newConstPtr(0)
+    check:
+      $a1 == "ConstPtr[float](nil)"
+      a1.isNil == true
+      $a2 == "ConstPtr[int](0)"
+      a2.isNil == false
+      a2[] == 0
