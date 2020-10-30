@@ -19,7 +19,10 @@ proc `=destroy`*[T](p: var UniquePtr[T]) =
   mixin `=destroy`
   if p.val != nil:
     `=destroy`(p.val[])
-    deallocShared(p.val)
+    when compileOption("threads"):
+      deallocShared(p.val)
+    else:
+      dealloc(p.val)
     p.val = nil
 
 proc `=`*[T](dest: var UniquePtr[T], src: UniquePtr[T]) {.error.}
@@ -31,7 +34,10 @@ proc `=sink`*[T](dest: var UniquePtr[T], src: UniquePtr[T]) {.inline.} =
     dest.val = src.val
 
 proc newUniquePtr*[T](val: sink T): UniquePtr[T] {.nodestroy.} =
-  result.val = cast[ptr T](allocShared(sizeof(T)))
+  when compileOption("threads"):
+    result.val = cast[ptr T](allocShared(sizeof(T)))
+  else:
+    result.val = cast[ptr T](alloc(sizeof(T)))
   # thanks to '.nodestroy' we don't have to use allocShared0 here.
   # This is compiled into a copyMem operation, no need for a sink
   # here either.
@@ -65,11 +71,19 @@ type
 proc `=destroy`*[T](p: var SharedPtr[T]) =
   mixin `=destroy`
   if p.val != nil:
-    if atomicLoadN(addr p.val[].atomicCounter, ATOMIC_CONSUME) == 0:
+    if (when compileOption("threads"):
+          atomicLoadN(addr p.val[].atomicCounter, ATOMIC_CONSUME) == 0 else:
+          p.val[].atomicCounter == 0):
       `=destroy`(p.val[])
-      deallocShared(p.val)
+      when compileOption("threads"):
+        deallocShared(p.val)
+      else:
+        dealloc(p.val)
     else:
-      discard atomicDec(p.val[].atomicCounter)
+      when compileOption("threads"):
+        discard atomicDec(p.val[].atomicCounter)
+      else:
+        dec(p.val[].atomicCounter)
     p.val = nil
 
 proc `=sink`*[T](dest: var SharedPtr[T], src: SharedPtr[T]) {.inline.} =
@@ -80,13 +94,19 @@ proc `=sink`*[T](dest: var SharedPtr[T], src: SharedPtr[T]) {.inline.} =
 
 proc `=`*[T](dest: var SharedPtr[T], src: SharedPtr[T]) =
   if src.val != nil:
-    discard atomicInc(src.val[].atomicCounter)
+    when compileOption("threads"):
+      discard atomicInc(src.val[].atomicCounter)
+    else:
+      inc(src.val[].atomicCounter)
   if dest.val != nil:
     `=destroy`(dest)
   dest.val = src.val
 
 proc newSharedPtr*[T](val: sink T): SharedPtr[T] {.nodestroy.} =
-  result.val = cast[typeof(result.val)](allocShared(sizeof(result.val[])))
+  when compileOption("threads"):
+    result.val = cast[typeof(result.val)](allocShared(sizeof(result.val[])))
+  else:
+    result.val = cast[typeof(result.val)](alloc(sizeof(result.val[])))
   result.val.atomicCounter = 0
   result.val.value = val
 
