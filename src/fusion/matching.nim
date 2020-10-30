@@ -66,10 +66,6 @@ func splitDots(n: NimNode): seq[NimNode] =
     else:
       @[n]
 
-  debugecho "Split dot for ", n.toStrLit().strVal()
-  debugecho result.mapIt(it.lispRepr()).join(" ")
-  debugecho n.idxTreeRepr()
-
 func firstDot(n: NimNode): NimNode =
   splitDots(n)[0]
 
@@ -304,6 +300,7 @@ type
         tupleElems*: seq[Match] ## Tuple elements
       of kPairs:
         pairElems*: seq[KVPair]
+        nocheck*: bool
 
       of kSet:
         setElems*: seq[Match]
@@ -455,48 +452,34 @@ func parseNestedKey(n: NimNode): Match =
                 (name: spl[1].nodeStr(), patt: aux(spl[1 ..^ 1]))
               ])
           else:
-            return aux(spl[1 ..^ 1])
+            return Match(
+              kind: kPairs,
+              declNode: spl[0],
+              pairElems: @[KvPair(
+                key: spl[1][0], patt: aux(spl[1 ..^ 1]))],
+              nocheck: true
+            )
       of nnkBracket:
         if spl.len == 1:
           return n[1].parseMatchExpr()
         else:
-          debugecho "\e[41m---\e[49m\n", spl[1].idxTreeRepr()
           if spl[1].kind in nnkIdentKinds:
-            return aux(spl[1 ..^ 1])
+            return Match(
+              kind: kObject,
+              declNode: spl[0],
+              fldElems: @[
+                (name: spl[1].nodeStr(), patt: aux(spl[1 ..^ 1]))
+              ])
           else:
-            if spl[1][0].kind in nnkIntKinds:
-              return Match(
-                kind: kTuple,
-                declNode: spl[0],
-                tupleElems: @[aux(spl[1 ..^ 1])]
-              )
-            else:
-              return Match(
-                kind: kPairs,
-                declNode: spl[1],
-                pairElems: @[KvPair(key: spl[1], patt: aux(spl[1 ..^ 1]))]
-              )
+            return Match(
+              kind: kPairs,
+              declNode: spl[1],
+              pairElems: @[KvPair(
+                key: spl[1][0], patt: aux(spl[1 ..^ 1]))],
+              nocheck: true
+            )
       else:
         raiseAssert(&"#[ IMPLEMENT for kind {spl[0].kind} ]#")
-
-  debugecho "\e[41m*=========\e[49m  ddd  \e[41m==========*\e[49m"
-  debugecho n.idxTreeRepr()
-  debugecho n.toStrLit().strVal()
-  # case n[0].kind:
-  #   of nnkIdentKinds:
-  #     return n[1].parseMatchExpr()
-  #   of nnkDotExpr:
-  #     debugecho n[0].lispRepr()
-  #     debugecho n[0].dropFirstDot().lispRepr()
-  #     debugecho n[0].firstDot().lispRepr()
-  #     var dotName: string
-  #     if n[0].len > 1:
-  #       dotName = n[0].splitDots()[1].nodeStr()
-  #     else:
-  #       dotName = n[0].nodeStr()
-
-  #   else:
-  #     raiseAssert(&"#[ IMPLEMENT for kind {n[0].kind} ]#")
 
   return aux(n[0].splitDots())
 
@@ -1238,38 +1221,43 @@ func makeMatchExpr*(
       for pair in m.pairElems:
         let
           accs = path.toAccs(mainExpr)
-          incheck = nnkInfix.newTree(ident "in", pair.key, accs)
-          valPath = path & @[AccsElem(inStruct: kPairs, key: pair.key)]
+          valPath = path & @[AccsElem(
+            inStruct: kPairs, key: pair.key, nocheck: m.nocheck)]
+
           valGet = valPath.toAccs(mainExpr)
 
-        if not pair.patt.isOptional:
-          conds.add nnkInfix.newTree(
-            ident "and", incheck,
-            pair.patt.makeMatchExpr(vtable, valPath, mainExpr)
-          )
+        if m.nocheck:
+          conds.add pair.patt.makeMatchExpr(vtable, valPath, mainExpr)
 
         else:
-          let varn = pair.patt.bindVar.get
-          let varsetOk = makeVarSet(varn, valGet, vtable)
-          if pair.patt.fallback.getSome(fallback):
-            let varsetFail = makeVarSet(
-              varn, pair.patt.fallback.get(), vtable)
+          let
+            incheck = nnkInfix.newTree(ident "in", pair.key, accs)
 
-            conds.add quote do:
-              block:
+          if not pair.patt.isOptional:
+            conds.add nnkInfix.newTree(
+              ident "and", incheck,
+              pair.patt.makeMatchExpr(vtable, valPath, mainExpr)
+            )
+
+          else:
+            let varn = pair.patt.bindVar.get
+            let varsetOk = makeVarSet(varn, valGet, vtable)
+            if pair.patt.fallback.getSome(fallback):
+              let varsetFail = makeVarSet(
+                varn, pair.patt.fallback.get(), vtable)
+
+              conds.add quote do:
+                block:
+                  if `incheck`:
+                    `varsetOk`
+                  else:
+                    `varsetFail`
+            else:
+              conds.add quote do:
                 if `incheck`:
                   `varsetOk`
                 else:
-                  `varsetFail`
-          else:
-            conds.add quote do:
-              if `incheck`:
-                `varsetOk`
-              else:
-                true
-
-
-
+                  true
 
       return conds.foldInfix("and")
     of kAlt:
@@ -1408,7 +1396,7 @@ macro matches*(input, pattern: untyped): untyped =
     let `expr` = `input`
     `matched`
 
-  echo result.toStrLit()
+  # echo result.toStrLit()
 
 func buildTreeMaker(
   prefix: string, resType: NimNode, match: Match): NimNode =
