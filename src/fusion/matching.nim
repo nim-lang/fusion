@@ -60,8 +60,9 @@ func splitDots(n: NimNode): seq[NimNode] =
       if n[0].kind in nnkIdentKinds:
         @[n[0]] & splitDots(n[1]).mapIt(nnkBracket.newTree(it))
       else:
-        n[0][0].splitDots() & n[0][1].splitDots() &
-          n[1].splitDots().mapIt(nnkBracket.newTree(it))
+        n[0][0].splitDots() & (
+          n[0][1].splitDots() & n[1].splitDots()
+        ).mapIt(nnkBracket.newTree(it))
     else:
       @[n]
 
@@ -441,9 +442,6 @@ func parseNestedKey(n: NimNode): Match =
   ## - first key should be handled by caller.
   n.assertKind({nnkExprColonExpr})
   func aux(spl: seq[NimNode]): Match =
-    for node in spl:
-      debugecho node.idxTreeRepr()
-
     case spl[0].kind:
       of nnkIdentKinds:
         if spl.len == 1:
@@ -457,7 +455,15 @@ func parseNestedKey(n: NimNode): Match =
                 (name: spl[1].nodeStr(), patt: aux(spl[1 ..^ 1]))
               ])
           else:
-            assert spl[1].kind == nnkBracket
+            return aux(spl[1 ..^ 1])
+      of nnkBracket:
+        if spl.len == 1:
+          return n[1].parseMatchExpr()
+        else:
+          debugecho "\e[41m---\e[49m\n", spl[1].idxTreeRepr()
+          if spl[1].kind in nnkIdentKinds:
+            return aux(spl[1 ..^ 1])
+          else:
             if spl[1][0].kind in nnkIntKinds:
               return Match(
                 kind: kTuple,

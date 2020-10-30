@@ -799,6 +799,8 @@ suite "Matching":
 
 
     let val3 = (hello3: @[@[@["eee"]]])
+    discard (hello3[0][1][2].len: < 10) ?= val3
+    static: quit 0
     assert not ((hello3[0][1][2].len: < 10) ?= val3)
     assert (hello3[0][0][0].len: < 10) ?= val3
     assert (hello3: is [[[(len: < 10)]]]) ?= val3
