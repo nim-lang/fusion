@@ -7,12 +7,14 @@
 #    distribution, for details about the copyright.
 
 ## C++11 like Smart pointers. It always uses the shared allocator.
-## TODO: Add the "isolation" checks that are currently implicitly assumed
-## for memory safety.
+
+# TODO: Add the "isolation" checks that are currently implicitly assumed
+# for memory safety.
+
 
 type
   UniquePtr*[T] = object
-    ## non copyable pointer to object T, exclusive ownership of the object is assumed
+    ## Non copyable pointer to object T, exclusive ownership of the object is assumed.
     val: ptr T
 
 proc `=destroy`*[T](p: var UniquePtr[T]) =
@@ -65,7 +67,7 @@ proc `$`*[T](p: UniquePtr[T]): string {.inline.} =
 
 type
   SharedPtr*[T] = object
-    ## shared ownership reference counting pointer
+    ## Shared ownership reference counting pointer.
     val: ptr tuple[value: T, atomicCounter: int]
 
 proc `=destroy`*[T](p: var SharedPtr[T]) =
@@ -131,8 +133,8 @@ proc `$`*[T](p: SharedPtr[T]): string {.inline.} =
 
 type
   ConstPtr*[T] = distinct SharedPtr[T]
-    ## distinct version of referencing counting smart pointer SharedPtr[T],
-    ## which doesn't allow mutating underlying object
+    ## Distinct version of referencing counting smart pointer SharedPtr[T],
+    ## which doesn't allow mutating underlying object.
 
 proc newConstPtr*[T](val: sink T): ConstPtr[T] =
   ConstPtr[T](newSharedPtr(val))
