@@ -24,18 +24,18 @@ template assertEq(a, b: untyped): untyped =
 suite "Matching":
   test "Has kind for anything":
     type
-      En = enum
+      En1 = enum
         eN11
         eN12
 
-      Obj = object
-        case kind: En
+      Obj1 = object
+        case kind: En1
          of eN11:
            f1: int
          of eN12:
            f2: float
 
-    let val = Obj()
+    let val = Obj1()
 
   test "Pattern parser tests":
     macro main(): untyped =
@@ -144,63 +144,64 @@ suite "Matching":
 
   test "Regular objects":
     type
-      A = object
+      A1 = object
         f1: int
 
-    case A(f1: 12):
+    case A1(f1: 12):
       of (f1: 12):
         discard "> 10"
       else:
         fail()
 
-    assertEq 10, case A(f1: 90):
+    assertEq 10, case A1(f1: 90):
                    of (f1: 20): 80
                    else: 10
 
   test "Private fields":
     type
-      A = object
+      A2 = object
         hidden: float
 
-    func public(a: A): string = $a.hidden
+    func public(a: A2): string = $a.hidden
 
-    case A():
+    case A2():
       of (public: _):
         discard
       else:
         fail()
 
-    case A(hidden: 8.0):
+    case A2(hidden: 8.0):
       of (public: "8.0"): discard
       else: fail()
 
   type
-    En = enum
+    En2 = enum
       enEE
       enEE1
       enZZ
 
-    Obj = object
-      case kind: En
+    Obj2 = object
+      case kind: En2
         of enEE, enEE1:
-          eee: seq[Obj]
+          eee: seq[Obj2]
         of enZZ:
           fl: int
 
 
   test "Case objects":
-    case Obj():
-      of EE(): discard
+    case Obj2():
+      of EE():
+        discard
       of ZZ(): fail()
 
-    case Obj():
+    case Obj2():
       of (kind: in {enEE, enZZ}): discard
       else: fail()
 
 
     when false: # FIXME
       const eKinds = {enEE, enEE1}
-      case Obj():
+      case Obj2():
         of (kind: in {enEE} + eKinds): discard
         else: fail()
 
@@ -225,13 +226,13 @@ suite "Matching":
       else:
         discard
 
-    case Obj(kind: enEE, eee: @[Obj(kind: enZZ, fl: 12)]):
+    case Obj2(kind: enEE, eee: @[Obj2(kind: enZZ, fl: 12)]):
       of enEE(eee: [(kind: enZZ, fl: 12)]):
         discard
       else:
         fail()
 
-    case Obj():
+    case Obj2():
       of enEE():
         discard
       of enZZ():
@@ -239,28 +240,28 @@ suite "Matching":
       else:
         fail()
 
-    case Obj():
+    case Obj2():
       of (kind: in {enEE, enEE1}):
         discard
       else:
         fail()
 
   test "Object items":
-    func `[]`(o: Obj, idx: int): Obj = o.eee[idx]
-    func len(o: Obj): int = o.eee.len
+    func `[]`(o: Obj2, idx: int): Obj2 = o.eee[idx]
+    func len(o: Obj2): int = o.eee.len
 
-    case Obj(kind: enEE, eee: @[Obj(), Obj()]):
+    case Obj2(kind: enEE, eee: @[Obj2(), Obj2()]):
       of [_, _]:
         discard
       else:
         fail()
 
-    case Obj(kind: enEE, eee: @[Obj(), Obj()]):
+    case Obj2(kind: enEE, eee: @[Obj2(), Obj2()]):
       of EE(eee: [_, _, _]): fail()
       of EE(eee: [_, _]): discard
       else: fail()
 
-    case Obj(kind: enEE1, eee: @[Obj(), Obj()]):
+    case Obj2(kind: enEE1, eee: @[Obj2(), Obj2()]):
       of EE([_, _]):
         fail()
       of EE1([_, _, _]):
