@@ -15,16 +15,6 @@ const
   nnkTokenKinds* = nnkStrKinds + nnkIntKinds +
                    nnkFloatKinds + nnkIdentKinds
 
-template `->`(a, b: bool): bool = (if a: b else: true)
-
-template getSome[T](opt: Option[T], injected: untyped): bool =
-  opt.isSome() and ((let injected {.inject.} = opt.get(); true))
-
-template assertKind(node: NimNode, kindSet: set[NimNodeKind]): untyped =
-  if node.kind notin kindSet:
-    raiseAssert("Expected one of " & $kindSet & " but node has kind " &
-      $node.kind & " (assertion on " & $instantiationInfo() & ")")
-
 func nodeStr(n: NimNode): string =
   case n.kind:
     of nnkIdent: n.strVal()
@@ -32,9 +22,6 @@ func nodeStr(n: NimNode): string =
     of nnkSym: n.strVal()
     of nnkStrKinds: n.strVal()
     else: raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
-
-func startsWith(n: NimNode, str: string): bool =
-  n.nodeStr().startsWith(str)
 
 
 func idxTreeRepr(inputNode: NimNode, maxLevel: int = 120): string =
@@ -52,6 +39,55 @@ func idxTreeRepr(inputNode: NimNode, maxLevel: int = 120): string =
           " ".repeat(6 + 3 + 3)  & "[...] " & ($subn.kind)[3..^1]
 
   return aux(inputNode, @[]).join("\n")
+
+
+
+template `->`(a, b: bool): bool = (if a: b else: true)
+
+template getSome[T](opt: Option[T], injected: untyped): bool =
+  opt.isSome() and ((let injected {.inject.} = opt.get(); true))
+
+func splitDots(n: NimNode): seq[NimNode] =
+  result = case n.kind:
+    of nnkDotExpr:
+      if n[0].kind == nnkDotExpr:
+        splitDots(n[0]) & @[n[1]]
+      elif n[0].kind == nnkBracketExpr:
+        splitDots(n[0]) & splitDots(n[1])
+      else:
+        @[n[0], n[1]]
+    of nnkBracketExpr:
+      if n[0].kind in nnkIdentKinds:
+        @[n[0]] & splitDots(n[1]).mapIt(nnkBracket.newTree(it))
+      else:
+        n[0][0].splitDots() & n[0][1].splitDots() &
+          n[1].splitDots().mapIt(nnkBracket.newTree(it))
+    else:
+      @[n]
+
+  debugecho "Split dot for ", n.toStrLit().strVal()
+  debugecho result.mapIt(it.lispRepr()).join(" ")
+  debugecho n.idxTreeRepr()
+
+func firstDot(n: NimNode): NimNode =
+  splitDots(n)[0]
+
+func dropFirstDot(n: NimNode): NimNode =
+  let drop = splitDots(n)
+  if drop.len == 1:
+    drop[0]
+  else:
+    drop[1..^1].foldl(nnkDotExpr.newTree(a, b))
+
+
+template assertKind(node: NimNode, kindSet: set[NimNodeKind]): untyped =
+  if node.kind notin kindSet:
+    raiseAssert("Expected one of " & $kindSet & " but node has kind " &
+      $node.kind & " (assertion on " & $instantiationInfo() & ")")
+
+func startsWith(n: NimNode, str: string): bool =
+  n.nodeStr().startsWith(str)
+
 
 
 func parseEnumField(fld: NimNode): string =
@@ -397,6 +433,69 @@ func toAccs*(path: Path, name: string): NimNode =
 
 func parseMatchExpr*(n: NimNode): Match
 
+func parseNestedKey(n: NimNode): Match =
+  ## Unparse key-value pair with nested fields. `fld: <pattern>` and
+  ## `fld1.subfield.subsubfield: <pattern>`. Lattern one is just
+  ## shorthand for `(fld1: (subfield: (subsubfield: <pattern>)))`.
+  ## This function returns `(subfield: (subsubfield: <pattern>))` part
+  ## - first key should be handled by caller.
+  n.assertKind({nnkExprColonExpr})
+  func aux(spl: seq[NimNode]): Match =
+    for node in spl:
+      debugecho node.idxTreeRepr()
+
+    case spl[0].kind:
+      of nnkIdentKinds:
+        if spl.len == 1:
+          return n[1].parseMatchExpr()
+        else:
+          if spl[1].kind in nnkIdentKinds:
+            return Match(
+              kind: kObject,
+              declNode: spl[0],
+              fldElems: @[
+                (name: spl[1].nodeStr(), patt: aux(spl[1 ..^ 1]))
+              ])
+          else:
+            assert spl[1].kind == nnkBracket
+            if spl[1][0].kind in nnkIntKinds:
+              return Match(
+                kind: kTuple,
+                declNode: spl[0],
+                tupleElems: @[aux(spl[1 ..^ 1])]
+              )
+            else:
+              return Match(
+                kind: kPairs,
+                declNode: spl[1],
+                pairElems: @[KvPair(key: spl[1], patt: aux(spl[1 ..^ 1]))]
+              )
+      else:
+        raiseAssert(&"#[ IMPLEMENT for kind {spl[0].kind} ]#")
+
+  debugecho "\e[41m*=========\e[49m  ddd  \e[41m==========*\e[49m"
+  debugecho n.idxTreeRepr()
+  debugecho n.toStrLit().strVal()
+  # case n[0].kind:
+  #   of nnkIdentKinds:
+  #     return n[1].parseMatchExpr()
+  #   of nnkDotExpr:
+  #     debugecho n[0].lispRepr()
+  #     debugecho n[0].dropFirstDot().lispRepr()
+  #     debugecho n[0].firstDot().lispRepr()
+  #     var dotName: string
+  #     if n[0].len > 1:
+  #       dotName = n[0].splitDots()[1].nodeStr()
+  #     else:
+  #       dotName = n[0].nodeStr()
+
+  #   else:
+  #     raiseAssert(&"#[ IMPLEMENT for kind {n[0].kind} ]#")
+
+  return aux(n[0].splitDots())
+
+
+
 func parseKVTuple(n: NimNode): Match =
   if n[0].eqIdent("Some"):
     if not (n.len <= 2):
@@ -432,10 +531,17 @@ func parseKVTuple(n: NimNode): Match =
   for elem in n[start .. ^1]:
     case elem.kind:
       of nnkExprColonExpr:
-        elem[0].assertKind({nnkIdent})
-        result.fldElems.add((
-          elem[0].nodeStr(),
-          elem[1].parseMatchExpr()))
+        var str: string
+        case elem[0].kind:
+          of nnkIdentKinds, nnkDotExpr:
+            str = elem[0].firstDot().nodeStr()
+          else:
+            error(
+              &"Unexpected node kind for dot expression: {elem[0].kind}",
+              elem[0]
+            )
+
+        result.fldElems.add((str, elem.parseNestedKey()))
       of nnkBracket, nnkStmtList:
         result.seqMatches = some(elem.parseMatchExpr())
       of nnkTableConstr:
@@ -1270,9 +1376,6 @@ macro match*(n: untyped): untyped =
       let pos {.inject.}: int = 0
       `matchcase`
 
-  # echo result.treeRepr()
-
-
 macro assertMatch*(input, pattern: untyped): untyped =
   let
     expr = ident genSym(nskLet, "expr").repr
@@ -1299,7 +1402,7 @@ macro matches*(input, pattern: untyped): untyped =
     let `expr` = `input`
     `matched`
 
-  # echo result.toStrLit()
+  echo result.toStrLit()
 
 func buildTreeMaker(
   prefix: string, resType: NimNode, match: Match): NimNode =

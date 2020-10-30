@@ -99,11 +99,13 @@ suite "Matching":
            of (true, _): "hehe"
            else: "2222"
 
+    assert (a: 12) ?= (a: 12)
     assertEq "hello world", case (a: 12, b: 12):
            of (a: 12, b: 22): "nice"
            of (a: 12, b: _): "hello world"
            else: "default value"
 
+    assert (a: 22, b: 90) ?= (a: 22, b: 90)
     assertEq "default fallback", case (a: 22, b: 90):
            of (b: 91): "900999"
            elif "some other" == "check": "rly?"
@@ -755,6 +757,56 @@ suite "Matching":
           fail()
         of (@a, _):
           assert a == true
+
+  test "Nested objects":
+    type
+      Lvl3 = object
+        f3: float
+
+      Lvl2 = object
+        f2: Lvl3
+
+      Lvl1 = object
+        f1: Lvl2
+
+    assert Lvl1().f1.f2.f3 < 10
+    assert (f1.f2.f3: < 10) ?= Lvl1()
+
+    case Lvl1():
+      of (f1.f2.f3: < 10):
+        discard
+      of (f1: (f2: (f3: < 10))):
+        discard
+      else:
+        fail()
+
+  test "Nested key access":
+    let val = (@[1,2,3], @[3,4,5])
+
+    case val:
+      of ((len: <= 3), (len: <= 3)):
+        discard
+      else:
+        fail()
+
+    let val2 = (hello: @[1,2,3])
+
+    case val2:
+      of (hello.len: <= 3):
+        discard
+      else:
+        fail()
+
+
+    let val3 = (hello3: @[@[@["eee"]]])
+    assert not ((hello3[0][1][2].len: < 10) ?= val3)
+    assert (hello3[0][0][0].len: < 10) ?= val3
+    assert (hello3: is [[[(len: < 10)]]]) ?= val3
+
+
+    let val4 = {"hello" : { "world" : "nice" }.toTable()}.toTable()
+    assert { "hello"["world"] : "nice" } ?= val4
+
 
 suite "Gara tests":
   ## Test suite copied from gara pattern matching
