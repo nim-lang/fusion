@@ -607,12 +607,13 @@ suite "Matching":
         subn*: seq[HtmlNode]
 
     func add(n: var HtmlNode, s: HtmlNode) = n.subn.add s
+
     discard makeTree(HtmlNode, Base())
     discard makeTree(HtmlNode, base())
     discard makeTree(HtmlNode, base([link()]))
     discard makeTree(HtmlNode):
       base:
-        link()
+        link(text: "hello")
 
     template wrapper1(body: untyped): untyped =
       makeTree(HtmlNode):
@@ -847,8 +848,15 @@ suite "Matching":
     except MatchError:
       assert "pattern '1 | 2'" in getCurrentExceptionMsg()
 
-    expect MatchError:
-      1 := 2
+
+  test "Use in templates":
+    template match1(a: typed): untyped =
+      [@nice, @hh69] := a
+
+    match1([12, 3])
+
+    assert nice == 12
+    assert hh69 == 3
 
 
 suite "Gara tests":

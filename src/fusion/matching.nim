@@ -21,7 +21,7 @@ func nodeStr(n: NimNode): string =
     of nnkOpenSymChoice: n[0].strVal()
     of nnkSym: n.strVal()
     of nnkStrKinds: n.strVal()
-    else: raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
+    else: raiseAssert(&"#[ 100 IMPLEMENT for kind {n.kind} ]#")
 
 
 func idxTreeRepr(inputNode: NimNode, maxLevel: int = 120): string =
@@ -65,6 +65,14 @@ func splitDots(n: NimNode): seq[NimNode] =
         ).mapIt(nnkBracket.newTree(it))
     else:
       @[n]
+
+func getVar(n: NimNode): NimNode =
+  if n.kind == nnkPragmaExpr:
+    n[1][0][1]
+  elif n.kind == nnkPrefix:
+    n[1]
+  else:
+    raiseAssert("#[ IMPLEMENT ]#")
 
 func firstDot(n: NimNode): NimNode =
   splitDots(n)[0]
@@ -199,13 +207,17 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
   # identifier is not valid enum name, report immediately.
   let (pref, names) = getKindNames(head)
   kind.assertKind({nnkIdent})
-  let kind = ident(kind.toStrLit().nodeStr().addPrefix(pref))
+  let str = kind.toStrLit().nodeStr().addPrefix(pref)
+  let kind = ident(str)
+  if str.dropPrefix(pref) notin names:
+    error("Invalid kind name - " & kind.toStrLit().strVal(), kind)
+
   result = nnkInfix.newTree(ident "==", head, kind)
 
 
 template hasKind*(head, kindExpr: untyped): untyped =
   ## Determine if `head` has `kind` value. Either function/procedure
-  ## `kind` or field with the same name is expecte to be declared.
+  ## `kind` or field with the same name is expected to be declared.
   ## Type of `kind` must be an enum. Kind expression is a pattern
   ## describing expected values. Possible examples of pattern
   ## (assuming value of type `NimNode` is used as `head`)
@@ -213,17 +225,6 @@ template hasKind*(head, kindExpr: untyped): untyped =
   ## - `nnkIntLit` - match integer literal
   ## - `IntLit` - alternative (preferred) syntax for matching enum values
   ##   `nnk` prefix can be omitted.
-  ## - `{IntLit, StrLit}` - check for multiple kinds at the same time
-  ## - `{IntLit, +StrLiterals}` - check if kind value is either in an
-  ##   integer literal or is contained in set `StrLiterals` (which must)
-  ##   be declared externally. THis syntax is useful for checking common
-  ##   sets of kind values such as 'integer literals', 'literals' etc.
-  ##
-  ## NOTE: this template is used internally by `match` macro
-  ## implementation - all patterns can also be used to match case
-  ## objects (for example `{IntLit, StrLit}()` to match either integer
-  ## or string literal node or `{+Literals}()` for matching any
-  ## literal node)
   hasKindImpl(head.kind, kindExpr)
 
 type
@@ -270,11 +271,12 @@ type
     key: NimNode
     patt: Match
 
-  MatchError* = ref object of CatchableError
+  MatchError* = ref object of CatchableError ## Exception indicating match failure
 
   Match* = ref object
     ## Object describing single match for element
     bindVar*: Option[NimNode] ## Bound variable (if any)
+    pragma*: Option[NimNode]
     declNode*: NimNode ## Original declaration of match
     isOptional*: bool
     fallback*: Option[NimNode] ## Default value in case match fails
@@ -507,7 +509,7 @@ func parseNestedKey(n: NimNode): Match =
               nocheck: true
             )
       else:
-        raiseAssert(&"#[ IMPLEMENT for kind {spl[0].kind} ]#")
+        raiseAssert(&"#[ 500 IMPLEMENT for kind {spl[0].kind} ]#")
 
   return aux(n[0].splitDots())
 
@@ -816,8 +818,8 @@ func parseMatchExpr*(n: NimNode): Match =
       result.fallback = rhs
     elif n.isInfixPatt(): # `(true, true) | (false, false)`
       result = parseAltMatch(n)
-    elif n.kind == nnkInfix:
-      n[1].assertKind({nnkPrefix, nnkIdent})
+    elif n.kind in {nnkInfix, nnkPragmaExpr}:
+      n[1].assertKind({nnkPrefix, nnkIdent, nnkPragma})
       if n[1].kind in {nnkPrefix}:
         n[1][1].assertKind({nnkIdent})
 
@@ -842,8 +844,12 @@ func parseMatchExpr*(n: NimNode): Match =
       if n[1].kind == nnkPrefix: # WARNING
         # debugecho n.idxTreeRepr()
         result.bindVar = some(n[1][1])
+      elif n[1].kind == nnkPragmaExpr:
+        n[1][0].assertKind({nnkPrefix})
+        result.bindVar = some(n.getVar())
+        result.pragma = some(n[1][1])
     else:
-      raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
+      raiseAssert(&"#[ 800 IMPLEMENT for kind {n.kind} ]#")
 
 func isVariadic(p: Path): bool = p.anyIt(it.isVariadic)
 
@@ -1472,6 +1478,8 @@ macro match*(n: untyped): untyped =
       `matchcase`
 
 macro assertMatch*(input, pattern: untyped): untyped =
+  ## Try to match `input` using `pattern` and raise `MatchError` on
+  ## failure. For DSL syntax details see start of the document.
   let
     expr = ident genSym(nskLet, "expr").repr
     (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(
@@ -1484,6 +1492,8 @@ macro assertMatch*(input, pattern: untyped): untyped =
     let ok = `matched`
 
 macro matches*(input, pattern: untyped): untyped =
+  ## Try to match `input` using `pattern` and return `false` on
+  ## failure. For DSL syntax details see start of the document.
   let
     expr = ident genSym(nskLet, "expr").repr
     (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(
@@ -1493,8 +1503,6 @@ macro matches*(input, pattern: untyped): untyped =
   result = quote do:
     let `expr` = `input`
     `matched`
-
-  # echo result.toStrLit()
 
 func buildTreeMaker(
   prefix: string, resType: NimNode, match: Match): NimNode =

@@ -291,3 +291,33 @@ Input json string
 ``Some(@x)`` and ``None()`` is a special case that will be rewritten into
 ``(isSome: true, get: @x)`` and ``(isNone: true)`` respectively. This is
 made to allow better integration with optional types.  [9]_ .
+
+## Tree construction
+
+``makeTree`` provides 'reversed' implementation of pattern matching,
+which allows to *construct* tree from pattern, using variables.
+Example of use
+
+.. code-block:: nim
+    type
+      HtmlNodeKind = enum
+        htmlBase = "base"
+        htmlHead = "head"
+        htmlLink = "link"
+
+      HtmlNode = object
+        kind*: HtmlNodeKind
+        text*: string
+        subn*: seq[HtmlNode]
+
+    func add(n: var HtmlNode, s: HtmlNode) = n.subn.add s
+
+    discard makeTree(HtmlNode):
+      base:
+        link(text: "hello")
+
+In order to construct tree, ``kind=`` and ``add`` have to be defined.
+Internally DSL just creats resulting object, sets ``kind=`` and then
+repeatedly ``add`` elements to it. In order to properties for objects
+either the field has to be exported, or ``fld=`` has to be defined
+(where ``fld`` is the name of property you want to set).
