@@ -797,6 +797,59 @@ suite "Matching":
     assert (hello3[0][0][0].len: < 10) ?= val3
     assert (hello3: is [[[(len: < 10)]]]) ?= val3
 
+  test "Match failure exceptions":
+    try:
+      [all 1] := [2,3,4]
+    except MatchError:
+      let msg = getCurrentExceptionMsg()
+      assert "all 1" in msg
+      assert "all elements" in msg
+
+
+    expect MatchError:
+      [any 1] := [2,3,4]
+
+    try:
+      [any 1] := [2,3,4]
+    except MatchError:
+      let msg = getCurrentExceptionMsg()
+      assert "any 1" in msg
+
+    [any is (1 | 2)] := [1, 2]
+    try:
+      [_, any is (1 | 2)] := [3,4,5]
+      fail()
+    except MatchError:
+      let msg = getCurrentExceptionMsg()
+      assert "any is (1 | 2)" in msg
+      assert "[any is (1 | 2)]" notin msg
+
+    expect MatchError:
+      [none is 12] := [1, 2, 12]
+
+    expect MatchError:
+      [_, _, _] := [1, 2]
+
+    try:
+      [_, _, _] := [1, 2]
+    except MatchError:
+      assert "range '3 .. 3'" in getCurrentExceptionMsg()
+
+    try:
+      [_, opt _] := [1, 2, 3]
+    except MatchError:
+      assert "range '1 .. 2'" in getCurrentExceptionMsg()
+
+
+    try:
+      [(1 | 2)] := [3]
+      fail()
+    except MatchError:
+      assert "pattern '1 | 2'" in getCurrentExceptionMsg()
+
+    expect MatchError:
+      1 := 2
+
 
 suite "Gara tests":
   ## Test suite copied from gara pattern matching

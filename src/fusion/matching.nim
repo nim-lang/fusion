@@ -270,6 +270,8 @@ type
     key: NimNode
     patt: Match
 
+  MatchError* = ref object of CatchableError
+
   Match* = ref object
     ## Object describing single match for element
     bindVar*: Option[NimNode] ## Bound variable (if any)
@@ -365,7 +367,8 @@ func isInfixPatt(node: NimNode): bool =
   node[0].kind == nnkIdent and
   node[0].nodeStr() in ["|"]
 
-func makeVarSet(varn: NimNode, expr: NimNode, vtable: VarTable): NimNode =
+func makeVarSet(
+  varn: NimNode, expr: NimNode, vtable: VarTable, doRaise: bool): NimNode =
   varn.assertKind({nnkIdent})
   case vtable[varn.nodeStr()].varKind:
     of vkSequence:
@@ -385,9 +388,34 @@ func makeVarSet(varn: NimNode, expr: NimNode, vtable: VarTable): NimNode =
 
     of vkRegular:
       let wasSet = ident(varn.nodeStr() & "WasSet")
+      let varStr = varn.toStrLit()
+      let matchError =
+        if doRaise:
+          quote do:
+            when compiles($(`varn`)):
+              raise MatchError(
+                msg: "Match failure: variable '" & `varStr` &
+                  "' is already set to " & $(`varn`) &
+                  ", and does not match with " & $(`expr`) & "."
+              )
+            else:
+              raise MatchError(
+                msg: "Match failure: variable '" & `varStr` &
+                  "' is already set and new value does not match."
+              )
+         else:
+           quote do:
+             discard false
+
+
       return quote do:
         if `wasSet`:
-          `varn` == `expr`
+          if `varn` == `expr`:
+            true
+          else:
+            if true:
+              `matchError`
+            false
         else:
           `varn` = `expr`
           `wasSet` = true
@@ -633,6 +661,7 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
             break
 
 
+      let topElem = elem
       var (elem, opKind) = (elem, lkPos)
       let seqKwds = [lkAny, lkAll, lkNone, lkOpt, lkUntil, lkPref]
       if elem.kind in {nnkCall, nnkCommand} and
@@ -653,7 +682,7 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
       match.bindVar = none(NimNode)
       match.isOptional = opKind in {lkOpt}
 
-      var it = SeqStructure(bindVar: bindv, kind: opKind, decl: elem)
+      var it = SeqStructure(bindVar: bindv, kind: opKind, decl: topElem)
       it.patt = match
       result.add(it)
 
@@ -923,8 +952,9 @@ func makeVarTable(m: Match): tuple[table: VarTable,
   # debugPprint result
 
 
-func makeMatchExpr*(
-  m: Match, vtable: VarTable; path: Path, mainExpr: string): NimNode
+func makeMatchExpr(
+  m: Match, vtable: VarTable; path: Path,
+  mainExpr: string, doRaise: bool): NimNode
 
 template makeElemMatch(): untyped {.dirty.} =
   case elem.kind:
@@ -937,7 +967,8 @@ template makeElemMatch(): untyped {.dirty.} =
             $vtable[bindv.nodeStr()].varKind)
 
 
-        let vars = makeVarSet(bindv, parent.toAccs(mainExpr), vtable)
+        let vars = makeVarSet(
+          bindv, parent.toAccs(mainExpr), vtable, doRaise)
         result.add quote do:
           if not `vars`:
             `failBreak`
@@ -958,8 +989,38 @@ template makeElemMatch(): untyped {.dirty.} =
       var varset = newEmptyNode()
 
       if elem.bindVar.getSome(bindv):
-        varset = makeVarSet(bindv, parent.toAccs(mainExpr), vtable)
+        varset = makeVarSet(
+          bindv, parent.toAccs(mainExpr), vtable, doRaise)
         # vtable.addvar(bindv, parent) # XXXX
+
+      if doRaise:
+        let pattStr = newLit(elem.decl.toStrLit().strVal())
+        case elem.kind:
+          of lkAll:
+            failBreak = quote do:
+              raise MatchError(
+                msg: "Match failure for pattern '" & `pattStr` &
+                  "' expected all elements to match, but item at index " &
+                  $(`posid` - 1) & " failed"
+              )
+
+          of lkAny:
+            failBreak = quote do:
+              raise MatchError(
+                msg: "Match failure for pattern '" & `pattStr` &
+                  "'. Expected at least one elemen to match, but got none"
+              )
+          of lkNone:
+            failBreak = quote do:
+              raise MatchError(
+                msg: "Match failure for pattern '" & `pattStr` &
+                  "'. Expected no elements to match, but index " &
+                  $(`posid` - 1) & " matched."
+              )
+
+          else:
+            discard
+
 
       case elem.kind:
         of lkAll:
@@ -983,7 +1044,7 @@ template makeElemMatch(): untyped {.dirty.} =
                 inc `posid`
 
               if not `allOk`:
-                break `failBlock`
+                `failBreak`
 
         of lkSlice:
           var rangeExpr = elem.slice
@@ -1018,25 +1079,29 @@ template makeElemMatch(): untyped {.dirty.} =
                 inc `posid`
 
               if not foundOk:
-                break `failBlock`
+                `failBreak`
+
+
         of lkPref:
           result.add quote do:
             while `posid` < `getLen` and `expr`:
               discard `varset`
               inc `posid`
+
         of lkOpt:
           var default = newLit(true)
           if elem.patt.isOptional and
              elem.bindVar.getSome(bindv) and
              elem.patt.fallback.getSome(fallback):
 
-            default = makeVarSet(bindv, fallback, vtable)
+            default = makeVarSet(bindv, fallback, vtable, doRaise)
           result.add quote do:
             if `posid` < `getLen`:
               discard `varset`
               inc `posid`
             else:
               discard `default` ## Default
+
         of lkNone:
           let allOk = genSym(nskVar, "allOk")
           var check: NimNode
@@ -1059,7 +1124,7 @@ template makeElemMatch(): untyped {.dirty.} =
                 inc `posid`
 
               if not `allOk`:
-                break `failBlock`
+                `failBreak`
 
         of lkTrail, lkPos:
           # ???
@@ -1069,7 +1134,7 @@ template makeElemMatch(): untyped {.dirty.} =
 
 func makeSeqMatch(
   seqm: Match, vtable: VarTable; path: Path,
-  mainExpr: string): NimNode =
+  mainExpr: string, doRaise: bool): NimNode =
   var idx = 1
   while idx < seqm.seqElems.len:
     if seqm.seqElems[idx - 1].kind notin {
@@ -1083,8 +1148,9 @@ func makeSeqMatch(
     posid = genSym(nskVar, "pos")
     matched = genSym(nskVar, "matched")
     failBlock = ident("failBlock")
-    failBreak = nnkBreakStmt.newTree(failBlock)
     getLen = newCall("len", path.toAccs(mainExpr))
+
+  var failBreak = nnkBreakStmt.newTree(failBlock)
 
 
   result = newStmtList()
@@ -1099,7 +1165,9 @@ func makeSeqMatch(
           inStruct: kSeq, pos: posid,
           isVariadic: elem.kind notin {lkPos, lkOpt})]
 
-        expr = elem.patt.makeMatchExpr(vtable, parent, mainExpr)
+        expr = elem.patt.makeMatchExpr(
+          vtable, parent, mainExpr,
+          doRaise and (elem.kind notin {lkUntil, lkAny}))
 
 
       result.add newCommentStmtNode(
@@ -1107,17 +1175,37 @@ func makeSeqMatch(
 
       makeElemMatch()
 
+
+
   let
     comment = newCommentStmtNode(seqm.declNode.repr)
     minNode = newLit(minLen)
     maxNode = newLit(maxLen)
-    setCheck =
-      if maxLen >= 5000:
-        quote do:
-          `getLen` < `minNode`
-      else:
-        quote do:
-          `getLen` notin {`minNode` .. `maxNode`}
+
+  var setCheck: NimNode
+  if maxLen >= 5000:
+    setCheck = quote do:
+      `getLen` < `minNode`
+  else:
+    setCheck = quote do:
+      `getLen` notin {`minNode` .. `maxNode`}
+
+  if doRaise:
+    let pattStr = seqm.declNode.toStrLit()
+    if maxLen >= 5000:
+      failBreak = quote do:
+        raise MatchError(
+          msg: "Match failure for pattern '" & `pattStr` &
+            "'. Expected at least " & $(`minNode`) & " elements, but got" &
+            $(`getLen`) & "."
+        )
+    else:
+      failBreak = quote do:
+        raise MatchError(
+          msg: "Match failure for pattern '" & `pattStr` &
+            "'. Expected length in range '" & $(`minNode`) & " .. " &
+            $(`maxNode`) & "', but got " & $(`getLen`) & "."
+        )
 
   result = quote do:
     `comment`
@@ -1127,7 +1215,7 @@ func makeSeqMatch(
 
       if `setCheck`:
         ## fail on seq len
-        break `failBlock`
+        `failBreak`
 
       `result`
 
@@ -1140,10 +1228,9 @@ func makeSeqMatch(
 
 
 
-func makeMatchExpr*(
-  m: Match, vtable: VarTable; path: Path, mainExpr: string): NimNode =
-  ## Create NimNode for checking whether or not item referred to by
-  ## `mainExpr` matches pattern described by `Match`
+func makeMatchExpr(
+  m: Match, vtable: VarTable; path: Path,
+  mainExpr: string, doRaise: bool): NimNode =
   case m.kind:
     of kItem:
       let parent = path.toAccs(mainExpr)
@@ -1156,11 +1243,11 @@ func makeMatchExpr*(
               else:
                 nnkInfix.newTree(ident m.infix, parent, m.rhsNode)
              else:
-               makeMatchExpr(m.rhsPatt, vtable, path, mainExpr)
+               makeMatchExpr(m.rhsPatt, vtable, path, mainExpr, doRaise)
 
           if m.bindVar.getSome(vname):
             # vtable.addvar(vname, path) # XXXX
-            let bindVar = makeVarSet(vname, parent, vtable)
+            let bindVar = makeVarSet(vname, parent, vtable, doRaise)
             if inf == newLit(true):
               return bindVar
             else:
@@ -1177,7 +1264,7 @@ func makeMatchExpr*(
           var bindVar = newEmptyNode()
           if m.bindVar.getSome(vname):
             # vtable.addvar(vname, path) # XXXX
-            bindVar = makeVarSet(vname, parent, vtable)
+            bindVar = makeVarSet(vname, parent, vtable, doRaise)
           else:
             bindVar = newLit(true)
 
@@ -1190,13 +1277,13 @@ func makeMatchExpr*(
 
 
     of kSeq:
-      return makeSeqMatch(m, vtable, path, mainExpr)
+      return makeSeqMatch(m, vtable, path, mainExpr, doRaise)
     of kTuple:
       var conds: seq[NimNode]
       for idx, it in m.tupleElems:
         conds.add it.makeMatchExpr(vtable, path & @[
           AccsElem(inStruct: kTuple, idx: idx)
-        ],  mainExpr)
+        ], mainExpr, doRaise)
 
       return conds.foldInfix("and")
     of kObject:
@@ -1206,13 +1293,13 @@ func makeMatchExpr*(
 
       for (fld, patt) in m.fldElems:
         conds.add patt.makeMatchExpr(vtable, path & @[
-          AccsElem(inStruct: kObject, fld: fld)],  mainExpr)
+          AccsElem(inStruct: kObject, fld: fld)], mainExpr, doRaise)
 
       if m.seqMatches.getSome(seqm):
-        conds.add seqm.makeMatchExpr(vtable, path,  mainExpr)
+        conds.add seqm.makeMatchExpr(vtable, path, mainExpr, doRaise)
 
       if m.kvMatches.getSome(kv):
-        conds.add kv.makeMatchExpr(vtable, path,  mainExpr)
+        conds.add kv.makeMatchExpr(vtable, path, mainExpr, doRaise)
 
       return conds.foldInfix("and")
 
@@ -1227,7 +1314,8 @@ func makeMatchExpr*(
           valGet = valPath.toAccs(mainExpr)
 
         if m.nocheck:
-          conds.add pair.patt.makeMatchExpr(vtable, valPath, mainExpr)
+          conds.add pair.patt.makeMatchExpr(
+            vtable, valPath, mainExpr, doRaise)
 
         else:
           let
@@ -1236,15 +1324,15 @@ func makeMatchExpr*(
           if not pair.patt.isOptional:
             conds.add nnkInfix.newTree(
               ident "and", incheck,
-              pair.patt.makeMatchExpr(vtable, valPath, mainExpr)
+              pair.patt.makeMatchExpr(vtable, valPath, mainExpr, doRaise)
             )
 
           else:
             let varn = pair.patt.bindVar.get
-            let varsetOk = makeVarSet(varn, valGet, vtable)
+            let varsetOk = makeVarSet(varn, valGet, vtable, doRaise)
             if pair.patt.fallback.getSome(fallback):
               let varsetFail = makeVarSet(
-                varn, pair.patt.fallback.get(), vtable)
+                varn, pair.patt.fallback.get(), vtable, doRaise)
 
               conds.add quote do:
                 block:
@@ -1264,9 +1352,19 @@ func makeMatchExpr*(
       var conds: seq[NimNode]
       for alt in m.altElems:
         conds.add alt.makeMatchExpr(
-          vtable, path & @[AccsElem(inStruct: kAlt)],  mainExpr)
+          vtable, path & @[AccsElem(inStruct: kAlt)], mainExpr, false)
 
-      return conds.foldInfix("or")
+      let res = conds.foldInfix("or")
+      if not doRaise:
+        return res
+      else:
+        let pattStr = m.declNode.toStrLit()
+        return quote do:
+          `res` or (block: raise MatchError(
+            msg: "Match failure for pattern '" & `pattStr` &
+              "' - None of the alternatives matched."
+          ); true)
+
     of kSet:
       var conds: seq[NimNode]
       let setPath = path.toAccs(mainExpr)
@@ -1282,14 +1380,17 @@ func makeMatchExpr*(
       return conds.foldInfix("and")
 
 
-func makeMatchExpr(m: Match, mainExpr: string): tuple[
+func makeMatchExpr*(m: Match, mainExpr: string, doRaise: bool): tuple[
     expr: NimNode,
   vtable: VarTable,
   mixident: seq[string]
     ] =
 
+  ## Create NimNode for checking whether or not item referred to by
+  ## `mainExpr` matches pattern described by `Match`
+
   (result.vtable, result.mixident) = makeVarTable(m)
-  result.expr = makeMatchExpr(m, result.vtable, @[],  mainExpr)
+  result.expr = makeMatchExpr(m, result.vtable, @[],  mainExpr, doRaise)
 
 func toNode(
   expr: NimNode,
@@ -1337,7 +1438,7 @@ macro match*(n: untyped): untyped =
           error("To create catch-all match use `else` clause", elem[0])
 
         let (expr, vtable, mixid) =
-          elem[0].parseMatchExpr().makeMatchExpr( "expr")
+          elem[0].parseMatchExpr().makeMatchExpr("expr", false)
 
         mixidents.add mixid
 
@@ -1373,7 +1474,8 @@ macro match*(n: untyped): untyped =
 macro assertMatch*(input, pattern: untyped): untyped =
   let
     expr = ident genSym(nskLet, "expr").repr
-    (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(expr.repr)
+    (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(
+      expr.repr, true)
     matched = toNode(mexpr, vtable, expr.repr)
 
   let patt = newLit(pattern.repr)
@@ -1381,15 +1483,11 @@ macro assertMatch*(input, pattern: untyped): untyped =
     let `expr` = `input`
     let ok = `matched`
 
-    if not ok:
-      raiseAssert("Pattern match failed `" & `patt` & "`")
-
-  # echo result.toStrLit()
-
 macro matches*(input, pattern: untyped): untyped =
   let
     expr = ident genSym(nskLet, "expr").repr
-    (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(expr.repr)
+    (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(
+      expr.repr, false)
     matched = toNode(mexpr, vtable, expr.repr)
 
   result = quote do:
