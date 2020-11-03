@@ -753,6 +753,97 @@ suite "Matching":
         of (@a, _):
           assert a == true
 
+    block:
+      block: (fld: @val) := (fld: 12); assert val == 12
+      block: (@val, _) := (12, 2); assert val == 12
+      block:
+        (@val, @val) := (12, 12); assert val == 12
+        block: assert (@a, @a) ?= (12, 12)
+        block: assert not ((@a, @a) ?= (12, 3))
+
+      block:
+        assert [_, _] ?= [12, 2]
+        assert not ([_, _] ?= [12, 2, 2])
+
+      block:
+        assert [_, .._] ?= [12]
+        assert not ([_, _, .._] ?= [12])
+
+      block:
+        [_, all @val] := [12, 2, 2]; assert val == @[2, 2]
+
+        # Note that
+        block:
+          # Does not work, because `assert` internally uses `if` and
+          # all variables declared inside are not accesible to the
+          # outside scope
+          assert [_, all @val] ?= [12, 2, 2]
+          when false: # NOTE - will not compile
+            assert val == @[2, 2]
+
+    block:
+      [until @val is 12, _] := [2, 13, 12]
+      assert val == @[2, 13]
+
+    block:
+      [until @val is 12, @val] := [2, 13, 12]
+      assert val == @[2, 13, 12]
+
+
+  test "Generic types":
+    type
+      GenKind = enum
+        ptkToken
+        ptkNterm
+
+      Gen[Kind, Lex] = ref object
+        kindFld: Kind
+        case tkind*: GenKind
+          of ptkNterm:
+            subnodes*: seq[Gen[Kind, Lex]]
+          of ptkToken:
+            lex*: Lex
+
+    func add[K, L](g: var Gen[K, L], t: Gen[K, L]) =
+      g.subnodes.add t
+
+    func kind[K, L](g: Gen[K, L]): K = g.kindFld
+
+    block:
+      type
+        Kind1 = enum
+          k1_val
+          k2_val
+          k3_val
+
+      const kTokens = {k1_val, k2_val}
+      block:
+        k1_val(lex: @lex) := Gen[Kind1, string](
+          tkind: ptkToken,
+          kindFld: k1_val,
+          lex: "Hello"
+        )
+
+      func `kind=`(g: var Gen[Kind1, string], k: Kind1) =
+        if k in kTokens:
+          g = Gen[Kind1, string](kindFld: k, tkind: ptkToken)
+        else:
+          g = Gen[Kind1, string](kindFld: k, tkind: ptkNterm)
+
+
+      let tree = makeTree(Gen[Kind1, string]):
+        k3_val:
+          k2_val(lex: "Hello")
+          k1_val(lex: "Nice")
+
+    block:
+      (lex: @lex) := Gen[void, string](tKind: ptkToken, lex: "hello")
+
+
+
+
+
+
   test "Nested objects":
     type
       Lvl3 = object

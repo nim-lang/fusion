@@ -225,7 +225,12 @@ template hasKind*(head, kindExpr: untyped): untyped =
   ## - `nnkIntLit` - match integer literal
   ## - `IntLit` - alternative (preferred) syntax for matching enum values
   ##   `nnk` prefix can be omitted.
-  hasKindImpl(head.kind, kindExpr)
+  when compiles(head.kind):
+    hasKindImpl(head.kind, kindExpr)
+  else:
+    # TODO find better way to signal invalid code from templates
+    static:
+      assert false, "No `kind` defined for " & $typeof(head)
 
 type
   MatchKind* = enum
@@ -1541,7 +1546,11 @@ func buildTreeMaker(
           {.pop.}
 
       else:
-        error("Named tuple construction is not supported", match.declNode)
+        error(
+          "Named tuple construction is not supported. To Create " &
+            "object use `Kind(f1: val1, f2: val2)`" ,
+          match.declNode
+        )
 
       for (name, patt) in match.fldElems:
         res.add nnkAsgn.newTree(newDotExpr(
@@ -1577,6 +1586,8 @@ func buildTreeMaker(
         match.declNode
       )
 
+  # debugecho result.toStrLit().strVal()
+
 func `kind=`*(node: var NimNode, kind: NimNodeKind) =
   node = newNimNode(kind, node)
 
@@ -1589,7 +1600,7 @@ func `str=`*(node: var NimNode, val: string) =
 
 func getTypeIdent(node: NimNode): NimNode =
   case node.getType().kind:
-    of nnkObjectTy:
+    of nnkObjectTy, nnkBracketExpr:
       newCall("typeof", node)
     else:
       node.getType()
@@ -1619,6 +1630,16 @@ template makeTree*(T: typed, patt: untyped): untyped =
   ## use see documentation at the start of the module
   block:
     var tmp: T
+    when not compiles((var t: T; discard t.kind)):
+      static: error "No `kind` defined for " & $typeof(tmp)
+
+    when not compiles((var t: T; t.kind = t.kind)):
+      static: error "Cannot set `kind=` for " & $typeof(tmp)
+
+    when not compiles((var t: T; t.add t)):
+      static: error "No `add` defined for " & $typeof(tmp)
+
+
     makeTreeImpl(tmp, tmp.kind, patt)
 
 template `:=`*(lhs, rhs: untyped): untyped =

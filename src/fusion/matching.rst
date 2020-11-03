@@ -13,6 +13,30 @@ This module implements pattern matching DSL.
       of [(1, _), _]: 1
       else: 999
 
+## Quick reference
+
+============================= ===================
+ Example                       Explanation
+============================= ===================
+ ``(fld: @val)``               Field ``fld`` into variable ``@val``
+ ``(@val, _)``                 First element in tuple in ``@val``
+ ``(@val, @val)``              Tuple with two equal elements
+ ``{"key" : @val}``            Table with "key", capture into ``@val`` [1]_
+ ``[_, _]``                    Sequence with ``len == 2`` [2]_
+ ``[_, .._]``                  At least one element
+ ``[_, all @val]``             All elements starting from index `1`
+ ``[until @val == "2", .._]``  Capture all elements *until* first ``"2"`` [3]_
+ ``[until @val == 1, @val]``   All *including* first match
+ ``[all @val == 12]``          All elements are `== 12`, capture into ``@val``
+ ``[some @val == 12]``         At least *one* is `== 12`, capture all matching into ``@val``
+============================= ====================
+
+- [1] Or any object with ``contains`` and ``[]`` defined (for necessary types)
+- [2] Or any object with ``len`` proc or field
+- [3] Note that sequence must mathc *fully* and it is necessary to
+  have `.._` at the end in order to accept sequences of arbitrary
+  length.
+
 ## Supported match elements
 
 - *seqs* - matched using ``[Patt1(), Patt2(), ..]``. Must have
@@ -25,29 +49,29 @@ This module implements pattern matching DSL.
   defined. If variable is captured then ``Val1`` must be comparable
   and collection should also implement ``items`` and ``incl``.
 - *object* - matched using ``(field: Val)``. Case objects are matched
-  using ``Kind(field: Val)`` or, if you want to check agains multiple
-  values for kind field ``{Kind1, Kind2}()``
+  using ``Kind(field: Val)``. If you want to check agains multiple
+  values for kind field ``(kind: in SomeSetOfKinds)``
 
 ## Element access
 
-Where ``expr`` is a result of evaluation for case head. If case head
-is an identifier it will be used as-is in pat subsitution. Otherwise
-``let expr = <case-head>`` will be injected in scope. ``expr`` is not
-gensymed, making it possible to access it when necessary.
+To determine whether or not particular object matches pattern *access
+path* is generated - sequence of fields and `[]` operators that you
+would normally write by hand, like `fld.subfield["value"].len`. Due to
+support for `method call syntax
+<https://nim-lang.org/docs/manual.html#procedures-method-call-syntax>`_
+there is no difference between field acccess and proc call, so things
+like `(len: < 12)` also work as expected.
 
-``(fld: "3")``
-    Match field ``fld`` against ``"0"``. Generated access is
-    ``expr.fld == "3"``.
+``(fld: "3")`` Match field ``fld`` against ``"0"``. Generated access
+    is ``expr.fld == "3"``.
 
-``["2"]``
-    Match first element of expression agains patt. Generate
-    acess ``expr[0] == "2"``
+``["2"]`` Match first element of expression agains patt. Generate
+    acess ``expr[pos] == "2"``, where `pos` is an integer index for
+    current position in sequence.
 
-``("2")``
-    Same as sequence
+``("2")`` For each field generate access using `[1]`
 
-``{"key": "val"}``
-    First check ``"key" in expr`` and then
+``{"key": "val"}`` First check ``"key" in expr`` and then
     ``expr["key"] == "val"``. No exception on missing keys, just fail
     match.
 
@@ -73,20 +97,16 @@ Notation: ``<expr>`` refers to any possible combination of checks. For
 example
 
 - ``fld: in {1,2,3}`` - ``<expr>`` is ``in {1,2,3}``
-
 - ``[_]`` - ``<expr>`` is ``_``
-
 - ``fld: is Patt()`` - ``<expr>`` is ``is Patt()``
 
 ### Examples
 
 - ``(fld: 12)`` If rhs for key-value pair is integer, string or
   identifier then ``==`` comparison will be generated.
-
 - ``(fld: == ident("33"))`` if rhs is a prefix of ``==`` then ``==`` will
   be generated. Any for of prefix operator will be converted to
   ``expr.fld <op> <rhs>``.
-
 - ``(fld: in {1, 3, 3})`` or ``(fld: in Anything)`` creates ``fld.expr
   in Anything``. Either ``in`` or ``notin`` can be used.
 
@@ -96,16 +116,13 @@ Match can be bound to new varaible. All variable declarations happen
 via ``@varname`` syntax.
 
 - To bind element to variable without any additional checks do: ``(fld: @varname)``
-
 - To bind element with some additional operator checks do:
 
   - ``(fld: @varname <operator> Value)`` first perform check using
     ``<operator>`` and then add ``Value`` to ``@varname``
-
     - ``(fld: @hello is ("2" | "3"))``
 
 - Predicate checks: ``fld: @a.matchPredicate()``
-
 - Arbitrary expression: ``fld: @a(it mod 2 == 0)``. If expression has no
   type it is considered ``true``.
 
