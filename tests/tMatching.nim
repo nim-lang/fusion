@@ -15,6 +15,10 @@ template assertEq(a, b: untyped): untyped =
     echo b
     raiseAssert("Comparison failed in " & $instantiationInfo())
 
+template fail(str: string): untyped =
+  echo "Fail on ", instantiationInfo(), ": ", str
+  fail()
+
 suite "Matching":
   test "Has kind for anything":
     type
@@ -87,6 +91,12 @@ suite "Matching":
       of [_]: fail()
       of [_, 2, 3, _]:
         discard
+
+    case (1, 2):
+      of (3, 4), (1, 2):
+        discard
+      else:
+        fail()
 
 
     assertEq "hehe", case (true, false):
@@ -516,6 +526,22 @@ suite "Matching":
       else:
         discard
 
+
+    [all _(it < 10)] := [1,2,3,5,6]
+    [all < 10] := [1,2,3,4]
+    [all (len: < 10)] := [@[1,2,3,4], @[1,2,3,4]]
+    [all _.startsWith("--")] := @["--", "--", "--=="]
+
+    proc exception() =
+      # This should generate quite nice exception message:
+
+      # Match failure for pattern 'all _.startsWith("--")' expected
+      # all elements to match, but item at index 2 failed
+      [all _.startsWith("--")] := @["--", "--", "=="]
+
+    expect MatchError:
+      exception()
+
   test "One-or-more":
     template testCase(main, patt, body: untyped): untyped =
       case main:
@@ -891,7 +917,7 @@ suite "Matching":
 
   test "Match failure exceptions":
     try:
-      [all 1] := [2,3,4]
+      [all 12] := [2,3,4]
     except MatchError:
       let msg = getCurrentExceptionMsg()
       assert "all 1" in msg
@@ -910,7 +936,7 @@ suite "Matching":
     [any is (1 | 2)] := [1, 2]
     try:
       [_, any is (1 | 2)] := [3,4,5]
-      fail()
+      fail("_, any is (1 | 2)")
     except MatchError:
       let msg = getCurrentExceptionMsg()
       assert "any is (1 | 2)" in msg
@@ -935,9 +961,24 @@ suite "Matching":
 
     try:
       [(1 | 2)] := [3]
-      fail()
+      fail("[(1 | 2)] := [3]")
     except MatchError:
-      assert "pattern '1 | 2'" in getCurrentExceptionMsg()
+      assert "pattern '(1 | 2)'" in getCurrentExceptionMsg()
+
+
+    1 := 1
+
+    expect MatchError:
+      1 := 2
+
+    expect MatchError:
+      (1, 2) := (2, 1)
+
+    expect MatchError:
+      (@a, @a) := (2, 3)
+
+    expect MatchError:
+      (_(it < 12), 1) := (14, 1)
 
 
   test "Use in templates":
@@ -948,6 +989,8 @@ suite "Matching":
 
     assert nice == 12
     assert hh69 == 3
+
+
 
 
 suite "Gara tests":

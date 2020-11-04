@@ -814,6 +814,18 @@ func parseMatchExpr*(n: NimNode): Match =
           declNode: n,
           predBody: body
         )
+      elif n.kind == nnkCall and n[0].eqIdent("_"):
+        # `_(some < expression)`. NOTE - this is probably a
+        # not-that-common use case, but I don't think explicitly
+        # disallowing it will make things more intuitive.
+        # debugecho n.idxTreeRepr()
+        # raiseAssert("#[ IMPLEMENT ]#")
+        result = Match(
+          kind: kItem,
+          itemMatch: imkPredicate,
+          declNode: n[1],
+          predBody: n[1]
+        )
       else:
         result = parseKVTuple(n)
     elif (n.kind in {nnkCommand, nnkCall}) and n[0].eqIdent("opt"):
@@ -967,11 +979,26 @@ func makeMatchExpr(
   m: Match, vtable: VarTable; path: Path,
   mainExpr: string, doRaise: bool): NimNode
 
+func lineIInfo(node: NimNode): NimNode =
+  let iinfo = node.lineInfoObj()
+  newLit((filename: iinfo.filename, line: iinfo.line))
+
 template makeElemMatch(): untyped {.dirty.} =
+  let pattStr = newLit(elem.decl.toStrLit().strVal())
   case elem.kind:
     of lkPos:
       inc minLen
       inc maxLen
+      let ln = elem.decl.lineIInfo()
+      if doRaise:
+        var str = newNimNode(nnkRStrLit)
+        str.strVal = "Match failure for pattern '" & pattStr.strVal() &
+            "'. Item at index "
+
+        failBreak = quote do:
+          {.line: `ln`.}:
+            raise MatchError(msg: `str` & $(`posid` - 1) & " failed")
+
       if elem.bindVar.getSome(bindv):
         result.add newCommentStmtNode(
           "Set variable " & bindv.nodeStr() & " " &
@@ -1004,30 +1031,33 @@ template makeElemMatch(): untyped {.dirty.} =
           bindv, parent.toAccs(mainExpr), vtable, doRaise)
         # vtable.addvar(bindv, parent) # XXXX
 
+      let ln = elem.decl.lineIInfo()
       if doRaise:
-        let pattStr = newLit(elem.decl.toStrLit().strVal())
         case elem.kind:
           of lkAll:
             failBreak = quote do:
-              raise MatchError(
-                msg: "Match failure for pattern '" & `pattStr` &
-                  "' expected all elements to match, but item at index " &
-                  $(`posid` - 1) & " failed"
-              )
+              {.line: `ln`.}:
+                raise MatchError(
+                  msg: "Match failure for pattern '" & `pattStr` &
+                    "' expected all elements to match, but item at index " &
+                    $(`posid` - 1) & " failed"
+                )
 
           of lkAny:
             failBreak = quote do:
-              raise MatchError(
-                msg: "Match failure for pattern '" & `pattStr` &
-                  "'. Expected at least one elemen to match, but got none"
-              )
+              {.line: `ln`.}:
+                raise MatchError(
+                  msg: "Match failure for pattern '" & `pattStr` &
+                    "'. Expected at least one elemen to match, but got none"
+                )
           of lkNone:
             failBreak = quote do:
-              raise MatchError(
-                msg: "Match failure for pattern '" & `pattStr` &
-                  "'. Expected no elements to match, but index " &
-                  $(`posid` - 1) & " matched."
-              )
+              {.line: `ln`.}:
+                raise MatchError(
+                  msg: "Match failure for pattern '" & `pattStr` &
+                    "'. Expected no elements to match, but index " &
+                    $(`posid` - 1) & " matched."
+                )
 
           else:
             discard
@@ -1065,7 +1095,7 @@ template makeElemMatch(): untyped {.dirty.} =
               if `posid` < `getLen` and `expr`:
                 discard `varset`
               else:
-                break `failBlock`
+                `failBreak`
 
         of lkUntil:
           result.add quote do:
@@ -1076,7 +1106,7 @@ template makeElemMatch(): untyped {.dirty.} =
           if idx == seqm.seqElems.len - 1:
             result.add quote do:
               if (`posid` < `getLen`): ## Not full match
-                break `failBlock`
+                `failBreak`
 
         of lkAny:
           result.add quote do:
@@ -1178,7 +1208,17 @@ func makeSeqMatch(
 
         expr = elem.patt.makeMatchExpr(
           vtable, parent, mainExpr,
-          doRaise and (elem.kind notin {lkUntil, lkAny}))
+          false # WARNING no detailed reporting for subpattern
+                # matching failure. In order to get these I need to
+                # return failure string from each element, which makes
+                # thing more complicated. It is not that hard to just
+                # return `(bool, string)` or something similar, but it
+                # would require quite annoying (albeit simple)
+                # redesign of the whole code, to account for new
+                # expression types. No impossible though.
+
+          # doRaise and (elem.kind notin {lkUntil, lkAny, lkNone})
+        )
 
 
       result.add newCommentStmtNode(
@@ -1203,20 +1243,24 @@ func makeSeqMatch(
 
   if doRaise:
     let pattStr = seqm.declNode.toStrLit()
+    let ln = seqm.declNode.lineIInfo()
+
     if maxLen >= 5000:
       failBreak = quote do:
-        raise MatchError(
-          msg: "Match failure for pattern '" & `pattStr` &
-            "'. Expected at least " & $(`minNode`) & " elements, but got" &
-            $(`getLen`) & "."
-        )
+        {.line: `ln`.}:
+          raise MatchError(
+            msg: "Match failure for pattern '" & `pattStr` &
+              "'. Expected at least " & $(`minNode`) & " elements, but got" &
+              $(`getLen`) & "."
+          )
     else:
       failBreak = quote do:
-        raise MatchError(
-          msg: "Match failure for pattern '" & `pattStr` &
-            "'. Expected length in range '" & $(`minNode`) & " .. " &
-            $(`maxNode`) & "', but got " & $(`getLen`) & "."
-        )
+        {.line: `ln`.}:
+          raise MatchError(
+            msg: "Match failure for pattern '" & `pattStr` &
+              "'. Expected length in range '" & $(`minNode`) & " .. " &
+              $(`maxNode`) & "', but got " & $(`getLen`) & "."
+          )
 
   result = quote do:
     `comment`
@@ -1247,29 +1291,28 @@ func makeMatchExpr(
       let parent = path.toAccs(mainExpr)
       case m.itemMatch:
         of imkInfixEq, imkSubpatt:
-          let inf =
-            if m.itemMatch == imkInfixEq:
-              if m.isPlaceholder:
-                newLit(true)
-              else:
-                nnkInfix.newTree(ident m.infix, parent, m.rhsNode)
-             else:
-               makeMatchExpr(m.rhsPatt, vtable, path, mainExpr, doRaise)
+          if m.itemMatch == imkInfixEq:
+            if m.isPlaceholder:
+              result = newLit(true)
+            else:
+              result = nnkInfix.newTree(ident m.infix, parent, m.rhsNode)
+          else:
+            result = makeMatchExpr(m.rhsPatt, vtable, path, mainExpr, doRaise)
 
           if m.bindVar.getSome(vname):
             # vtable.addvar(vname, path) # XXXX
             let bindVar = makeVarSet(vname, parent, vtable, doRaise)
-            if inf == newLit(true):
-              return bindVar
+            if result == newLit(true):
+              result = bindVar
             else:
-              return quote do:
+              result = quote do:
                 block:
-                  if `inf`:
+                  if `result`:
                     `bindVar`
                   else:
                     false
-          else:
-            return inf
+
+
         of imkPredicate:
           let pred = m.predBody
           var bindVar = newEmptyNode()
@@ -1285,6 +1328,15 @@ func makeMatchExpr(
               `bindVar`
             else:
               false
+
+      if doRaise:
+        let msgLit = newLit(
+          "Pattern match failed: element does not match '" &
+            m.declNode.toStrLit().strVal() & "'")
+
+        result = quote do:
+          `result` or ((block: raise MatchError(msg: `msgLit`) ; false))
+
 
 
     of kSeq:
@@ -1449,13 +1501,15 @@ macro match*(n: untyped): untyped =
           error("To create catch-all match use `else` clause", elem[0])
 
         let (expr, vtable, mixid) =
-          elem[0].parseMatchExpr().makeMatchExpr("expr", false)
+          toSeq(elem[0 .. ^2]).foldl(
+            nnkInfix.newTree(ident "|", a, b)
+          ).parseMatchExpr().makeMatchExpr("expr", false)
 
         mixidents.add mixid
 
         matchcase.add nnkElifBranch.newTree(
           toNode(expr, vtable, "expr").newPar().newPar(),
-          elem[1]
+          elem[^1]
         )
 
       of nnkElifBranch, nnkElse:
@@ -1481,6 +1535,8 @@ macro match*(n: untyped): untyped =
       let expr {.inject.} = `head`
       let pos {.inject.}: int = 0
       `matchcase`
+
+  # echo result.repr
 
 macro assertMatch*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and raise `MatchError` on

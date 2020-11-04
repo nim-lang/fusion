@@ -3,7 +3,12 @@
   "you can probably make a macro for that" -- Rika, 22-09-2020 10:41:51
   </p></blockquote>
 
-This module implements pattern matching DSL.
+:Author: haxscramper
+:Version: 0.7
+
+This module implements pattern matching for objects, tuples,
+sequences, key-value pairs and case objects. DSL can also be used to
+create object trees (AST).
 
 ## Use example
 
