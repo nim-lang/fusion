@@ -10,6 +10,8 @@ template withDir*(dir: string, body: untyped): untyped =
   ##     # inside foo directory
   ##   # back to last directory
   let curDir = getCurrentDir()
-  setCurrentDir(dir)
-  body
-  setCurrentDir(curDir)
+  try:
+    setCurrentDir(dir)
+    body
+  finally:
+    setCurrentDir(curDir)
