@@ -2,7 +2,7 @@ import std/os
 
 
 template withDir*(dir: string, body: untyped): untyped =
-  ## Changes the current directory temporarily.
+  ## Changes the current directory to `dir` temporarily.
   ## Usage example:
   ##
   ## .. code-block:: nim
