@@ -1,27 +1,46 @@
 import sequtils, macros, tables, options, strformat, strutils,
        parseutils, algorithm, hashes
 
-# TODO handle malformed input pattern with `@var or "default"` in
-# sequences/kv-pairs. Should be written as `opt @var or "default"`
+export options
 
 ## .. include:: matching.rst
 
-
 const
-  nnkStrKinds* = { nnkStrLit .. nnkTripleStrLit }
-  nnkIntKinds* = { nnkCharLit .. nnkUInt64Lit }
-  nnkFloatKinds* = { nnkFloatLit .. nnkFloat128Lit }
-  nnkIdentKinds* = { nnkIdent, nnkSym, nnkOpenSymChoice }
-  nnkTokenKinds* = nnkStrKinds + nnkIntKinds +
-                   nnkFloatKinds + nnkIdentKinds
+  nnkStrKinds* = {
+    nnkStrLit .. nnkTripleStrLit
+  } ## Set of all nim node kinds for string nodes
+
+  nnkIntKinds* = {
+    nnkCharLit .. nnkUInt64Lit
+  } ## Set of all nim node kinds for integer literal nodes
+
+  nnkFloatKinds* = {
+    nnkFloatLit .. nnkFloat128Lit
+  } ## Set of all nim node kinds for float literal nodes
+
+  nnkIdentKinds* = {
+    nnkIdent, nnkSym, nnkOpenSymChoice
+  } ## Set of all nim node kinds for identifier-like nodes
+
+  nnkTokenKinds* =
+    nnkStrKinds + nnkIntKinds + nnkFloatKinds +
+    nnkIdentKinds ## Set of all token-like nodes (primitive type
+                  ## literals or identifiers)
 
 func nodeStr(n: NimNode): string =
+  ## Get nim node string value from any identifier or string literal node
   case n.kind:
     of nnkIdent: n.strVal()
     of nnkOpenSymChoice: n[0].strVal()
     of nnkSym: n.strVal()
     of nnkStrKinds: n.strVal()
-    else: raiseAssert(&"#[ 100 IMPLEMENT for kind {n.kind} ]#")
+    else: raiseAssert(&"Cannot get string value from node kind {n.kind}")
+
+func lineIInfo(node: NimNode): NimNode =
+  ## Create tuple literal for `{.line: .}` pragma
+  let iinfo = node.lineInfoObj()
+  newLit((filename: iinfo.filename, line: iinfo.line))
+
 
 
 func idxTreeRepr(inputNode: NimNode, maxLevel: int = 120): string =
@@ -72,7 +91,7 @@ func getVar(n: NimNode): NimNode =
   elif n.kind == nnkPrefix:
     n[1]
   else:
-    raiseAssert("#[ IMPLEMENT ]#")
+    raiseAssert(&"Cannot get variable from node kind {n.kind}")
 
 func firstDot(n: NimNode): NimNode =
   splitDots(n)[0]
@@ -103,7 +122,7 @@ func parseEnumField(fld: NimNode): string =
     of nnkSym:
       fld.nodeStr
     else:
-      raiseAssert(&"#[ IMPLEMENT {fld.kind} ]#")
+      raiseAssert(&"Cannot parse enum field for kind: {fld.kind}")
 
 func parseEnumImpl(en: NimNode): seq[string] =
   ## Get sequence of enum value names
@@ -126,7 +145,7 @@ func parseEnumImpl(en: NimNode): seq[string] =
     of nnkTypeSection:
       result = parseEnumImpl(en[0])
     else:
-      raiseAssert(&"#[ IMPLEMENT {en.kind} ]#")
+      raiseAssert(&"Cannot parse enum element for kind {en.kind}")
 
 
 func pref(name: string): string =
@@ -203,8 +222,6 @@ proc getKindNames*(head: NimNode): (string, seq[string]) =
 
 
 macro hasKindImpl*(head: typed, kind: untyped): untyped =
-  # TODO validate correcness of pattern in `kind` - if prefixed
-  # identifier is not valid enum name, report immediately.
   let (pref, names) = getKindNames(head)
   kind.assertKind({nnkIdent})
   let str = kind.toStrLit().nodeStr().addPrefix(pref)
@@ -228,9 +245,7 @@ template hasKind*(head, kindExpr: untyped): untyped =
   when compiles(head.kind):
     hasKindImpl(head.kind, kindExpr)
   else:
-    # TODO find better way to signal invalid code from templates
-    static:
-      assert false, "No `kind` defined for " & $typeof(head)
+    static: error "No `kind` defined for " & $typeof(head)
 
 type
   MatchKind* = enum
@@ -369,11 +384,6 @@ func isNamedTuple(node: NimNode): bool =
   }) and
   node.allIt((it.kind == nnkIdent) -> (it.nodeStr == "_"))
 
-func isInfixPatt(node: NimNode): bool =
-  node.kind == nnkInfix and
-  node[0].kind == nnkIdent and
-  node[0].nodeStr() in ["|"]
-
 func makeVarSet(
   varn: NimNode, expr: NimNode, vtable: VarTable, doRaise: bool): NimNode =
   varn.assertKind({nnkIdent})
@@ -396,20 +406,23 @@ func makeVarSet(
     of vkRegular:
       let wasSet = ident(varn.nodeStr() & "WasSet")
       let varStr = varn.toStrLit()
+      let ln = lineIInfo(vtable[varn.nodeStr()].decl)
       let matchError =
         if doRaise:
           quote do:
             when compiles($(`varn`)):
-              raise MatchError(
-                msg: "Match failure: variable '" & `varStr` &
-                  "' is already set to " & $(`varn`) &
-                  ", and does not match with " & $(`expr`) & "."
-              )
+              {.line: `ln`.}:
+                raise MatchError(
+                  msg: "Match failure: variable '" & `varStr` &
+                    "' is already set to " & $(`varn`) &
+                    ", and does not match with " & $(`expr`) & "."
+                )
             else:
-              raise MatchError(
-                msg: "Match failure: variable '" & `varStr` &
-                  "' is already set and new value does not match."
-              )
+              {.line: `ln`.}:
+                raise MatchError(
+                  msg: "Match failure: variable '" & `varStr` &
+                    "' is already set and new value does not match."
+                )
          else:
            quote do:
              discard false
@@ -514,7 +527,13 @@ func parseNestedKey(n: NimNode): Match =
               nocheck: true
             )
       else:
-        raiseAssert(&"#[ 500 IMPLEMENT for kind {spl[0].kind} ]#")
+        error(
+          "Malformed path access - expected either field name, " &
+            "or bracket access ['key'], but found " &
+            spl[0].toStrLit().strVal() &
+            " of kind " & $spl[0].kind,
+          spl[0]
+        )
 
   return aux(n[0].splitDots())
 
@@ -537,9 +556,6 @@ func parseKVTuple(n: NimNode): Match =
     return Match(kind: kObject, declNode: n, fldElems: @{
       "isSome": Match(kind: kItem, itemMatch: imkInfixEq, declNode: n[0],
                       rhsNode: newLit(true), infix: "=="),
-      # TODO generate compile assertions for 'get' imports? E.g. it is
-      # not really clear where error has originated if it is just
-      # regular shit-tier error like `no get identifier`
       "get": Match(kind: kItem, itemMatch: imkInfixEq,
                    declNode: n[1], isPlaceholder: true,
                    bindVar: some(n[1][1])),
@@ -561,7 +577,10 @@ func parseKVTuple(n: NimNode): Match =
             str = elem[0].firstDot().nodeStr()
           else:
             error(
-              &"Unexpected node kind for dot expression: {elem[0].kind}",
+              "Malformed path access - expected either field name, " &
+                "or bracket access, but found '" &
+                elem[0].toStrLit().strVal() & "'" &
+                " of kind " & $elem[0].kind,
               elem[0]
             )
 
@@ -579,8 +598,6 @@ func contains(kwds: openarray[SeqKeyword], str: string): bool =
       return true
 
 func parseSeqMatch(n: NimNode): seq[SeqStructure] =
-  # TEST `all is {+Set}(val: @lines)` and make sure it is the same as
-  # `all {+Set}(val: @lines)`. Handle prefixes uniformly
   for elem in n:
     if elem.kind == nnkPrefix and elem[0].eqIdent(".."):
       elem[1].assertKind({nnkIdent})
@@ -741,7 +758,7 @@ func parseMatchExpr*(n: NimNode): Match =
     of nnkPar: # Named or unnamed tuple
       if n.isNamedTuple(): # `(fld1: ...)`
         result = parseKVTuple(n)
-      elif n[0].isInfixPatt(): # `(12 | 3)`
+      elif n[0].kind == nnkInfix and n[0][0].eqIdent("|"):
         result = parseAltMatch(n[0])
       else: # Unnamed tuple `( , , , , )`
         result = Match(kind: kTuple, declNode: n)
@@ -777,7 +794,7 @@ func parseMatchExpr*(n: NimNode): Match =
       result = Match(kind: kSet, declNode: n)
       for node in n:
         if node.kind in {nnkExprColonExpr}:
-          error("Unexpected colon", node) # TODO:DOC
+          error("Unexpected colon", node)
 
 
         result.setElems.add parseMatchExpr(node)
@@ -818,8 +835,6 @@ func parseMatchExpr*(n: NimNode): Match =
         # `_(some < expression)`. NOTE - this is probably a
         # not-that-common use case, but I don't think explicitly
         # disallowing it will make things more intuitive.
-        # debugecho n.idxTreeRepr()
-        # raiseAssert("#[ IMPLEMENT ]#")
         result = Match(
           kind: kItem,
           itemMatch: imkPredicate,
@@ -833,7 +848,8 @@ func parseMatchExpr*(n: NimNode): Match =
       result = lhs.parseMatchExpr()
       result.isOptional = true
       result.fallback = rhs
-    elif n.isInfixPatt(): # `(true, true) | (false, false)`
+    elif n.kind == nnkInfix and n[0].eqIdent("|"):
+      # `(true, true) | (false, false)`
       result = parseAltMatch(n)
     elif n.kind in {nnkInfix, nnkPragmaExpr}:
       n[1].assertKind({nnkPrefix, nnkIdent, nnkPragma})
@@ -866,7 +882,9 @@ func parseMatchExpr*(n: NimNode): Match =
         result.bindVar = some(n.getVar())
         result.pragma = some(n[1][1])
     else:
-      raiseAssert(&"#[ 800 IMPLEMENT for kind {n.kind} ]#")
+      error(
+        "Malformed DSL - found " & n.toStrLit().strVal() &
+          " of kind " & $n.kind & ".", n)
 
 func isVariadic(p: Path): bool = p.anyIt(it.isVariadic)
 
@@ -886,8 +904,6 @@ func classifyPath(path: Path): VarKind =
     vkRegular
 
 func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
-  # TODO disallow setting variable again if it has already
-  # participated in speculative match.
   let vs = vsym.nodeStr()
   # echov path
   if vs notin tbl:
@@ -978,10 +994,6 @@ func makeVarTable(m: Match): tuple[table: VarTable,
 func makeMatchExpr(
   m: Match, vtable: VarTable; path: Path,
   mainExpr: string, doRaise: bool): NimNode
-
-func lineIInfo(node: NimNode): NimNode =
-  let iinfo = node.lineInfoObj()
-  newLit((filename: iinfo.filename, line: iinfo.line))
 
 template makeElemMatch(): untyped {.dirty.} =
   let pattStr = newLit(elem.decl.toStrLit().strVal())
@@ -1460,6 +1472,7 @@ func toNode(
   vtable: VarTable,
   mainExpr: string): NimNode =
   var exprNew = nnkStmtList.newTree()
+  var hasOption: bool = false
   for name, spec in vtable:
     let vname = ident(name)
     var typeExpr = toAccs(spec.typePath, mainExpr)
@@ -1472,6 +1485,7 @@ func toNode(
           var `vname`: seq[typeof(`typeExpr`)]
 
       of vkOption:
+        hasOption = true
         exprNew.add quote do:
           var `vname`: Option[typeof(`typeExpr`)]
 
@@ -1665,7 +1679,7 @@ macro makeTreeImpl(node, kind: typed, patt: untyped): untyped =
   var inpatt = patt
   if patt.kind in {nnkStmtList}:
     if patt.len > 1:
-      raiseAssert("#[ IMPLEMENT wrap in stmt list ]#")
+      inpatt = newStmtList(patt.toSeq())
     else:
       inpatt = patt[0]
 

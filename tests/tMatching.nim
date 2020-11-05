@@ -4,9 +4,6 @@ import std/[strutils, sequtils, strformat,
 import fusion/matching
 {.experimental: "caseStmtMacros".}
 
-# TEST use inside of templates
-
-
 import unittest
 
 template assertEq(a, b: untyped): untyped =
@@ -981,6 +978,21 @@ suite "Matching":
       (_(it < 12), 1) := (14, 1)
 
 
+  test "Compilation errors":
+    # NOTE that don't know how to correctly test compilation errors,
+    # /without/ actuall failing compilation, so I just set `when true`
+    # things to see if error is correct
+
+    when false: # Invalid field. NOTE - I'm not sure whether this
+      # should be allowed or not, so for now it is disabled. But
+      # technically this should not be that hard to allow explicit
+      # function calls as part of path expressions.
+
+      # Error: Malformed path access - expected either field name, or
+      # bracket access, but found 'fld.call()' of kind nnkCall
+      (fld.call(): _) := 12
+
+
   test "Use in templates":
     template match1(a: typed): untyped =
       [@nice, @hh69] := a
@@ -1142,11 +1154,57 @@ suite "Gara tests":
       if token.len > 0:
         result.add(token)
 
+    # WARNING multiple calls for `tokens`. It might be possible to
+    # wrap each field access into macro helper that determines
+    # whether or not expressions is a function, or just regular
+    # field access, and cache execution results, but right now I
+    # have no idea how to implement this without redesing of the
+    # whole pattern matching construction (and even /with it/ I'm
+    # not really sure). So the thing is - expression like
+    when false:
+      (tokens: [@token, @token]) ?= Email()
+    # Internallt access `tokens` multiple times - to get number of
+    # elements, and each element. E.g. assumption was made that
+    # `obj.tokens` is a cheap expression to evaluate. But in this
+    # case we get
+    when false:
+      let expr_25420001 = Email_25095022()
+      block failBlock:
+        var pos_25420002 = 0
+        if not contains({2..2}, len(tokens(expr_25420001))): # Call to `tokens`
+          break failBlock
+        ## lkPos @token
+        ## Set variable token vkRegular
+        if token == tokens(expr_25420001)[pos_25420002]: # Second call
+          true
+        # ...
+        ## lkPos @token
+        ## Set variable token vkRegular
+        if token == tokens(expr_25420001)[pos_25420002]: # Third call
+          true
+        # ...
+
+    # Access `tokens` for different indices - `pos_25420002`. Using
+    # intermediate variable is not an option, since this would create
+    # copies each time, for each field access. But! this is not that
+    # big of an issue if we can `lent` everything, so this can
+    # probably be solved when view types become more stable. And no,
+    # it is not possible to determien whether or not `tokens` is a
+    # field or not, since pattern matching DSL does not have
+    # information about structure of the object being matched - this
+    # is one of the main assumptions that was made, so changing this
+    # is not possible without complete redesign and severe cuts in
+    # functionality.
+
+
+    # Note that above this just what I think at the moment, I would be
+    # glad if someone told me I'm missing something.
+
+
     case email:
       of (data: (name: "academy")):
         fail()
 
-      # WARNING FIXME multiple calls for `tokens`
       of (tokens: [_, _, _, _, @token]):
         check(token == "org")
 
