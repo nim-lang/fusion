@@ -1089,7 +1089,11 @@ suite "Gara tests":
         fail()
 
   test "Sequence":
-    let a = @[Rectangle(a: 2, b: 4), Rectangle(a: 4, b: 4), Rectangle(a: 4, b: 4)]
+    let a = @[
+      Rectangle(a: 2, b: 4),
+      Rectangle(a: 4, b: 4),
+      Rectangle(a: 4, b: 4)
+    ]
 
     case a:
       of []:
@@ -1102,6 +1106,10 @@ suite "Gara tests":
     # _ is always true, (a: 4, b: 4) didn't match element 2
 
     # _ is alway.. a.a was 4, but a.b wasn't 4 => not a match
+
+    block:
+      [until @vals == 5, .._] := @[2, 3, 4, 5]
+      assert vals == @[2, 3, 4]
 
 
 

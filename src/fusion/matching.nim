@@ -296,7 +296,6 @@ type
   Match* = ref object
     ## Object describing single match for element
     bindVar*: Option[NimNode] ## Bound variable (if any)
-    pragma*: Option[NimNode]
     declNode*: NimNode ## Original declaration of match
     isOptional*: bool
     fallback*: Option[NimNode] ## Default value in case match fails
@@ -880,12 +879,7 @@ func parseMatchExpr*(n: NimNode): Match =
           result.fallback = some n[2]
 
       if n[1].kind == nnkPrefix: # WARNING
-        # debugecho n.idxTreeRepr()
         result.bindVar = some(n[1][1])
-      elif n[1].kind == nnkPragmaExpr:
-        n[1][0].assertKind({nnkPrefix})
-        result.bindVar = some(n.getVar())
-        result.pragma = some(n[1][1])
     else:
       error(
         "Malformed DSL - found " & n.toStrLit().strVal() &
