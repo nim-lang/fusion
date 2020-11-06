@@ -1318,3 +1318,64 @@ suite "Gara tests":
       check(true)
     else:
       fail()
+
+suite "More tests":
+  test "AST-AST conversion using pattern matching":
+    type
+      Ast1Kind = enum
+        akFirst1
+        akSecond1
+        akThird1
+
+      Ast1 = object
+        case kind1: Ast1Kind
+          of akFirst1:
+            first: string
+          of akSecond1:
+            second: int
+          of akThird1:
+            third: seq[Ast1]
+
+      Ast2Kind = enum
+        akFirst2
+        akSecond2
+        akThird2
+
+      Ast2 = object
+        case kind2: Ast2Kind
+          of akFirst2:
+            first: string
+          of akSecond2:
+            second: int
+          of akThird2:
+            third: seq[Ast2]
+
+    func `kind=`(a1: var Ast1, k: Ast1Kind) = a1 = Ast1(kind1: k)
+    func `kind=`(a2: var Ast2, k: Ast2Kind) = a2 = Ast2(kind2: k)
+
+    func kind(a1: Ast1): Ast1Kind = a1.kind1
+    func kind(a2: Ast2): Ast2Kind = a2.kind2
+
+    func add(a1: var Ast1, sub: Ast1) = a1.third.add sub
+    func add(a2: var Ast2, sub: Ast2) = a2.third.add sub
+
+    func convert(a1: Ast1): Ast2 =
+      case a1:
+        of First1(first: @value):
+          return makeTree(Ast2):
+            First2(first: value & "Converted")
+        of Second1(second: @value):
+          return makeTree(Ast2):
+            Second2(second: value + 12)
+        of Third1(third: @subnodes):
+          return makeTree(Ast2):
+            Third2(third: == subnodes.map(convert))
+
+    let val = makeTree(Ast1):
+      Third1:
+        First1(first: "Someval")
+        First1(first: "Someval")
+        First1(first: "Someval")
+        Second1(second: 12)
+
+    discard val.convert()

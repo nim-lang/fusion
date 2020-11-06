@@ -373,6 +373,7 @@ type
     varKind*: VarKind ## Type of the variable
     typePath*: Path ## Whole path for expression that can be used to
                     ## determine type of the variable.
+    cnt*: int ## Number of variable occurencies in expression
 
   VarTable = Table[string, VarSpec]
 
@@ -428,19 +429,23 @@ func makeVarSet(
              discard false
 
 
-      return quote do:
-        if `wasSet`:
-          if `varn` == `expr`:
-            true
+      if vtable[varn.nodeStr()].cnt > 1:
+        return quote do:
+          if `wasSet`:
+            if `varn` == `expr`:
+              true
+            else:
+              if true:
+                `matchError`
+              false
           else:
-            if true:
-              `matchError`
-            false
-        else:
+            `varn` = `expr`
+            `wasSet` = true
+            true
+      else:
+        return quote do:
           `varn` = `expr`
-          `wasSet` = true
           true
-        # (`wasSet` and `varn` == `expr`) or (`varn` = `expr`; true)
 
     of vkAlt:
       return quote do: # WARNING
@@ -921,6 +926,8 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
     if update:
       tbl[vs].varKind = class
       tbl[vs].typePath = path
+
+  inc tbl[vs].cnt
 
 func makeVarTable(m: Match): tuple[table: VarTable,
                                    mixident: seq[string]] =
@@ -1550,8 +1557,6 @@ macro match*(n: untyped): untyped =
       let pos {.inject.}: int = 0
       `matchcase`
 
-  # echo result.repr
-
 macro assertMatch*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and raise `MatchError` on
   ## failure. For DSL syntax details see start of the document.
@@ -1584,14 +1589,14 @@ func buildTreeMaker(
 
   case match.kind:
     of kItem:
-      if (match.itemMatch == imkInfixEq) and (match.infix == "=="):
+      if (match.itemMatch == imkInfixEq):
         if match.isPlaceholder:
           if match.bindVar.getSome(bindv):
             result = newIdentNode(bindv.nodeStr())
           else:
             error(
               "Only variable placeholders allowed for pattern " &
-                "construction",
+                "construction, but expression is a `_` placeholder",
               match.declNode
             )
         else:
@@ -1599,6 +1604,11 @@ func buildTreeMaker(
             result = match.rhsNode
           else:
             error("Empty rhs node for item", match.declNode)
+      else:
+        error(
+          "Predicate expressions are not supported for tree " &
+          "construction, use `== <expression>` to set field result"
+        )
     of kObject:
       var res = newStmtList()
       let tmp = genSym(nskVar, "res")
@@ -1612,7 +1622,16 @@ func buildTreeMaker(
         let kind = ident call.nodeStr().addPrefix(prefix)
         res.add quote do:
           {.push warning[CaseTransition]: off.}
-          `tmp`.kind = `kind`
+          when declared(FieldDefect):
+            try:
+              `tmp`.kind = `kind`
+            except FieldDefect:
+              raise newException(FieldDefect,
+                "Error while setting `kind` for " & $typeof(`tmp`) &
+                  " - type does not provide `kind=` override."
+              )
+          else:
+            `tmp`.kind = `kind`
           {.pop.}
 
       else:
@@ -1655,8 +1674,6 @@ func buildTreeMaker(
           "not supported for tree construction",
         match.declNode
       )
-
-  # debugecho result.toStrLit().strVal()
 
 func `kind=`*(node: var NimNode, kind: NimNodeKind) =
   node = newNimNode(kind, node)
