@@ -828,18 +828,31 @@ func parseMatchExpr*(n: NimNode): Match =
           declNode: n,
           predBody: n[1]
         )
-      elif n[0].kind == nnkDotExpr: # `_.call("Arguments")`
-        # `(DotExpr (Ident "_") (Ident "<function-name>"))`
-        n[0][1].assertKind({nnkIdent, nnkOpenSymChoice})
-        n[0][0].assertKind({nnkIdent, nnkOpenSymChoice})
+      elif n[0].kind == nnkDotExpr:
         var body = n
-        # Replace `_` with `it` to make `it.call("arguments")`
-        body[0][0] = ident("it")
+        var bindVar: Option[NimNode]
+        if n[0][0].kind == nnkPrefix:
+          # debugecho n.idxTreeRepr()
+          n[0][0][1].assertKind({nnkIdent})
+          bindVar = some(n[0][0][1])
+
+          # Store name of the bound variable and then replace `_` with
+          # `it` to make `it.call("arguments")`
+          body[0][0] = ident("it")
+        else: # `_.call("Arguments")`
+          # `(DotExpr (Ident "_") (Ident "<function-name>"))`
+          n[0][1].assertKind({nnkIdent, nnkOpenSymChoice})
+          n[0][0].assertKind({nnkIdent, nnkOpenSymChoice})
+
+          # Replace `_` with `it` to make `it.call("arguments")`
+          body[0][0] = ident("it")
+
         result = Match(
           kind: kItem,
           itemMatch: imkPredicate,
           declNode: n,
-          predBody: body
+          predBody: body,
+          bindVar: bindVar
         )
       elif n.kind == nnkCall and n[0].eqIdent("_"):
         # `_(some < expression)`. NOTE - this is probably a

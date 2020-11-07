@@ -1,5 +1,5 @@
 import std/[strutils, sequtils, strformat,
-            macros, options, tables, json]
+            macros, options, tables, json, algorithm]
 
 import fusion/matching
 {.experimental: "caseStmtMacros".}
@@ -528,6 +528,8 @@ suite "Matching":
     [all < 10] := [1,2,3,4]
     [all (len: < 10)] := [@[1,2,3,4], @[1,2,3,4]]
     [all _.startsWith("--")] := @["--", "--", "--=="]
+
+    block: [@a.startsWith("--")] := ["--12"]
 
     proc exception() =
       # This should generate quite nice exception message:
@@ -1388,6 +1390,16 @@ suite "More tests":
 
     discard val.convert()
 
+when false:
+  # TEST
+
+  # only integer range like
+  [1 .. 6] := @[1111,1,1,1,1,1,1]
+  # Should be equivalent to
+  [1 .. 6 is _]
+
+  # TODO support reverse index for array pattern matching
+
 suite "Article examples":
   test "Small parts":
     let txt = """
@@ -1396,5 +1408,176 @@ bin:x:1:1::/:/usr/bin/nologin
 daemon:x:2:2::/:/usr/bin/nologin
 mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 """
-    for line in txt.split("\n"):
+    for line in txt.strip().split("\n"):
       [@username, 1 .. 6 is _, @shell] := line.split(":")
+
+    block:
+      [@a, _] := "A|B".split("|")
+      assert a is string
+      assert a == "A"
+
+    block:
+      let it: seq[string] = "A|B".split("|")
+      [@a.startsWith("A"), .._] := it
+      assert a is string
+      assert a == "A"
+
+
+  test "Flow macro":
+    type
+      FlowStageKind = enum
+        fskMap
+        fskFilter
+        fskEach
+
+
+      FlowStage = object
+        outputType: Option[NimNode]
+        kind: FlowStageKind
+        body: NimNode
+
+
+    func identToKind(id: NimNode): FlowStageKind =
+      if id.eqIdent("map"):
+        fskMap
+      elif id.eqIdent("filter"):
+        fskFilter
+      elif id.eqIdent("each"):
+        fskEach
+      else:
+        raiseAssert("#[ IMPLEMENT ]#")
+
+    func typeExprFromStages(stages: seq[FlowStage], arg: NimNode): NimNode =
+      result = newEmptyNode()
+      if stages[^1].kind notin {fskEach}:
+        result = newBlockStmt(stages[^1].body)
+        for stage in stages[0 .. ^2].reversed():
+          let body = stage.body
+          result = quote do:
+            block:
+              let it {.inject.} = `body`
+              `result`
+
+        result = quote do:
+          block:
+            var it {.inject.}: typeof(`arg`)
+            `result`
+
+    func makeTypeAssert(
+      expType, body, it: NimNode): NimNode =
+      let bodyLit = body.toStrLit().strVal().strip().newLit()
+      let pos = body.lineInfoObj()
+      let ln = newLit((filename: pos.filename, line: pos.line))
+      return quote do:
+        when not (`it` is `expType`):
+          static:
+            {.line: `ln`.}:
+              error "\n\nExpected type " & $(typeof(`expType`)) &
+                ", but expression \e[4m" & `bodyLit` &
+                "\e[24m has type of " & $(typeof(`it`))
+
+
+    func evalExprFromStages(
+      stages: seq[FlowStage], resId: Option[NimNode]): NimNode =
+      block:
+        var expr = stages[^1].body
+        if Some(@expType) ?= stages[^1].outputType:
+          let assrt = makeTypeAssert(expType, expr, expr)
+
+          expr = quote do:
+            `assrt`
+            `expr`
+
+
+        if Some(@resid) ?= resid:
+          result = newCall("add", resid, expr)
+        else:
+          result = expr
+
+      result = newBlockStmt(result)
+      for stage in stages[0 .. ^2].reversed():
+        let body = stage.body
+
+        if stage.kind in {fskFilter}:
+          result = quote do:
+            if ((`body`)):
+              `result`
+        else:
+          if Some(@expType) ?= stage.outputType:
+            let assrt = makeTypeAssert(expType, body, ident "it")
+            result = quote do:
+              let it {.inject.} = `body`
+              `assrt`
+              `result`
+          else:
+            result = quote do:
+              let it {.inject.} = `body`
+              `result`
+
+      result = nnkPar.newTree newBlockStmt(result)
+
+
+    macro flow(arg, body: untyped): untyped =
+      var stages: seq[FlowStage]
+      for elem in body:
+        case elem:
+          of Call[BracketExpr[@ident, opt @outType], @body]:
+            stages.add FlowStage(
+              kind: identToKind(ident),
+              outputType: outType,
+              body: body
+            )
+          of Command[@head is Ident(), Bracket[@outType], @body]:
+            stages.add FlowStage(
+              kind: identToKind(head),
+              outputType: some(outType),
+              body: body
+            )
+
+          of Call[@head is Ident(), @body]:
+            stages.add FlowStage(kind: identToKind(head), body: body)
+
+          else:
+            error("Unexpected DSL pattern - " &
+              elem.toStrLit().strVal() &
+              ". Expected 'patt[type]', 'patt [type]' or 'patt'",
+              elem
+            )
+
+
+      var resId = none(NimNode)
+      let resExpr = typeExprFromStages(stages, arg)
+      if resExpr.kind != nnkEmpty:
+        resId = some ident("res")
+
+      let evalExpr = evalExprFromStages(stages, resId)
+      result = quote do:
+        for it {.inject.} in `arg`:
+          `evalExpr`
+
+
+      if resExpr.kind != nnkEmpty:
+        let resid = resid.get()
+        result = quote do:
+          var `resId`: seq[typeof(`resExpr`)]
+
+          `result`
+
+          `resId`
+
+      result = newBlockStmt(result)
+
+
+    let res = flow lines("/etc/passwd"):
+      map[seq[string]]:
+        it.split(":")
+      filter:
+        it.len > 1 and
+        it.matches([@username.startsWith("systemd"), .._])
+      map [string]:
+        username
+
+    assert res is seq[string]
+
+    # echo typeof res
+    # echo res

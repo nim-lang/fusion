@@ -1,0 +1,177 @@
+#+author: haxscramper
+#+property: header-args:nim :imports macros
+#+PROPERTY: header-args :eval no-export :cache no :exports both
+#+title: Getting started with nim macros using pattern matching
+
+
+
+Nim macros are one of the most powerful and parts of the language, but
+they might seem a little intimidating for newcomers, especially when
+it comes to implementing macro for solving particular problem at hand.
+
+This article gives an example on how one can easily create relatively
+complex macro using new pattern matching library.
+
+We will be creating macro for dataflow programming, with support for
+some operatings in the ~std/sequtils~ module (map/filter/each). The
+macro won't be covering all possible combinations and use cases as it
+would make implementation notably more complicated.
+
+
+# this is not the best example, but I just don't have any good ideas
+# right now
+
+First of, when writing macro, it is very useful to just write DSL code
+(as if you already had macro) and what you expect it to generate. In
+our case input code would look like this:
+
+#+caption: Macro example
+#+begin_src nim
+  flow lines("/etc/passwd"):
+    map[_, seq[string]]:
+      it.split(":")
+    keepIf:
+      it.len > 1 and
+      it.matches [_.startsWith("systemd"), .._]
+    each:
+      echo it
+#+end_src
+
+And will generate this loop
+
+#+caption: Generated code
+#+begin_src nim
+  for it in lines("/etc/passwd"):
+    block:
+      let it = it.split(":")
+      if it.len > 1 and it.matches[_.startsWith("systemd"), .._]:
+        block:
+          echo it
+#+end_src
+
+Now the question is - how to transform first into second? We will
+start by first looking at the output for ~dumpTree~ on ~flow~ macro:
+
+#+begin_src nim
+dumpTree:
+  flow lines("/etc/passwd"):
+    map[_, seq[string]]:
+      it.split(":")
+#+end_src
+
+#+begin_src nim -n -r
+StmtList
+  Command
+    Ident "flow" (ref:1)
+    Call (ref:2)
+      Ident "lines"
+      StrLit "/etc/passwd"
+    StmtList
+      Call
+        BracketExpr
+          Ident "map"
+          Ident "_"
+          BracketExpr
+            Ident "seq"
+            Ident "string"
+        StmtList
+          Call
+            DotExpr
+              Ident "it"
+              Ident "split"
+            StrLit ":"
+#+end_src
+I admit this load of text might seem a little indimidating at first,
+but in the end it can be taken apart quite easily (and that is exactly
+what we will be doing). First, on line [[(1)]] we see the ~flow~
+identifier - this is a start of our macro. Then ([[(2)]]) is a
+~lines("/etc/passwd")~ argument.
+
+
+I usually try to introduce some kind of intermediate representation
+for DSL in order to make things more organized and decouple parsing
+stage from code generation. This might make implementation a little
+longer, but more extensible and robust.
+
+
+-----
+
+Now, after we have good understanding of what exactly we want to do -
+the question is 'how?'. That's where ~fusion/matching~ comes
+particularly handy - we already identifier all patterns, and now it is
+only matter of writing this down in code.
+
+Without pattern matching you'd be left with long series of repeating
+~[0][0][0]~ and ~if kind == nnkBracketExpr~ in order to retrieve parts
+from DSL and validate input.
+
+#+begin_src nim
+dumpTree:
+  map [a]:
+    body
+#+end_src
+
+#+RESULTS:
+: StmtList
+:   Command
+:     Ident "map"
+:     Bracket
+:       Ident "a"
+:     StmtList
+:       Ident "body"
+
+#+begin_src nim
+dumpTree:
+  map[a]:
+    body
+#+end_src
+
+#+RESULTS:
+: StmtList
+:   Call
+:     BracketExpr
+:       Ident "map"
+:       Ident "a"
+:     StmtList
+:       Ident "body"
+
+
+#+begin_src nim
+dumpTree:
+  map:
+    body
+#+end_src
+
+#+RESULTS:
+: StmtList
+:   Call
+:     Ident "map"
+:     StmtList
+:       Ident "body"
+
+# I don't really like phrasing, so need to rework this part.
+Stepping aside from ~flow~ macro itself, let's familliarlize yourself
+with new pattern matching DSL.
+
+# Note that ~caseStmtMacros~ is still experimental, so this article
+# has to be published only after things are merged (which is obvious)
+# *and* this becomes a non-experimental features.
+
+# things to discuss - pattern matching on ~kind~, support for getting
+# subelements and ~opt~ keyword. More things are covered in
+# documentation, so there is no need to include absolutely everything
+# at once.
+
+-----
+
+Second example of ~fusion/matching~ usage shows how to write custom
+pattern matching macros that use the same DSL. In particular we will
+be reimplementing rust-style macro rewriting, with ~() => {}~.
+
+
+* COMMENT todo list
+
+- [ ] Check if ~makeTree~ creates correct backtraces / ~error~
+  information. I don't really like shoving ~{.line: .}~ everywhere,
+  even though it works in most cases.
+- [ ] Implement rewriting using ~=>~ as example macro
