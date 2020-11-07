@@ -1387,3 +1387,14 @@ suite "More tests":
         Second1(second: 12)
 
     discard val.convert()
+
+suite "Article examples":
+  test "Small parts":
+    let txt = """
+root:x:0:0::/root:/bin/bash
+bin:x:1:1::/:/usr/bin/nologin
+daemon:x:2:2::/:/usr/bin/nologin
+mail:x:8:12::/var/spool/mail:/usr/bin/nologin
+"""
+    for line in txt.split("\n"):
+      [@username, 1 .. 6 is _, @shell] := line.split(":")

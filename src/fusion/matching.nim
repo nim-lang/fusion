@@ -27,6 +27,12 @@ const
     nnkIdentKinds ## Set of all token-like nodes (primitive type
                   ## literals or identifiers)
 
+func codeFmt(str: string): string =
+  &"\e[4m{str}\e[24m"
+
+func codeFmt(node: NimNode): NimNode =
+  node.strVal().codeFmt().newLit()
+
 func nodeStr(n: NimNode): string =
   ## Get nim node string value from any identifier or string literal node
   case n.kind:
@@ -994,7 +1000,9 @@ func makeVarTable(m: Match): tuple[table: VarTable,
 
 func makeMatchExpr(
   m: Match, vtable: VarTable; path: Path,
-  mainExpr: string, doRaise: bool): NimNode
+  mainExpr: string, doRaise: bool,
+  originalMainExpr: string
+     ): NimNode
 
 template makeElemMatch(): untyped {.dirty.} =
   let pattStr = newLit(elem.decl.toStrLit().strVal())
@@ -1188,7 +1196,10 @@ template makeElemMatch(): untyped {.dirty.} =
 
 func makeSeqMatch(
   seqm: Match, vtable: VarTable; path: Path,
-  mainExpr: string, doRaise: bool): NimNode =
+  mainExpr: string,
+  doRaise: bool,
+  originalMainExpr: string
+     ): NimNode =
   var idx = 1
   while idx < seqm.seqElems.len:
     if seqm.seqElems[idx - 1].kind notin {
@@ -1221,16 +1232,17 @@ func makeSeqMatch(
 
         expr = elem.patt.makeMatchExpr(
           vtable, parent, mainExpr,
-          false # WARNING no detailed reporting for subpattern
-                # matching failure. In order to get these I need to
-                # return failure string from each element, which makes
-                # thing more complicated. It is not that hard to just
-                # return `(bool, string)` or something similar, but it
-                # would require quite annoying (albeit simple)
-                # redesign of the whole code, to account for new
-                # expression types. No impossible though.
+          false, # WARNING no detailed reporting for subpattern
+                 # matching failure. In order to get these I need to
+                 # return failure string from each element, which makes
+                 # thing more complicated. It is not that hard to just
+                 # return `(bool, string)` or something similar, but it
+                 # would require quite annoying (albeit simple)
+                 # redesign of the whole code, to account for new
+                 # expression types. No impossible though.
 
           # doRaise and (elem.kind notin {lkUntil, lkAny, lkNone})
+          originalMainExpr
         )
 
 
@@ -1255,16 +1267,18 @@ func makeSeqMatch(
       `getLen` notin {`minNode` .. `maxNode`}
 
   if doRaise:
-    let pattStr = seqm.declNode.toStrLit()
+    let pattStr = seqm.declNode.toStrLit().codeFmt()
     let ln = seqm.declNode.lineIInfo()
+    let lenObj = path.toAccs(originalMainExpr).toStrLit().codeFmt()
 
     if maxLen >= 5000:
       failBreak = quote do:
         {.line: `ln`.}:
           raise MatchError(
             msg: "Match failure for pattern '" & `pattStr` &
-              "'. Expected at least " & $(`minNode`) & " elements, but got" &
-              $(`getLen`) & "."
+              "'. Expected at least " & $(`minNode`) &
+              " elements, but " & (`lenObj`) &
+              " has .len of " & $(`getLen`) & "."
           )
     else:
       failBreak = quote do:
@@ -1272,7 +1286,8 @@ func makeSeqMatch(
           raise MatchError(
             msg: "Match failure for pattern '" & `pattStr` &
               "'. Expected length in range '" & $(`minNode`) & " .. " &
-              $(`maxNode`) & "', but got " & $(`getLen`) & "."
+              $(`maxNode`) & "', but `" & (`lenObj`) &
+              "` has .len of " & $(`getLen`) & "."
           )
 
   result = quote do:
@@ -1297,8 +1312,13 @@ func makeSeqMatch(
 
 
 func makeMatchExpr(
-  m: Match, vtable: VarTable; path: Path,
-  mainExpr: string, doRaise: bool): NimNode =
+  m: Match,
+  vtable: VarTable;
+  path: Path,
+  mainExpr: string,
+  doRaise: bool,
+  originalMainExpr: string
+     ): NimNode =
   case m.kind:
     of kItem:
       let parent = path.toAccs(mainExpr)
@@ -1310,7 +1330,8 @@ func makeMatchExpr(
             else:
               result = nnkInfix.newTree(ident m.infix, parent, m.rhsNode)
           else:
-            result = makeMatchExpr(m.rhsPatt, vtable, path, mainExpr, doRaise)
+            result = makeMatchExpr(
+              m.rhsPatt, vtable, path, mainExpr, doRaise, originalMainExpr)
 
           if m.bindVar.getSome(vname):
             # vtable.addvar(vname, path) # XXXX
@@ -1353,13 +1374,14 @@ func makeMatchExpr(
 
 
     of kSeq:
-      return makeSeqMatch(m, vtable, path, mainExpr, doRaise)
+      return makeSeqMatch(
+        m, vtable, path, mainExpr, doRaise, originalMainExpr)
     of kTuple:
       var conds: seq[NimNode]
       for idx, it in m.tupleElems:
         conds.add it.makeMatchExpr(vtable, path & @[
           AccsElem(inStruct: kTuple, idx: idx)
-        ], mainExpr, doRaise)
+        ], mainExpr, doRaise, originalMainExpr)
 
       return conds.foldInfix("and")
     of kObject:
@@ -1368,14 +1390,18 @@ func makeMatchExpr(
         conds.add newCall(ident "hasKind", path.toAccs(mainExpr), kc)
 
       for (fld, patt) in m.fldElems:
-        conds.add patt.makeMatchExpr(vtable, path & @[
-          AccsElem(inStruct: kObject, fld: fld)], mainExpr, doRaise)
+        conds.add patt.makeMatchExpr(
+          vtable, path & @[
+            AccsElem(inStruct: kObject, fld: fld)
+          ], mainExpr, doRaise, originalMainExpr)
 
       if m.seqMatches.getSome(seqm):
-        conds.add seqm.makeMatchExpr(vtable, path, mainExpr, doRaise)
+        conds.add seqm.makeMatchExpr(
+          vtable, path, mainExpr, doRaise, originalMainExpr)
 
       if m.kvMatches.getSome(kv):
-        conds.add kv.makeMatchExpr(vtable, path, mainExpr, doRaise)
+        conds.add kv.makeMatchExpr(
+          vtable, path, mainExpr, doRaise, originalMainExpr)
 
       return conds.foldInfix("and")
 
@@ -1391,7 +1417,7 @@ func makeMatchExpr(
 
         if m.nocheck:
           conds.add pair.patt.makeMatchExpr(
-            vtable, valPath, mainExpr, doRaise)
+            vtable, valPath, mainExpr, doRaise, originalMainExpr)
 
         else:
           let
@@ -1400,7 +1426,8 @@ func makeMatchExpr(
           if not pair.patt.isOptional:
             conds.add nnkInfix.newTree(
               ident "and", incheck,
-              pair.patt.makeMatchExpr(vtable, valPath, mainExpr, doRaise)
+              pair.patt.makeMatchExpr(
+                vtable, valPath, mainExpr, doRaise, originalMainExpr)
             )
 
           else:
@@ -1428,7 +1455,8 @@ func makeMatchExpr(
       var conds: seq[NimNode]
       for alt in m.altElems:
         conds.add alt.makeMatchExpr(
-          vtable, path & @[AccsElem(inStruct: kAlt)], mainExpr, false)
+          vtable, path & @[AccsElem(inStruct: kAlt)],
+          mainExpr, false, originalMainExpr)
 
       let res = conds.foldInfix("or")
       if not doRaise:
@@ -1456,7 +1484,10 @@ func makeMatchExpr(
       return conds.foldInfix("and")
 
 
-func makeMatchExpr*(m: Match, mainExpr: string, doRaise: bool): tuple[
+func makeMatchExpr*(
+  m: Match, mainExpr: string, doRaise: bool,
+  originalMainExpr: string
+     ): tuple[
     expr: NimNode,
   vtable: VarTable,
   mixident: seq[string]
@@ -1466,7 +1497,8 @@ func makeMatchExpr*(m: Match, mainExpr: string, doRaise: bool): tuple[
   ## `mainExpr` matches pattern described by `Match`
 
   (result.vtable, result.mixident) = makeVarTable(m)
-  result.expr = makeMatchExpr(m, result.vtable, @[],  mainExpr, doRaise)
+  result.expr = makeMatchExpr(
+    m, result.vtable, @[],  mainExpr, doRaise, originalMainExpr)
 
 func toNode(
   expr: NimNode,
@@ -1518,7 +1550,8 @@ macro match*(n: untyped): untyped =
         let (expr, vtable, mixid) =
           toSeq(elem[0 .. ^2]).foldl(
             nnkInfix.newTree(ident "|", a, b)
-          ).parseMatchExpr().makeMatchExpr("expr", false)
+          ).parseMatchExpr().makeMatchExpr(
+            "expr", false, n.toStrLit().strVal())
 
         mixidents.add mixid
 
@@ -1557,7 +1590,7 @@ macro assertMatch*(input, pattern: untyped): untyped =
   let
     expr = ident genSym(nskLet, "expr").repr
     (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(
-      expr.repr, true)
+      expr.repr, true, input.toStrLit().strVal())
     matched = toNode(mexpr, vtable, expr.repr)
 
   let patt = newLit(pattern.repr)
@@ -1571,7 +1604,7 @@ macro matches*(input, pattern: untyped): untyped =
   let
     expr = ident genSym(nskLet, "expr").repr
     (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(
-      expr.repr, false)
+      expr.repr, false, input.toStrLit().strVal())
     matched = toNode(mexpr, vtable, expr.repr)
 
   result = quote do:
