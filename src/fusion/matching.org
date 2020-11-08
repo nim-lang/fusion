@@ -154,14 +154,216 @@ dumpTree:
 Stepping aside from ~flow~ macro itself, let's familliarlize yourself
 with new pattern matching DSL.
 
-# Note that ~caseStmtMacros~ is still experimental, so this article
-# has to be published only after things are merged (which is obvious)
-# *and* this becomes a non-experimental features.
+We will be focusing on parts that are relevant to our task - for more
+details you can read <link to documentation>.
 
-# things to discuss - pattern matching on ~kind~, support for getting
-# subelements and ~opt~ keyword. More things are covered in
-# documentation, so there is no need to include absolutely everything
-# at once.
+When writing nim macros you are mostly dealing with [[https://nim-lang.org/docs/macros.html#the-ast-in-nim][NimNode]] objects -
+first to process input AST, and then generate new code back. AST is
+comprised of [[https://nim-lang.org/docs/manual.html#types-object-variants][case objects]]. Usually, first part of the macro involves
+lots of checks for correct node kind, followed by iteration over
+subnodes to extract input data. Pattern matching simplifies this,
+allowing to directly write expected patterns for ast, with syntax
+closely matching that of ~dumpTree~.
+
+For example - if we have code like ~map[string]~ it has following tree
+representation:
+
+#+begin_src nim
+dumpTree:
+  map[string]
+#+end_src nim
+
+And can be matched using following pattern:
+
+#+begin_src
+body.matches:
+  BracketExpr[@head, @typeParam]
+#+end_src
+
+
+Notice similarity between AST and pattern for matching - each node
+has ~kind~ field, which describes what kind of node this is. In this
+case we are interested in first and second subnodes of the ~BracketExpr~
+node - flow stage kind and type parameter respectively.
+
+
+Note that ~map [string]~ and ~map[string]~ parsed differently - first
+one is handled as one-element array passed to ~map~ function argument,
+and second is bracket expression (like accessing element of the
+array). This difference is caused by [[https://nim-lang.org/docs/manual.html#procedures-method-call-syntax][method call syntax]] and usually
+makes programming DSL a little harder - you need to check for both
+alternatives, remember which index each capture should be in etc.
+
+#+begin_src nim
+dumpTree:
+  map[string]
+  map [string]
+#+end_src
+
+With pattern matching though it becomes quite easy to do - adding
+second alternnative to match will be enough.
+
+#+begin_src
+body.matches:
+  BracketExpr[@head, @typeParam] |
+  Command[@head, Bracket[@typeParam]]
+#+end_src
+
+It should also be possible to omit type parameters from DSL entirely -
+they are quite nice and would allow for better type checking, but
+could become quite annoying to write. So, we should also expect
+someone to just write ~map~ - without any type qualifications. To
+handle this case we add third alternative for pattern -
+
+# and pray to god that shit does not blow up when I actually shove
+# this in pattern matching DSL itself.
+
+#+begin_src
+body.matches:
+  BracketExpr[@head, @typeParam] |
+  Command[@head, Bracket[@typeParam]] |
+  @head is Ident()
+#+end_src
+
+This brings one important change ~typeParam~ capture is no longer
+~NimNode~ - type has changed to ~Option[NimNode]~, because not all
+alternatives have this variable. ~head~ is still a ~NimNode~ just as
+before - all possible alternatives contain this variable, so it would
+be set if input matches.
+
+-----------
+
+
+After we are familliar a little with pattern matching DSL, let's turn
+back to ~flow~ macro. Out first stage would be processing of all input
+into ~FlowStage~. We already have a way to extract data from input
+ast - using pattern matching.
+
+
+#+begin_src nim
+macro flow(arg, body: untyped): untyped =
+  var stages: seq[FlowStage]
+  for elem in body:
+    if elem.matches(
+        Call[BracketExpr[@ident, opt @outType], @body] |
+        # `map[string]:`
+        Command[@ident is Ident(), Bracket [@outType], @body] |
+        # `map [string]:`
+        Call[@ident is Ident(), @body]
+        # just `map:`, without type argument
+      ):
+        stages.add FlowStage(
+          kind: identToKind(ident),
+          outputType: outType,
+          body: body
+        )
+#+end_src
+
+
+After that, we have all necessary information for constructing
+<things>. If last stage is not ~each~ - e.g. there is a return value
+after each iteration, we need to determine type of the result sequence
+and then append to it on each iteration.
+
+#+begin_src nim
+  if stages[^1].kind notin {fskEach}:
+    # If last stage has return type (not `each`) then we need to
+    # accumulate results in temporary variable.
+    result = quote do:
+      var `resId`: seq[#[ Type of the expression ]#]
+
+      for it0 {.inject.} in `arg`:
+        `resId`.add #[ Expression to evaluate]#
+
+      `resId`
+  else:
+    # Otherwise just iterate each element
+    result = quote do:
+      for it0 {.inject.} in `arg`:
+        #[ Expression to evaluate ]#
+#+end_src
+
+Each stage of the dataflow has a type, and potentially defines
+variables. In addition to that - each stage uses special variable
+~it~ - that has to be injected separately for each stage *but* at the
+same time it is used for commulicating values between stages.
+
+#+begin_src nim
+flow [1,2,3]:
+  map:
+    it * 2
+  map:
+    $it
+#+end_src
+
+is equivalent to
+
+#+begin_src nim
+var res: seq[#[ Type of the expression ]#]
+
+for it in [1, 2, 3]:
+  let it = it * 2
+  let it = $it
+  res.add it
+
+res
+#+end_src
+
+As you can clearly see, such code would not even compile due to
+redefinition errors. There are two possible ways to solve this
+problem - kind of obvious, and not-all-that-obvious. Let's start with
+the first one - since each variable can be redefined in the new scope
+we can just do
+
+#+begin_src nim
+for it in [1, 2, 3]:
+  block:
+    let it = it * 2
+    block:
+      let it = $it
+      echo "Add result - ", it
+
+#+end_src
+
+#+RESULTS:
+: Add result - 2
+: Add result - 4
+: Add result - 6
+
+And it would compile and work perfectly fine. But now we have a
+problem of getting type of the expression itself - everything is fine
+as long as you only use ~map~ - after all ~block:~ is an expression,
+and we can have something like
+
+#+begin_src nim
+  echo typeof((block:
+                 let it = 1
+                 block:
+                   let it = it * 2
+                   block: $it))
+#+end_src
+
+#+RESULTS:
+: string
+
+Not the pretties code in the world, by all means - but it will become
+even worse when we have to deal with ~filter~, ~each~, injected
+variables and iterators.
+
+Second alternative is to use declare proc with ~auto~ return variable
+and assign result of the expression to it.
+
+#+begin_src nim
+proc hello[T](a: T): auto =
+  for c in "ee":
+    result = (12, "som", "ee", a)
+
+echo typeof hello[int]
+#+end_src
+
+#+RESULTS:
+: proc (a: int): (int, string, string, int){.noSideEffect, gcsafe, locks: 0.}
+
 
 -----
 

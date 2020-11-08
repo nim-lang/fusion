@@ -1633,46 +1633,6 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
           for subn in node:
             result.add subn.rewrite(idx)
 
-    func typeExprFromStages(stages: seq[FlowStage], arg: NimNode): NimNode =
-      result = newStmtList()
-      var idx = 0
-      var resTuple = nnkPar.newTree()
-      for stageId, stage in stages:
-        var itIdx = ident("it" & $(idx + 1))
-        let body = stage.body.rewrite(idx)
-        result.add quote do:
-          let `itIdx` = `body`
-
-        resTuple.add itIdx
-
-        inc idx
-
-      let lastId = newLit(stages.len - 1)
-
-      result = quote do:
-        block:
-          (
-            proc(): auto = # `auto` annotation allows to derive type
-                           # of the proc from any assingment withing
-                           # proc body - we take advantage of this,
-                           # and avoid building type expression
-                           # manually.
-              for it0 {.inject.} in `arg`:
-                `result`
-                result = `resTuple`
-#               ^^^^^^^^^^^^^^^^^^^
-#               |
-#               Type of the return will be derived from this assinment.
-#               Even though it is placed within loop body, it will still
-#               derive necessary return type
-          )()[`lastId`]
-#          ^^^^^^^^^^^^
-#          | |
-#          | Get last element from proc return type
-#          |
-#          After proc is declared we call it immediatey
-
-
     func makeTypeAssert(
       expType, body, it: NimNode): NimNode =
       let
@@ -1689,6 +1649,7 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
               error "\n\nExpected type " & $(typeof(`expType`)) &
                 ", but expression \e[4m" & `bodyLit` &
                 "\e[24m has type of " & $(typeof(`it`))
+
 
     func evalExprFromStages(stages: seq[FlowStage]): NimNode =
       block:
@@ -1728,35 +1689,65 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
         inc idx
 
 
+
+    func typeExprFromStages(stages: seq[FlowStage], arg: NimNode): NimNode =
+      result = evalExprFromStages(stages)
+      var resTuple = nnkPar.newTree(ident "it0")
+      var idx = 0
+      for st in stages:
+        if st.kind notin {fskFilter}:
+          resTuple.add ident("it" & $(idx + 1))
+
+        inc idx
+
+      let lastId = newLit(stages.len - 1)
+
+      result = quote do:
+        block:
+          (
+            proc(): auto = # `auto` annotation allows to derive type
+                           # of the proc from any assingment withing
+                           # proc body - we take advantage of this,
+                           # and avoid building type expression
+                           # manually.
+              for it0 {.inject.} in `arg`:
+                `result`
+                result = `resTuple`
+#               ^^^^^^^^^^^^^^^^^^^
+#               |
+#               Type of the return will be derived from this assinment.
+#               Even though it is placed within loop body, it will still
+#               derive necessary return type
+          )()[`lastId`]
+#          ^^^^^^^^^^^^
+#          | |
+#          | Get last element from proc return type
+#          |
+#          After proc is declared we call it immediatey
+
+
     macro flow(arg, body: untyped): untyped =
       var stages: seq[FlowStage]
-      # static: echo "\e[41m*==\e[49m  #################  \e[41m===*\e[49m"
       for elem in body:
-        case elem:
-          of Call[BracketExpr[@ident, opt @outType], @body] |
-             Command[@ident is Ident(), Bracket [@outType], @body]
-            :
+        if elem.matches(
+            Call[BracketExpr[@ident, opt @outType], @body] |
+            # `map[string]:`
+            Command[@ident is Ident(), Bracket [@outType], @body] |
+            # `map [string]:`
+            Call[@ident is Ident(), @body]
+            # just `map:`, without type argument
+          ):
             stages.add FlowStage(
               kind: identToKind(ident),
               outputType: outType,
               body: body
             )
 
-          of Call[@head is Ident(), @body]:
-            stages.add FlowStage(kind: identToKind(head), body: body)
-
-          else:
-            error("Unexpected DSL pattern - " &
-              elem.toStrLit().strVal() &
-              ". Expected 'patt[type]', 'patt [type]' or 'patt'",
-              elem
-            )
-
-
-      var resId = none(NimNode)
       let evalExpr = evalExprFromStages(stages)
 
       if stages[^1].kind notin {fskEach}:
+        # If last stage has return type (not `each`) then we need to
+        # accumulate results in temporary variable.
         let resExpr = typeExprFromStages(stages, arg)
         let lastId = ident("it" & $stages.len)
         let resId = ident("res")
@@ -1775,8 +1766,6 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 
 
       result = newBlockStmt(result)
-
-      # echo result.toStrLit()
 
     let data = """
 root:x:0:0:root:/root:/bin/bash
@@ -1803,7 +1792,7 @@ nscd:x:28:28:NSCD Daemon:/:/sbin/nologin"""
       filter:
         let shell = it[^1]
         it.len > 1 and shell.endsWith("bash")
-      map[string]:
+      map:
         shell
 
     assert res is seq[string]
