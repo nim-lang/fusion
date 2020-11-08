@@ -1132,7 +1132,28 @@ suite "Matching":
     assert hh69 == 3
 
 
+  test "Ref object matching":
+    type
+      Root = ref object of RootObj
+        fld1: int
+        fld2: float
 
+      SubRoot = ref object of Root
+        fld3: int
+
+    case (fld3: 12):
+      of (fld3: @subf):
+        discard
+      else:
+        fail()
+
+    var tmp: Root = SubRoot(fld3: 12)
+    assert tmp.SubRoot().fld3 == 12
+    case tmp:
+      of of SubRoot(fld3: @subf):
+        assert subf == 12
+      else:
+        fail()
 
 suite "Gara tests":
   ## Test suite copied from gara pattern matching

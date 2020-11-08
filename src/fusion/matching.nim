@@ -337,6 +337,7 @@ type
       of kObject:
         kindCall*: Option[NimNode] ## Optional node with kind
         ## expression pattern (see `hasKind`)
+        isRefKind*: bool
         fldElems*: seq[tuple[
           name: string,
           patt: Match
@@ -438,6 +439,90 @@ func `==`(a, b: AccsElem): bool =
         a.altIdx == b.altIdx and a.altMax == b.altMax
   )
 
+
+func `$`(path: Path): string =
+  for elem in path:
+    case elem.inStruct:
+      of kTuple:
+        result &= &"({elem.idx})"
+      of kSeq:
+        result &= "[pos]"
+      of kAlt:
+        result &= &"|{elem.altIdx}/{elem.altMax}|"
+      of kPairs:
+        result &= &"[{elem.key.repr}]"
+      of kSet:
+        result &= "{}"
+      of kObject:
+        result &= &".{elem.fld}"
+      of kItem:
+        result &= "#"
+
+  result = "--- " & result
+
+
+func `$`(match: Match): string
+
+func `$`(kvp: KVPair): string =
+  &"{kvp.key.repr}: {kvp.patt}"
+
+
+func `$`(ss: SeqStructure): string =
+  if ss.kind == lkSlice:
+    result = &"{ss.repr}"
+  else:
+    result = $ss.kind
+
+
+  if ss.bindVar.getSome(bv):
+    result &= " " & bv.repr
+  result &= " " & $ss.patt
+
+
+
+func `$`(match: Match): string =
+  case match.kind:
+    of kAlt:
+      result = match.altElems.mapIt($it).join(" | ")
+    of kSeq:
+      result = "[" & match.seqElems.mapIt($it).join(", ") & "]"
+    of kTuple:
+      result = "(" & match.tupleElems.mapIt($it).join(", ") & ")"
+    of kPairs:
+      result = "{" & match.pairElems.mapIt($it).join(", ") & "}"
+    of kItem:
+      case match.itemMatch:
+        of imkInfixEq:
+          if match.isPlaceholder:
+            if match.bindVar.getSome(vn):
+              result = &"@{vn.repr}"
+            else:
+              result = "_"
+          else:
+            result = &"{match.infix} {match.rhsNode.repr}"
+        of imkSubpatt:
+          result = $match.rhsPatt
+        of imkPredicate:
+          result = match.predBody.repr
+    of kSet:
+      result = "{" & match.setElems.mapIt($it).join(", ") & "}"
+    of kObject:
+      var kk: string
+      if match.kindCall.getSome(kkn):
+        kk = kkn.repr
+
+      result = &"{kk}(" & match.fldElems.mapIt(
+        &"{it.name}: {it.patt}").join(", ")
+
+      if match.kvMatches.getSome(kvm):
+        result &= $kvm
+
+      if match.seqMatches.getSome(sm):
+        result &= $sm
+
+      result &= ")"
+
+
 func isNamedTuple(node: NimNode): bool =
   node.allIt(it.kind in {
     nnkExprColonExpr, # `(fld: )`
@@ -449,6 +534,8 @@ func isNamedTuple(node: NimNode): bool =
 func makeVarSet(
   varn: NimNode, expr: NimNode, vtable: VarTable, doRaise: bool): NimNode =
   varn.assertKind({nnkIdent})
+  # {.noSideEffect.}:
+  #    echo vtable
   case vtable[varn.nodeStr()].varKind:
     of vkSequence:
       return quote do:
@@ -922,6 +1009,9 @@ macro dumpIdxTree(n: untyped) =
 
 func parseMatchExpr*(n: NimNode): Match =
   ## Parse match expression from nim node
+  # defer:
+  #   debugecho n.repr, " -> ", result
+
   case n.kind:
     of nnkIdent, nnkSym, nnkIntKinds, nnkStrKinds, nnkFloatKinds:
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
@@ -942,12 +1032,18 @@ func parseMatchExpr*(n: NimNode): Match =
           # debugecho elem.idxTreeRepr()
           result.tupleElems.add parseMatchExpr(elem)
     of nnkPrefix: # `is Patt()`, `@capture` or other prefix expression
-      if n[0].nodeStr() == "is": # `is Patt()`
+      if n[0].nodeStr() in ["is", "of"]: # `is Patt()`
         result = Match(
           kind: kItem, itemMatch: imkSubpatt,
           rhsPatt: parseMatchExpr(n[1]), declNode: n)
 
+        if n[0].nodeStr() == "of" and result.rhsPatt.kind == kObject:
+          result.rhsPatt.isRefKind = true
+
+        # debugecho "of kind: ", result.rhsPatt.kind
+
       elif n[0].nodeStr() == "@": # `@capture`
+        # debugecho "Found var ", n.repr
         n[1].assertKind({nnkIdent})
         result = Match(
           kind: kItem, itemMatch: imkInfixEq, isPlaceholder: true,
@@ -1107,33 +1203,11 @@ func classifyPath(path: Path): VarKind =
   else:
     vkRegular
 
-func `$`(path: Path): string =
-  for elem in path:
-    case elem.inStruct:
-      of kTuple:
-        result &= &"({elem.idx})"
-      of kSeq:
-        result &= "[pos]"
-      of kAlt:
-        result &= &"|{elem.altIdx}/{elem.altMax}|"
-      of kPairs:
-        result &= &"[{elem.key.repr}]"
-      of kSet:
-        result &= "{}"
-      of kObject:
-        result &= &".{elem.fld}"
-      of kItem:
-        result &= "#"
-
-  result = "--- " & result
 
 func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
   let vs = vsym.nodeStr()
+  # debugecho "addvar ", vs
   let class = path.classifyPath()
-
-  # if class == vkAlt:
-  #   debugecho "ALT class variable ", vsym.repr
-
   if vs notin tbl:
     tbl[vs] = VarSpec(
       decl: vsym,
@@ -1144,9 +1218,6 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
     var doUpdate =
       (class == vkSequence) or
       (class == vkOption and tbl[vs].varKind in {vkRegular})
-
-
-
 
     if doUpdate:
       tbl[vs].varKind = class
@@ -1189,6 +1260,8 @@ func makeVarTable(m: Match): tuple[table: VarTable,
                                    mixident: seq[string]] =
 
   func aux(sub: Match, vt: var VarTable, path: Path): seq[string] =
+    # debugecho "aux for ", sub
+    # debugecho sub.kind
     if sub.bindVar.getSome(bindv):
       # echov sub.rhsNode
       if sub.isOptional and sub.fallback.isNone():
@@ -1206,6 +1279,17 @@ func makeVarTable(m: Match): tuple[table: VarTable,
            sub.bindVar.isNone()
           :
           result &= "_"
+        if sub.itemMatch == imkSubpatt:
+          if sub.rhsPatt.kind == kObject and
+             sub.rhsPatt.isRefKind and
+             sub.rhsPatt.kindCall.getSome(kk)
+            :
+            result &= aux(sub.rhsPatt, vt, path & @[
+              AccsElem(inStruct: kObject, fld: kk.repr)])
+          else:
+            # debugecho sub.rhsPatt
+            result &= aux(sub.rhsPatt, vt, path)
+
       of kSet:
         discard
       of kAlt:
@@ -1244,6 +1328,7 @@ func makeVarTable(m: Match): tuple[table: VarTable,
             AccsElem(inStruct: kPairs, key: pair.key)])
       of kObject:
         for (fld, patt) in sub.fldElems:
+          # debugecho "subfield ", fld, " patt ", patt
           result &= aux(patt, vt, path & @[
             AccsElem(inStruct: kObject, fld: fld)])
 
@@ -1646,12 +1731,17 @@ func makeMatchExpr(
       return conds.foldInfix("and")
     of kObject:
       var conds: seq[NimNode]
+      var refCast: seq[AccsElem]
       if m.kindCall.getSome(kc):
-        conds.add newCall(ident "hasKind", path.toAccs(mainExpr), kc)
+        if m.isRefKind:
+          conds.add newCall(ident "of", path.toAccs(mainExpr), kc)
+          refCast.add AccsElem(inStruct: kObject, fld: kc.repr)
+        else:
+          conds.add newCall(ident "hasKind", path.toAccs(mainExpr), kc)
 
       for (fld, patt) in m.fldElems:
         conds.add patt.makeMatchExpr(
-          vtable, path & @[
+          vtable, path & refCast & @[
             AccsElem(inStruct: kObject, fld: fld)
           ], mainExpr, doRaise, originalMainExpr)
 
@@ -1811,6 +1901,7 @@ macro match*(n: untyped): untyped =
         if elem[0] == ident "_":
           error("To create catch-all match use `else` clause", elem[0])
 
+        # echo elem[0].repr
         let (expr, vtable, mixid) =
           toSeq(elem[0 .. ^2]).foldl(
             nnkInfix.newTree(ident "|", a, b)
