@@ -4,6 +4,7 @@
 #+title: Getting started with nim macros using pattern matching
 
 
+* NOTE: WIP
 
 Nim macros are one of the most powerful and parts of the language, but
 they might seem a little intimidating for newcomers, especially when

@@ -84,11 +84,46 @@ suite "Matching":
         (
           Par     [Infix [_, @lhs, @rhs]] |
           Command [Infix [_, @lhs, @rhs]] |
-          Infix   [_,        @lhs, @rhs]
+          Infix   [@infixId, @lhs, @rhs]
         ) := node
 
-        assert lhs == some newLit(12)
-        assert rhs == some newLit(33)
+        assert lhs is NimNode
+        assert rhs is NimNode
+        assert infixId is Option[NimNode]
+        assert lhs == newLit(12)
+        assert rhs == newLit(33)
+
+      block:
+        discard node.matches(
+          Call[
+            BracketExpr[@ident, opt @outType],
+            @body
+          ] |
+          Command[
+            @ident is Ident(),
+            Bracket[@outType],
+            @body
+          ]
+        )
+
+        assert body is NimNode, $typeof(body)
+        assert ident is NimNode, $typeof(ident)
+        assert outType is Option[NimNode]
+
+      block:
+        case node:
+          of Call[BracketExpr[@ident, opt @outType], @body] |
+             Command[@ident is Ident(), Bracket [@outType], @body]
+            :
+            static:
+              assert ident is NimNode, $typeof(ident)
+              assert body is NimNode, $typeof(body)
+              assert outType is Option[NimNode], $typeof(outType)
+
+          of Call[@head is Ident(), @body]:
+            static:
+              assert head is NimNode
+              assert body is NimNode
 
     main()
 
@@ -96,6 +131,75 @@ suite "Matching":
     # block:
     #   assert not ([0 .. 2 is 12] ?= [1, 2, 3])
     #   assert not ([(0 .. 2) is 12] ?= [1, 2, 3])
+
+  test "Pattern parser broken brackets":
+    block: JArray[@a, @b] := %*[1, 3]
+    block: (JArray [@a, @b]) := %*[1, 3]
+    block: (JArray [@a, @b is JString()]) := %[%1, %"hello"]
+    block: (JArray [@a, @b is JString ()]) := %[%1, %"hello"]
+    block: (JArray [
+      @a, @b is JString (getStr: "hello")]) := %[%1, %"hello"]
+
+    block:
+      let vals = @[
+        %*[["AA", "BB"], "CC"],
+        %*["AA", ["BB"], "CC"]
+      ]
+
+      template testTypes() {.dirty.} =
+        assert aa is JsonNode
+        assert bb is Option[JsonNode]
+        assert cc is JsonNode
+
+        assert aa == %"AA"
+        if Some(@bb) ?= bb: assert bb == %"BB"
+        assert cc == %"CC"
+
+
+      for val in vals:
+        case val:
+          of JArray[JArray[@aa, opt @bb], @cc] |
+             JArray[@aa, JArray[@bb], @cc]
+            :
+            testTypes()
+          else:
+            fail($val)
+
+        block:
+          val.assertMatch(
+            JArray[JArray[@aa, opt @bb], @cc] |
+            JArray[@aa, JArray[@bb], @cc]
+          )
+
+          testTypes()
+
+        block:
+          val.assertMatch:
+            JArray[JArray[@aa, opt @bb], @cc] |
+            JArray[@aa, JArray[@bb], @cc]
+
+          testTypes()
+
+        block:
+          val.assertMatch:
+            JArray [ JArray [@aa, opt @bb] , @cc] |
+            JArray [@aa, JArray [@bb], @cc]
+
+          testTypes()
+
+        block:
+          val.assertMatch:
+            JArray [
+              JArray [
+                @aa,
+                opt @bb
+              ] ,
+              @cc
+            ] |
+            JArray [@aa, JArray [
+              @bb], @cc]
+
+          testTypes()
 
 
   test "Simple uses":
@@ -1605,19 +1709,15 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 
     macro flow(arg, body: untyped): untyped =
       var stages: seq[FlowStage]
+      # static: echo "\e[41m*==\e[49m  #################  \e[41m===*\e[49m"
       for elem in body:
         case elem:
-          of Call[BracketExpr[@ident, opt @outType], @body]:
+          of Call[BracketExpr[@ident, opt @outType], @body] |
+             Command[@ident is Ident(), Bracket [@outType], @body]
+            :
             stages.add FlowStage(
               kind: identToKind(ident),
               outputType: outType,
-              body: body
-            )
-
-          of Command[@ident is Ident(), Bracket[@outType], @body]:
-            stages.add FlowStage(
-              kind: identToKind(ident),
-              outputType: some(outType),
               body: body
             )
 
@@ -1657,14 +1757,32 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 
       # echo result.toStrLit()
 
+    let data = """
+root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin
+daemon:x:2:2:daemon:/sbin:/sbin/nologin
+adm:x:3:4:adm:/var/adm:/sbin/nologin
+lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+sync:x:5:0:sync:/sbin:/bin/sync
+shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown
+halt:x:7:0:halt:/sbin:/sbin/halt
+mail:x:8:12:mail:/var/spool/mail:/sbin/nologin
+news:x:9:13:news:/etc/news:
+uucp:x:10:14:uucp:/var/spool/uucp:/sbin/nologin
+operator:x:11:0:operator:/root:/sbin/nologin
+games:x:12:100:games:/usr/games:/sbin/nologin
+gopher:x:13:30:gopher:/var/gopher:/sbin/nologin
+ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin
+nobody:x:99:99:Nobody:/:/sbin/nologin
+nscd:x:28:28:NSCD Daemon:/:/sbin/nologin"""
 
-    let res = flow lines("/etc/passwd"):
+    let res = flow data.split("\n"):
       map:
         it.split(":")
       filter:
-        let username = it[0]
-        it.len > 1 and username.startsWith("systemd")
+        let shell = it[^1]
+        it.len > 1 and shell.endsWith("bash")
       map[string]:
-        username
+        shell
 
     assert res is seq[string]

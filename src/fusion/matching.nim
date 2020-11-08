@@ -362,7 +362,8 @@ type
       of kSet:
         discard
       of kAlt:
-        prefixMap: Table[Path, tuple[altNum: int, alts: seq[int]]]
+        altIdx*: int
+        altMax*: int
       of kItem:
         isOpt*: bool ## Is match optional
 
@@ -376,12 +377,16 @@ type
     vkSet
     vkAlt
 
+  AltSpec = object
+    altMax: int
+    altIdx: seq[int]
+    completed: bool
+
   VarSpec* = object
     decl*: NimNode ## First time variable has been declared
     case varKind*: VarKind ## Type of the variable
       of vkAlt:
-        parentPath*: Path
-        occurPositions*: seq[int]
+        prefixMap*: Table[Path, AltSpec]
       else:
         nil
 
@@ -390,6 +395,48 @@ type
     cnt*: int ## Number of variable occurencies in expression
 
   VarTable = Table[string, VarSpec]
+
+func hash(accs: AccsElem): Hash =
+  var h: Hash = 0
+  h = h !& hash(accs.isVariadic)
+  case accs.inStruct:
+    of kSeq:
+      h = h !& hash(accs.pos.repr)
+    of kTuple:
+      h = h !& hash(accs.idx)
+    of kObject:
+      h = h !& hash(accs.fld)
+    of kPairs:
+      h = h !& hash(accs.key.repr) !& hash(accs.nocheck)
+    of kAlt:
+      h = h !& hash(accs.altIdx) !& hash(accs.altMax)
+    of kItem:
+      h = h !& hash(accs.isOpt)
+    of kSet:
+      discard
+
+  result = !$h
+
+func `==`(a, b: AccsElem): bool =
+  a.isVariadic == b.isVariadic and
+  a.inStruct == b.inStruct and
+  (
+    case a.inStruct:
+      of kSeq:
+        a.pos == b.pos
+      of kTuple:
+        a.idx == b.idx
+      of kObject:
+        a.fld == b.fld
+      of kPairs:
+        a.key == b.key and a.nocheck == b.nocheck
+      of kItem:
+        a.isOpt == b.isOpt
+      of kSet:
+        true
+      of kAlt:
+        a.altIdx == b.altIdx and a.altMax == b.altMax
+  )
 
 func isNamedTuple(node: NimNode): bool =
   node.allIt(it.kind in {
@@ -569,10 +616,16 @@ func parseKVTuple(n: NimNode): Match =
       error("Expected `Some(@varBind)`", n)
 
     if not (n[1].kind == nnkPrefix and n[1][0].eqIdent("@")):
-      # debugecho n[1].lispRepr()
+      var comm: string
+      if n[1].kind in nnkStrKinds + nnkIdentKinds:
+        comm = " Should be written as " &
+          codeFmt("Some(@" & n[1].nodeStr() & ")")
+
       error(
         "Some(@var) pattern expected, but found " &
-          n[1].toStrLit().nodeStr(), n[1])
+          n[1].toStrLit().nodeStr().codeFmt() & "." & comm
+        , n[1]
+      )
 
     n[1].assertKind({nnkPrefix})
     n[1][0].assertKind({nnkIdent})
@@ -793,10 +846,12 @@ func fixBrokenBracket(inNode: NimNode): NimNode =
       # It is possible to have something else ony if second part is
       # infix,
 
-      # `Par [_] | Par [_]` gives ast like this vvv. It ts necessary
-      # to transform it into `Par[_] | Par[_]` - move infix up in the
-      # AST and  convert all brackets into bracket expressions.
+      # `Par [_] | Par [_]` gives ast like this (paste below). It ts
+      # necessary to transform it into `Par[_] | Par[_]` - move infix
+      # up in the AST and convert all brackets into bracket
+      # expressions.
 
+      #```
       #             Command
       # [0]            Ident Par
       # [1]            Infix
@@ -807,20 +862,26 @@ func fixBrokenBracket(inNode: NimNode): NimNode =
       # [1][2][0]            Ident Par
       # [1][2][1]            Bracket
       # [1][2][1][0]            Ident _
+      #```
+      var brac = nnkBracketExpr.newTree(n[0]) # First bracket head
+
+      for arg in n[1][1]:
+        brac.add arg
+
       result = nnkInfix.newTree(
         n[1][0], # Infix indentifier
-        nnkBracketExpr.newTree(
-          n[0], # First bracket head
-          n[1][1][0] # Argument of the bracket
-        ),
+        brac,
         aux(n[1][2]) # Everything else is handled recursively
       )
 
 
-  # debugecho "------"
-  # debugecho inNode.idxTreeRepr()
+  # debugecho "\e[41m*\e[49m  ========================  \e[41m*\e[49m"
   result = aux(inNode)
+  # debugecho inNode.repr
   # debugecho " -> "
+  # debugecho result.repr
+  # debugecho "\e[43m*==\e[49m  #################  \e[43m===*\e[49m"
+  # debugecho inNode.idxTreeRepr()
   # debugecho result.idxTreeRepr()
 
 func isBrokenPar(n: NimNode): bool =
@@ -1031,6 +1092,7 @@ iterator altPrefixes(p: Path): Path =
   while idx >= 0:
     if p[idx].inStruct == kAlt:
       yield p[0 .. idx]
+    dec idx
 
 func isOption(p: Path): bool =
   p.anyIt(it.inStruct == kItem and it.isOpt)
@@ -1045,9 +1107,33 @@ func classifyPath(path: Path): VarKind =
   else:
     vkRegular
 
+func `$`(path: Path): string =
+  for elem in path:
+    case elem.inStruct:
+      of kTuple:
+        result &= &"({elem.idx})"
+      of kSeq:
+        result &= "[pos]"
+      of kAlt:
+        result &= &"|{elem.altIdx}/{elem.altMax}|"
+      of kPairs:
+        result &= &"[{elem.key.repr}]"
+      of kSet:
+        result &= "{}"
+      of kObject:
+        result &= &".{elem.fld}"
+      of kItem:
+        result &= "#"
+
+  result = "--- " & result
+
 func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
   let vs = vsym.nodeStr()
-  # echov path
+  let class = path.classifyPath()
+
+  # if class == vkAlt:
+  #   debugecho "ALT class variable ", vsym.repr
+
   if vs notin tbl:
     tbl[vs] = VarSpec(
       decl: vsym,
@@ -1055,14 +1141,47 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
       typePath: path
     )
   else:
-    let
-      class = path.classifyPath()
-      update = (class == vkSequence) or
-        (class == vkOption and tbl[vs].varKind in {vkRegular})
+    var doUpdate =
+      (class == vkSequence) or
+      (class == vkOption and tbl[vs].varKind in {vkRegular})
 
-    if update:
+
+
+
+    if doUpdate:
       tbl[vs].varKind = class
       tbl[vs].typePath = path
+
+  if class == vkAlt and tbl[vs].varKind == vkAlt:
+    # debugecho "-- path -- ", path
+    for prefix in path.altPrefixes():
+      # debugecho "prefix ", prefix
+      let noalt = prefix[0 .. ^2]
+      if noalt notin tbl[vs].prefixMap:
+        tbl[vs].prefixMap[noalt] = AltSpec(altMax: prefix[^1].altMax)
+
+      var spec = tbl[vs].prefixMap[noalt]
+      assert spec.altMax == prefix[^1].altMax
+      spec.altIdx.add prefix[^1].altIdx
+      if spec.altIdx.len == spec.altMax + 1:
+        spec.completed = true
+
+      if spec.completed:
+        # debugecho "completed prefix ", noalt
+        tbl[vs] = VarSpec(
+          decl: vsym,
+          varKind: vkRegular,
+          typePath: path
+        )
+
+        # debugecho "Variable \e[32m@", vs, "\e[39m is now regular"
+
+      else:
+        # debugecho "Variable \e[33m@", vs,
+        #   "\e[39m is still ", tbl[vs].varKind
+
+        tbl[vs].prefixMap[noalt] = spec
+
 
   inc tbl[vs].cnt
 
@@ -1090,8 +1209,12 @@ func makeVarTable(m: Match): tuple[table: VarTable,
       of kSet:
         discard
       of kAlt:
-        for alt in sub.altElems:
-          result &= aux(alt, vt, path & @[AccsElem(inStruct: kAlt)])
+        for idx, alt in sub.altElems:
+          result &= aux(alt, vt, path & @[AccsElem(
+            inStruct: kAlt,
+            altIdx: idx,
+            altMax: sub.altElems.len - 1
+          )])
       of kSeq:
         # echov path
         # echov sub[]
@@ -1590,9 +1713,13 @@ func makeMatchExpr(
       return conds.foldInfix("and")
     of kAlt:
       var conds: seq[NimNode]
-      for alt in m.altElems:
+      for idx, alt in m.altElems:
         conds.add alt.makeMatchExpr(
-          vtable, path & @[AccsElem(inStruct: kAlt)],
+          vtable, path & @[AccsElem(
+            inStruct: kAlt,
+            altIdx: idx,
+            altMax: m.altElems.len - 1
+          )],
           mainExpr, false, originalMainExpr)
 
       let res = conds.foldInfix("or")
@@ -1724,6 +1851,12 @@ macro match*(n: untyped): untyped =
 macro assertMatch*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and raise `MatchError` on
   ## failure. For DSL syntax details see start of the document.
+  let pattern =
+    if pattern.kind == nnkStmtList and pattern.len == 1:
+      pattern[0]
+    else:
+      pattern
+
   let
     expr = ident genSym(nskLet, "expr").repr
     (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(
@@ -1738,6 +1871,12 @@ macro assertMatch*(input, pattern: untyped): untyped =
 macro matches*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and return `false` on
   ## failure. For DSL syntax details see start of the document.
+  let pattern =
+    if pattern.kind == nnkStmtList and pattern.len == 1:
+      pattern[0]
+    else:
+      pattern
+
   let
     expr = ident genSym(nskLet, "expr").repr
     (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(
