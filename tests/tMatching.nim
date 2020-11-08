@@ -55,17 +55,40 @@ suite "Matching":
       discard t([(0 .. 3) @patt is JString()])
       discard t([0..3 @patt is JString()])
 
+      let node = quote: (12 .. 33)
+
       block:
-        let node = quote: (12 .. 33)
+        case node:
+          of Par [_]:
+            discard
+          else:
+            raiseAssert("#[ IMPLEMENT ]#")
+
+        case node:
+          of Par[_]:
+            discard
+          else:
+            raiseAssert("#[ IMPLEMENT ]#")
+
+      block:
+        node.assertMatch(Par [_] | Par [_])
+        node.assertMatch(Par[Infix()])
+        node.assertMatch(Par [Infix()])
+        node.assertMatch(Par[Infix ()])
+        node.assertMatch(Par [Infix ()])
+
+        node.assertMatch(Par [Infix ()])
+
+      block:
 
         (
-          Par([Infix([_, @lhs, @rhs])]) |
-          Command([Infix([_, @lhs, @rhs])]) |
-          Infix([_, @lhs, @rhs])
+          Par     [Infix [_, @lhs, @rhs]] |
+          Command [Infix [_, @lhs, @rhs]] |
+          Infix   [_,        @lhs, @rhs]
         ) := node
 
-        assert lhs == newLit(12)
-        assert rhs == newLit(33)
+        assert lhs == some newLit(12)
+        assert rhs == some newLit(33)
 
     main()
 
@@ -1422,6 +1445,33 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
       assert a is string
       assert a == "A"
 
+    block:
+      (1, 2) | (@a, _) := (12, 3)
+
+      assert a is Option[int]
+
+    macro test1(inBody: untyped): untyped =
+      block:
+        Call[BracketExpr[@ident, opt @outType], @body] := inBody
+        assert ident is NimNode
+        assert outType is Option[NimNode]
+        assert body is NimNode
+
+      block:
+        Command[@ident is Ident(), Bracket[@outType], @body] := inBody
+        assert ident is NimNode
+        assert outType is NimNode
+        assert body is NimNode
+
+      block:
+        Call[BracketExpr[@ident, opt @outType], @body] |
+        Command[@ident is Ident(), Bracket[@outType], @body] := inBody
+
+        assert ident is NimNode
+        assert outType is Option[NimNode]
+        assert body is NimNode
+
+
 
   test "Flow macro":
     type
@@ -1447,74 +1497,110 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
       else:
         raiseAssert("#[ IMPLEMENT ]#")
 
-    func typeExprFromStages(stages: seq[FlowStage], arg: NimNode): NimNode =
-      result = newEmptyNode()
-      if stages[^1].kind notin {fskEach}:
-        result = newBlockStmt(stages[^1].body)
-        for stage in stages[0 .. ^2].reversed():
-          let body = stage.body
-          result = quote do:
-            block:
-              let it {.inject.} = `body`
-              `result`
+    proc rewrite(node: NimNode, idx: int): NimNode =
+      case node:
+        of Ident(strVal: "it"):
+          result = ident("it" & $idx)
+        of (kind: in nnkTokenKinds):
+          result = node
+        else:
+          result = newTree(node.kind)
+          for subn in node:
+            result.add subn.rewrite(idx)
 
-        result = quote do:
-          block:
-            var it {.inject.}: typeof(`arg`)
-            `result`
+    func typeExprFromStages(stages: seq[FlowStage], arg: NimNode): NimNode =
+      result = newStmtList()
+      var idx = 0
+      var resTuple = nnkPar.newTree()
+      for stageId, stage in stages:
+        var itIdx = ident("it" & $(idx + 1))
+        let body = stage.body.rewrite(idx)
+        result.add quote do:
+          let `itIdx` = `body`
+
+        resTuple.add itIdx
+
+        inc idx
+
+      let lastId = newLit(stages.len - 1)
+
+      result = quote do:
+        block:
+          (
+            proc(): auto = # `auto` annotation allows to derive type
+                           # of the proc from any assingment withing
+                           # proc body - we take advantage of this,
+                           # and avoid building type expression
+                           # manually.
+              for it0 {.inject.} in `arg`:
+                `result`
+                result = `resTuple`
+#               ^^^^^^^^^^^^^^^^^^^
+#               |
+#               Type of the return will be derived from this assinment.
+#               Even though it is placed within loop body, it will still
+#               derive necessary return type
+          )()[`lastId`]
+#          ^^^^^^^^^^^^
+#          | |
+#          | Get last element from proc return type
+#          |
+#          After proc is declared we call it immediatey
+
 
     func makeTypeAssert(
       expType, body, it: NimNode): NimNode =
-      let bodyLit = body.toStrLit().strVal().strip().newLit()
-      let pos = body.lineInfoObj()
-      let ln = newLit((filename: pos.filename, line: pos.line))
+      let
+        bodyLit = body.toStrLit().strVal().strip().newLit()
+        pos = body.lineInfoObj()
+        ln = newLit((filename: pos.filename, line: pos.line))
+
       return quote do:
         when not (`it` is `expType`):
           static:
-            {.line: `ln`.}:
+            {.line: `ln`.}: # To get correct line number when `error`
+                            # is used it is necessary to use
+                            # `{.line.}` pragma.
               error "\n\nExpected type " & $(typeof(`expType`)) &
                 ", but expression \e[4m" & `bodyLit` &
                 "\e[24m has type of " & $(typeof(`it`))
 
-
-    func evalExprFromStages(
-      stages: seq[FlowStage], resId: Option[NimNode]): NimNode =
+    func evalExprFromStages(stages: seq[FlowStage]): NimNode =
       block:
         var expr = stages[^1].body
         if Some(@expType) ?= stages[^1].outputType:
+#          ^^             ^^
+#          |              |
+#          |              Pattern matching operator to determine whether
+#          |              right part matches pattern on the left.
+#          |
+#          Special support for matching `Option[T]` types -
+
           let assrt = makeTypeAssert(expType, expr, expr)
+          # If type assertion is not `none` add type checking.
 
           expr = quote do:
             `assrt`
             `expr`
 
-
-        if Some(@resid) ?= resid:
-          result = newCall("add", resid, expr)
-        else:
-          result = expr
-
-      result = newBlockStmt(result)
-      for stage in stages[0 .. ^2].reversed():
-        let body = stage.body
-
+      result = newStmtList()
+      var idx = 0
+      for stageId, stage in stages:
+        let body = stage.body.rewrite(idx)
         if stage.kind in {fskFilter}:
-          result = quote do:
-            if ((`body`)):
-              `result`
+          result.add quote do:
+            let stageOk = ((`body`))
+            if not stageOk:
+              continue
         else:
-          if Some(@expType) ?= stage.outputType:
-            let assrt = makeTypeAssert(expType, body, ident "it")
-            result = quote do:
-              let it {.inject.} = `body`
-              `assrt`
-              `result`
-          else:
-            result = quote do:
-              let it {.inject.} = `body`
-              `result`
+          let itId = ident("it" & $(idx + 1))
+          result.add quote do:
+            let `itId` = `body`
 
-      result = nnkPar.newTree newBlockStmt(result)
+          if Some(@expType) ?= stage.outputType:
+            result.add makeTypeAssert(expType, stage.body, itId)
+
+        inc idx
 
 
     macro flow(arg, body: untyped): untyped =
@@ -1527,9 +1613,10 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
               outputType: outType,
               body: body
             )
-          of Command[@head is Ident(), Bracket[@outType], @body]:
+
+          of Command[@ident is Ident(), Bracket[@outType], @body]:
             stages.add FlowStage(
-              kind: identToKind(head),
+              kind: identToKind(ident),
               outputType: some(outType),
               body: body
             )
@@ -1546,38 +1633,38 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 
 
       var resId = none(NimNode)
-      let resExpr = typeExprFromStages(stages, arg)
-      if resExpr.kind != nnkEmpty:
-        resId = some ident("res")
+      let evalExpr = evalExprFromStages(stages)
 
-      let evalExpr = evalExprFromStages(stages, resId)
-      result = quote do:
-        for it {.inject.} in `arg`:
-          `evalExpr`
-
-
-      if resExpr.kind != nnkEmpty:
-        let resid = resid.get()
+      if stages[^1].kind notin {fskEach}:
+        let resExpr = typeExprFromStages(stages, arg)
+        let lastId = ident("it" & $stages.len)
+        let resId = ident("res")
         result = quote do:
           var `resId`: seq[typeof(`resExpr`)]
 
-          `result`
+          for it0 {.inject.} in `arg`:
+            `evalExpr`
+            `resId`.add `lastid`
 
           `resId`
+      else:
+        result = quote do:
+          for it0 {.inject.} in `arg`:
+            `evalExpr`
+
 
       result = newBlockStmt(result)
 
+      # echo result.toStrLit()
+
 
     let res = flow lines("/etc/passwd"):
-      map[seq[string]]:
+      map:
         it.split(":")
       filter:
-        it.len > 1 and
-        it.matches([@username.startsWith("systemd"), .._])
-      map [string]:
+        let username = it[0]
+        it.len > 1 and username.startsWith("systemd")
+      map[string]:
         username
 
     assert res is seq[string]
-
-    # echo typeof res
-    # echo res

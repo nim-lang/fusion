@@ -24,8 +24,9 @@ const
 
   nnkTokenKinds* =
     nnkStrKinds + nnkIntKinds + nnkFloatKinds +
-    nnkIdentKinds ## Set of all token-like nodes (primitive type
-                  ## literals or identifiers)
+    nnkIdentKinds + {nnkEmpty}
+    ## Set of all token-like nodes (primitive type literals or
+    ## identifiers)
 
 func codeFmt(str: string): string =
   &"\e[4m{str}\e[24m"
@@ -358,8 +359,10 @@ type
       of kPairs:
         key*: NimNode ## Expression for key-value pair
         nocheck*: bool
-      of kSet, kAlt:
+      of kSet:
         discard
+      of kAlt:
+        prefixMap: Table[Path, tuple[altNum: int, alts: seq[int]]]
       of kItem:
         isOpt*: bool ## Is match optional
 
@@ -375,7 +378,13 @@ type
 
   VarSpec* = object
     decl*: NimNode ## First time variable has been declared
-    varKind*: VarKind ## Type of the variable
+    case varKind*: VarKind ## Type of the variable
+      of vkAlt:
+        parentPath*: Path
+        occurPositions*: seq[int]
+      else:
+        nil
+
     typePath*: Path ## Whole path for expression that can be used to
                     ## determine type of the variable.
     cnt*: int ## Number of variable occurencies in expression
@@ -453,8 +462,13 @@ func makeVarSet(
           true
 
     of vkAlt:
-      return quote do: # WARNING
-        `varn` = `expr`
+      return quote do: # WARNING - for now I assume unification with
+                       # alternative variables is not supported, but
+                       # this might be either declared as invalid
+                       # (most likely) or handled via some kind of
+                       # convoluted logic that is yet to be
+                       # determined.
+        `varn` = some(`expr`)
         true
 
 func toAccs*(path: Path, name: string): NimNode =
@@ -753,7 +767,97 @@ func splitOpt(n: NimNode): tuple[
   else:
     result.lhs = n[1]
 
-# echo currentSourcePath()
+func isBrokenBracket(n: NimNode): bool =
+  result = (
+    n.kind == nnkCommand and
+    n[1].kind == nnkBracket
+  ) or
+  (
+    n.kind == nnkCommand and
+    n[1].kind == nnkInfix and
+    n[1][1].kind == nnkBracket and
+    n[1][2].kind == nnkCommand
+  )
+
+  # debugecho &"Is \e[4m{n.repr:<20}\e[24m bracket? ", result
+
+func fixBrokenBracket(inNode: NimNode): NimNode =
+
+  func aux(n: NimNode): NimNode =
+    if n.kind == nnkCommand and n[1].kind == nnkBracket:
+      # `A [1] -> A[1]`
+      result = nnkBracketExpr.newTree(n[0])
+      for arg in n[1]:
+        result.add arg
+    else:
+      # It is possible to have something else ony if second part is
+      # infix,
+
+      # `Par [_] | Par [_]` gives ast like this vvv. It ts necessary
+      # to transform it into `Par[_] | Par[_]` - move infix up in the
+      # AST and  convert all brackets into bracket expressions.
+
+      #             Command
+      # [0]            Ident Par
+      # [1]            Infix
+      # [1][0]            Ident |
+      # [1][1]            Bracket
+      # [1][1][0]            Ident _
+      # [1][2]            Command
+      # [1][2][0]            Ident Par
+      # [1][2][1]            Bracket
+      # [1][2][1][0]            Ident _
+      result = nnkInfix.newTree(
+        n[1][0], # Infix indentifier
+        nnkBracketExpr.newTree(
+          n[0], # First bracket head
+          n[1][1][0] # Argument of the bracket
+        ),
+        aux(n[1][2]) # Everything else is handled recursively
+      )
+
+
+  # debugecho "------"
+  # debugecho inNode.idxTreeRepr()
+  result = aux(inNode)
+  # debugecho " -> "
+  # debugecho result.idxTreeRepr()
+
+func isBrokenPar(n: NimNode): bool =
+  result = (
+    n.kind == nnkCommand and
+    n[1].kind == nnkPar
+  )
+  # debugecho &"Is \e[4m{n.repr:<20}\e[24m par?     ", result
+  # if not result:
+  #   debugecho n.idxTreeRepr()
+
+
+
+func fixBrokenPar(inNode: NimNode): NimNode =
+  func aux(n: NimNode): NimNode =
+    result = nnkCall.newTree(n[0])
+
+    for arg in n[1]:
+      result.add arg
+
+
+  # debugecho "------"
+  # debugecho inNode.idxTreeRepr()
+  result = aux(inNode)
+  # debugecho result.idxTreeRepr()
+
+macro dumpIdxTree(n: untyped) =
+  echo n.idxTreeRepr()
+
+# dumpIdxTree:
+#   Par [Infix [_]] | Par [Infix [_]]
+
+# dumpIdxTree:
+#   Call [1] | Call [1] | Call[1]
+
+# dumpIdxTree:
+#   Call[1] | Call[1] | Call[1]
 
 func parseMatchExpr*(n: NimNode): Match =
   ## Parse match expression from nim node
@@ -773,6 +877,8 @@ func parseMatchExpr*(n: NimNode): Match =
       else: # Unnamed tuple `( , , , , )`
         result = Match(kind: kTuple, declNode: n)
         for elem in n:
+          # debugecho elem.repr
+          # debugecho elem.idxTreeRepr()
           result.tupleElems.add parseMatchExpr(elem)
     of nnkPrefix: # `is Patt()`, `@capture` or other prefix expression
       if n[0].nodeStr() == "is": # `is Patt()`
@@ -819,53 +925,65 @@ func parseMatchExpr*(n: NimNode): Match =
       )
     elif n.kind in {nnkObjConstr, nnkCall, nnkCommand} and
          not n[0].eqIdent("opt"):
-      if n[0].kind == nnkPrefix:
-        n[0][1].assertKind({nnkIdent}) # `@capture(<some-expression>)`
-        result = Match(
-          kind: kItem,
-          itemMatch: imkPredicate,
-          bindVar: some(n[0][1]),
-          declNode: n,
-          predBody: n[1]
-        )
-      elif n[0].kind == nnkDotExpr:
-        var body = n
-        var bindVar: Option[NimNode]
-        if n[0][0].kind == nnkPrefix:
-          # debugecho n.idxTreeRepr()
-          n[0][0][1].assertKind({nnkIdent})
-          bindVar = some(n[0][0][1])
-
-          # Store name of the bound variable and then replace `_` with
-          # `it` to make `it.call("arguments")`
-          body[0][0] = ident("it")
-        else: # `_.call("Arguments")`
-          # `(DotExpr (Ident "_") (Ident "<function-name>"))`
-          n[0][1].assertKind({nnkIdent, nnkOpenSymChoice})
-          n[0][0].assertKind({nnkIdent, nnkOpenSymChoice})
-
-          # Replace `_` with `it` to make `it.call("arguments")`
-          body[0][0] = ident("it")
-
-        result = Match(
-          kind: kItem,
-          itemMatch: imkPredicate,
-          declNode: n,
-          predBody: body,
-          bindVar: bindVar
-        )
-      elif n.kind == nnkCall and n[0].eqIdent("_"):
-        # `_(some < expression)`. NOTE - this is probably a
-        # not-that-common use case, but I don't think explicitly
-        # disallowing it will make things more intuitive.
-        result = Match(
-          kind: kItem,
-          itemMatch: imkPredicate,
-          declNode: n[1],
-          predBody: n[1]
-        )
+      if n.isBrokenBracket():
+        # Broken bracket expression that was written as `A [1]` and
+        #subsequently parsed into
+        # `(Command (Ident "A") (Bracket (IntLit 1)))`
+        # when actually it was ment to be used as `A[1]`
+        # `(BracketExpr (Ident "A") (IntLit 1))`
+        result = parseMatchExpr(n.fixBrokenBracket())
+      elif n.isBrokenPar():
+        result = parseMatchExpr(n.fixBrokenPar())
       else:
-        result = parseKVTuple(n)
+        if n[0].kind == nnkPrefix:
+          n[0][1].assertKind({nnkIdent}) # `@capture(<some-expression>)`
+          result = Match(
+            kind: kItem,
+            itemMatch: imkPredicate,
+            bindVar: some(n[0][1]),
+            declNode: n,
+            predBody: n[1]
+          )
+        elif n[0].kind == nnkDotExpr:
+          var body = n
+          var bindVar: Option[NimNode]
+          if n[0][0].kind == nnkPrefix:
+            # debugecho n.idxTreeRepr()
+            n[0][0][1].assertKind({nnkIdent})
+            bindVar = some(n[0][0][1])
+
+            # Store name of the bound variable and then replace `_` with
+            # `it` to make `it.call("arguments")`
+            body[0][0] = ident("it")
+          else: # `_.call("Arguments")`
+            # `(DotExpr (Ident "_") (Ident "<function-name>"))`
+            n[0][1].assertKind({nnkIdent, nnkOpenSymChoice})
+            n[0][0].assertKind({nnkIdent, nnkOpenSymChoice})
+
+            # Replace `_` with `it` to make `it.call("arguments")`
+            body[0][0] = ident("it")
+
+          result = Match(
+            kind: kItem,
+            itemMatch: imkPredicate,
+            declNode: n,
+            predBody: body,
+            bindVar: bindVar
+          )
+        elif n.kind == nnkCall and n[0].eqIdent("_"):
+          # `_(some < expression)`. NOTE - this is probably a
+          # not-that-common use case, but I don't think explicitly
+          # disallowing it will make things more intuitive.
+          result = Match(
+            kind: kItem,
+            itemMatch: imkPredicate,
+            declNode: n[1],
+            predBody: n[1]
+          )
+        else:
+          # debugecho n.repr
+          # debugecho n.idxTreeRepr()
+          result = parseKVTuple(n)
     elif (n.kind in {nnkCommand, nnkCall}) and n[0].eqIdent("opt"):
       let (lhs, rhs) = splitOpt(n)
       result = lhs.parseMatchExpr()
@@ -908,16 +1026,22 @@ func isVariadic(p: Path): bool = p.anyIt(it.isVariadic)
 
 func isAlt(p: Path): bool = p.anyIt(it.inStruct == kAlt)
 
+iterator altPrefixes(p: Path): Path =
+  var idx = p.len - 1
+  while idx >= 0:
+    if p[idx].inStruct == kAlt:
+      yield p[0 .. idx]
+
 func isOption(p: Path): bool =
   p.anyIt(it.inStruct == kItem and it.isOpt)
 
 func classifyPath(path: Path): VarKind =
   if path.isVariadic:
     vkSequence
-  elif path.isAlt:
-    vkAlt
-  elif path.isOption:
+  elif path.isOption():
     vkOption
+  elif path.isAlt():
+    vkAlt
   else:
     vkRegular
 
@@ -1530,12 +1654,12 @@ func toNode(
         exprNew.add quote do:
           var `vname`: seq[typeof(`typeExpr`)]
 
-      of vkOption:
+      of vkOption, vkAlt:
         hasOption = true
         exprNew.add quote do:
           var `vname`: Option[typeof(`typeExpr`)]
 
-      of vkSet, vkAlt:
+      of vkSet:
         exprNew.add quote do:
           var `vname`: typeof(`typeExpr`)
 
