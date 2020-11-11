@@ -1161,6 +1161,14 @@ func parseMatchExpr*(n: NimNode): Match =
           kind: kItem, itemMatch: imkSubpatt,
           rhsPatt: parseMatchExpr(n[2]), declNode: n)
 
+      elif n[0].nodeStr() == "of":
+        result = Match(
+          kind: kItem, itemMatch: imkSubpatt,
+          rhsPatt: parseMatchExpr(n[2]), declNode: n)
+
+        if n[0].nodeStr() == "of" and result.rhsPatt.kind == kObject:
+          result.rhsPatt.isRefKind = true
+
       else:
         # `@a | @b`, `@a == 6`
         result = Match(
@@ -1958,6 +1966,8 @@ macro assertMatch*(input, pattern: untyped): untyped =
   result = quote do:
     let `expr` = `input`
     let ok = `matched`
+
+  # echo result.repr
 
 macro matches*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and return `false` on

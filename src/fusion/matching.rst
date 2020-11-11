@@ -7,8 +7,8 @@
 :Version: 0.7
 
 This module implements pattern matching for objects, tuples,
-sequences, key-value pairs and case objects. DSL can also be used to
-create object trees (AST).
+sequences, key-value pairs, case and derived objects. DSL can also be
+used to create object trees (AST).
 
 ## Use example
 
@@ -24,21 +24,25 @@ create object trees (AST).
  Example                       Explanation
 ============================= ===================
  ``(fld: @val)``               Field ``fld`` into variable ``@val``
+ ``Kind()``                    Object with `.kind == Kind()` [1]_
+ ``of Derived()``              Match object of derived type
  ``(@val, _)``                 First element in tuple in ``@val``
  ``(@val, @val)``              Tuple with two equal elements
- ``{"key" : @val}``            Table with "key", capture into ``@val`` [1]_
- ``[_, _]``                    Sequence with ``len == 2`` [2]_
+ ``{"key" : @val}``            Table with "key", capture into ``@val`` [2]_
+ ``[_, _]``                    Sequence with ``len == 2`` [3]_
  ``[_, .._]``                  At least one element
  ``[_, all @val]``             All elements starting from index `1`
- ``[until @val == "2", .._]``  Capture all elements *until* first ``"2"`` [3]_
+ ``[until @val == "2", .._]``  Capture all elements *until* first ``"2"`` [4]_
  ``[until @val == 1, @val]``   All *including* first match
  ``[all @val == 12]``          All elements are `== 12`, capture into ``@val``
  ``[some @val == 12]``         At least *one* is `== 12`, capture all matching into ``@val``
 ============================= ====================
 
-- [1] Or any object with ``contains`` and ``[]`` defined (for necessary types)
-- [2] Or any object with ``len`` proc or field
-- [3] Note that sequence must mathc *fully* and it is necessary to
+- [1] Kind fields can use shorted enum names - both `nnkStrLit` and
+  `StrLit` will work (prefix `nnk` can be omitted)
+- [2] Or any object with ``contains`` and ``[]`` defined (for necessary types)
+- [3] Or any object with ``len`` proc or field
+- [4] Note that sequence must mathc *fully* and it is necessary to
   have `.._` at the end in order to accept sequences of arbitrary
   length.
 

@@ -1132,15 +1132,16 @@ suite "Matching":
     assert hh69 == 3
 
 
-  test "Ref object matching":
-    type
-      Root = ref object of RootObj
-        fld1: int
-        fld2: float
+  type
+    Root = ref object of RootObj
+      fld1: int
+      fld2: float
 
-      SubRoot = ref object of Root
-        fld3: int
+    SubRoot = ref object of Root
+      fld3: int
 
+
+  test "Ref object field matching":
     case (fld3: 12):
       of (fld3: @subf):
         discard
@@ -1154,6 +1155,32 @@ suite "Matching":
         assert subf == 12
       else:
         fail()
+
+  test "Ref object in maps, subfields and sequences":
+    block:
+      @[SubRoot(), Root()].assertMatch([any of SubRoot()])
+
+    block:
+      @[SubRoot(fld1: 12), Root(fld1: 33)].assertMatch(
+        [all of Root(fld1: @vals)])
+
+      assertEq vals, @[12, 33]
+
+    block:
+      let val = {12 : SubRoot(fld1: 33)}.toTable()
+
+      val.assertMatch({
+        12 : of SubRoot(fld1: @fld1)
+      })
+
+
+      val.assertMatch({
+        12 : of Root(fld1: fld1)
+      })
+
+      assertEq fld1, 33
+
+
 
 suite "Gara tests":
   ## Test suite copied from gara pattern matching
@@ -1539,11 +1566,7 @@ suite "More tests":
     discard val.convert()
 
 when false:
-  # TEST
-
-  # only integer range like
   [1 .. 6] := @[1111,1,1,1,1,1,1]
-  # Should be equivalent to
   [1 .. 6 is _]
 
   # TODO support reverse index for array pattern matching
