@@ -324,23 +324,23 @@ made to allow better integration with optional types.  [9]_ .
 which allows to *construct* tree from pattern, using variables.
 Example of use
 
-.. code-block:: nim
-    type
-      HtmlNodeKind = enum
-        htmlBase = "base"
-        htmlHead = "head"
-        htmlLink = "link"
+  .. code:: nim
+      type
+        HtmlNodeKind = enum
+          htmlBase = "base"
+          htmlHead = "head"
+          htmlLink = "link"
 
-      HtmlNode = object
-        kind*: HtmlNodeKind
-        text*: string
-        subn*: seq[HtmlNode]
+        HtmlNode = object
+          kind*: HtmlNodeKind
+          text*: string
+          subn*: seq[HtmlNode]
 
-    func add(n: var HtmlNode, s: HtmlNode) = n.subn.add s
+      func add(n: var HtmlNode, s: HtmlNode) = n.subn.add s
 
-    discard makeTree(HtmlNode):
-      base:
-        link(text: "hello")
+      discard makeTree(HtmlNode):
+        base:
+          link(text: "hello")
 
 In order to construct tree, ``kind=`` and ``add`` have to be defined.
 Internally DSL just creats resulting object, sets ``kind=`` and then

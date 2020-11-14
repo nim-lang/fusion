@@ -1619,6 +1619,19 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
         assert outType is Option[NimNode]
         assert body is NimNode
 
+      block:
+        var a = quote do:
+          map[string]
+
+        a = a[0]
+        a.assertMatch:
+          BracketExpr:
+            @head
+            @typeParam
+
+        assert head.strVal() == "map"
+        assert typeParam.strVal() == "string"
+
 
 
   test "Flow macro":
@@ -1627,7 +1640,6 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
         fskMap
         fskFilter
         fskEach
-
 
       FlowStage = object
         outputType: Option[NimNode]
@@ -1693,35 +1705,45 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
             `expr`
 
       result = newStmtList()
-      var idx = 0
-      for stageId, stage in stages:
+      for idx, stage in stages:
+        # Rewrite body
         let body = stage.body.rewrite(idx)
-        if stage.kind in {fskFilter}:
-          result.add quote do:
-            let stageOk = ((`body`))
-            if not stageOk:
-              continue
-        else:
-          let itId = ident("it" & $(idx + 1))
-          result.add quote do:
-            let `itId` = `body`
 
-          if Some(@expType) ?= stage.outputType:
-            result.add makeTypeAssert(expType, stage.body, itId)
 
-        inc idx
+        case stage.kind:
+          # If stage is a filter it is converted into `if` expression
+          # and new new variables are injected.
+          of fskFilter:
+            result.add quote do:
+              let stageOk = ((`body`))
+              if not stageOk:
+                continue
+
+          of fskEach:
+            # `each` has no variables or special formatting - just
+            # rewrite body and paste it back to resulting code
+            result.add body
+          of fskMap:
+            # Create new identifier for injected node and assign
+            # result of `body` to it.
+            let itId = ident("it" & $(idx + 1))
+            result.add quote do:
+              let `itId` = `body`
+
+            # If output type for stage needs to be explicitly checked
+            # create type assertion.
+            if Some(@expType) ?= stage.outputType:
+              result.add makeTypeAssert(expType, stage.body, itId)
 
 
 
     func typeExprFromStages(stages: seq[FlowStage], arg: NimNode): NimNode =
-      result = evalExprFromStages(stages)
+      let evalExpr = evalExprFromStages(stages)
       var resTuple = nnkPar.newTree(ident "it0")
-      var idx = 0
-      for st in stages:
-        if st.kind notin {fskFilter}:
-          resTuple.add ident("it" & $(idx + 1))
 
-        inc idx
+      for idx, stage in stages:
+        if stage.kind notin {fskFilter, fskEach}:
+          resTuple.add ident("it" & $(idx + 1))
 
       let lastId = newLit(stages.len - 1)
 
@@ -1734,7 +1756,7 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
                            # and avoid building type expression
                            # manually.
               for it0 {.inject.} in `arg`:
-                `result`
+                `evalExpr`
                 result = `resTuple`
 #               ^^^^^^^^^^^^^^^^^^^
 #               |
@@ -1750,6 +1772,7 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 
 
     macro flow(arg, body: untyped): untyped =
+      # Parse input DSl into sequence of `FlowStage`
       var stages: seq[FlowStage]
       for elem in body:
         if elem.matches(
@@ -1766,6 +1789,7 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
               body: body
             )
 
+      # Create eval expression
       let evalExpr = evalExprFromStages(stages)
 
       if stages[^1].kind notin {fskEach}:
