@@ -10,19 +10,22 @@ This module implements pattern matching for objects, tuples,
 sequences, key-value pairs, case and derived objects. DSL can also be
 used to create object trees (AST).
 
-## Use example
+Use example
+===========
 
 
 .. code:: nim
+
     case [(1, 3), (3, 4)]:
       of [(1, _), _]: 1
       else: 999
 
-## Quick reference
+Quick reference
+===============
 
-============================= ===================
+============================= =======================================================
  Example                       Explanation
-============================= ===================
+============================= =======================================================
  ``(fld: @val)``               Field ``fld`` into variable ``@val``
  ``Kind()``                    Object with `.kind == Kind()` [1]_
  ``of Derived()``              Match object of derived type
@@ -36,7 +39,7 @@ used to create object trees (AST).
  ``[until @val == 1, @val]``   All *including* first match
  ``[all @val == 12]``          All elements are `== 12`, capture into ``@val``
  ``[some @val == 12]``         At least *one* is `== 12`, capture all matching into ``@val``
-============================= ====================
+============================= =======================================================
 
 - [1] Kind fields can use shorted enum names - both `nnkStrLit` and
   `StrLit` will work (prefix `nnk` can be omitted)
@@ -46,7 +49,8 @@ used to create object trees (AST).
   have `.._` at the end in order to accept sequences of arbitrary
   length.
 
-## Supported match elements
+Supported match elements
+========================
 
 - *seqs* - matched using ``[Patt1(), Patt2(), ..]``. Must have
   ``len(): int`` and ``[int]: T`` defined.
@@ -61,7 +65,8 @@ used to create object trees (AST).
   using ``Kind(field: Val)``. If you want to check agains multiple
   values for kind field ``(kind: in SomeSetOfKinds)``
 
-## Element access
+Element access
+==============
 
 To determine whether or not particular object matches pattern *access
 path* is generated - sequence of fields and `[]` operators that you
@@ -91,7 +96,8 @@ is the same as ``[_]``, ``({"key": "val"})`` is is identical to just
 (like ``(len: _(it < 10))`` or ``(len: in {0 .. 10})``) to check for
 sequence length.
 
-## Checks
+Checks
+======
 
 - Any operator with exception of ``is`` is considered final comparison
   and just pasted as-is into generated pattern match code. E.g. ``fld:
@@ -109,7 +115,8 @@ example
 - ``[_]`` - ``<expr>`` is ``_``
 - ``fld: is Patt()`` - ``<expr>`` is ``is Patt()``
 
-### Examples
+Examples
+--------
 
 - ``(fld: 12)`` If rhs for key-value pair is integer, string or
   identifier then ``==`` comparison will be generated.
@@ -119,7 +126,8 @@ example
 - ``(fld: in {1, 3, 3})`` or ``(fld: in Anything)`` creates ``fld.expr
   in Anything``. Either ``in`` or ``notin`` can be used.
 
-## Variable binding
+Variable binding
+================
 
 Match can be bound to new varaible. All variable declarations happen
 via ``@varname`` syntax.
@@ -135,7 +143,8 @@ via ``@varname`` syntax.
 - Arbitrary expression: ``fld: @a(it mod 2 == 0)``. If expression has no
   type it is considered ``true``.
 
-### Bind order
+Bind order
+----------
 
 Bind order: if check evaluates to true variable is bound immediately,
 making it possible to use in other checks. ``[@head, any @tail !=
@@ -146,7 +155,8 @@ and declare ``tail`` externally.
 Variable is never rebound. After it is bound, then it will have the
 value of first binding.
 
-### Bind variable type
+Bind variable type
+------------------
 
 - Any variadics are mapped to sequence
 - Only once in alternative is option
@@ -166,9 +176,11 @@ value of first binding.
  ``(fld: @val)``             ``var val: typeof(expr.fld)``
 ========================== =====================================
 
-## Matching different things
+Matching different things
+=========================
 
-### Sequence matching
+Sequence matching
+-----------------
 
 Input sequence: ``[1,2,3,4,5,6,5,6]``
 
@@ -247,7 +259,42 @@ More use examples
 - Extract all conditions from IfStmt: ``IfStmt([all ElseIf([@cond,
   _]), .._])``
 
-### Tuple matching
+
+How different sequence matching keywords map to regular for-loops?
+
+.. code:: nim
+
+    # all
+    var allOk = false
+    while position < len:
+      if matchExpr(): inc position
+      else: allOk = false; break
+
+    if not allOk: # Fail match
+
+.. code:: nim
+
+    # any
+    var foundOk = false
+    while position < len:
+      if matchExpr(): foundOk = true
+      inc position
+
+    if not foundOk: # Fail match
+
+
+.. code:: nim
+
+    # until
+    var foundOk = false
+    while position < len:
+      if not matchExpr(): break
+      else: inc position
+
+    # Continue with next matches
+
+Tuple matching
+--------------
 
 Input tuple: ``(1, 2, "fa")``
 
@@ -260,7 +307,8 @@ Input tuple: ``(1, 2, "fa")``
  ``(1, 1 | 2, _)``            **Ok**
 ============================ ========== ============
 
-### Case object matching
+Case object matching
+--------------------
 
 Input AST
 
@@ -285,7 +333,8 @@ Input AST
 - ``ForStmt([_, _, (len: in {1 .. 10})])`` between one to ten
   statements in the for loop body
 
-### KV-pairs matching
+KV-pairs matching
+-----------------
 
 Input json string
 
@@ -305,42 +354,45 @@ Input json string
 
 - Get input ``["menu"]["file"]`` from node and
 
-  .. code:: nim
-      case inj:
-        of {"menu" : {"file": @file is JString()}}:
-          # ...
-        else:
-          raiseAssert("Expected [menu][file] as string, but found " & $inj)
+.. code:: nim
+    case inj:
+      of {"menu" : {"file": @file is JString()}}:
+        # ...
+      else:
+        raiseAssert("Expected [menu][file] as string, but found " & $inj)
 
-### Option matching
+Option matching
+---------------
 
 ``Some(@x)`` and ``None()`` is a special case that will be rewritten into
 ``(isSome: true, get: @x)`` and ``(isNone: true)`` respectively. This is
 made to allow better integration with optional types.  [9]_ .
 
-## Tree construction
+Tree construction
+=================
 
 ``makeTree`` provides 'reversed' implementation of pattern matching,
 which allows to *construct* tree from pattern, using variables.
 Example of use
 
-  .. code:: nim
-      type
-        HtmlNodeKind = enum
-          htmlBase = "base"
-          htmlHead = "head"
-          htmlLink = "link"
+.. code:: nim
 
-        HtmlNode = object
-          kind*: HtmlNodeKind
-          text*: string
-          subn*: seq[HtmlNode]
+    type
+      HtmlNodeKind = enum
+        htmlBase = "base"
+        htmlHead = "head"
+        htmlLink = "link"
 
-      func add(n: var HtmlNode, s: HtmlNode) = n.subn.add s
+      HtmlNode = object
+        kind*: HtmlNodeKind
+        text*: string
+        subn*: seq[HtmlNode]
 
-      discard makeTree(HtmlNode):
-        base:
-          link(text: "hello")
+    func add(n: var HtmlNode, s: HtmlNode) = n.subn.add s
+
+    discard makeTree(HtmlNode):
+      base:
+        link(text: "hello")
 
 In order to construct tree, ``kind=`` and ``add`` have to be defined.
 Internally DSL just creats resulting object, sets ``kind=`` and then
