@@ -233,7 +233,7 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
   kind.assertKind({nnkIdent})
   let str = kind.toStrLit().nodeStr().addPrefix(pref)
   let kind = ident(str)
-  if str.dropPrefix(pref) notin names:
+  if not names.anyIt(eqIdent(it.addPrefix(pref), str)):
     error("Invalid kind name - " & kind.toStrLit().strVal(), kind)
 
   result = nnkInfix.newTree(ident "==", head, kind)
@@ -1643,8 +1643,12 @@ func makeSeqMatch(
               "` has .len of " & $(`getLen`) & "."
           )
 
+  let tmpExpr = path.toAccs(mainExpr)
   result = quote do:
     `comment`
+    when not compiles(((discard `tmpExpr`.len()))):
+      static:
+        error " no `len` defined for " & $typeof(`tmpExpr`)
     var `matched` = false
     block `failBlock`:
       var `posid` = 0 ## Start seq match
@@ -1743,7 +1747,8 @@ func makeMatchExpr(
       if m.kindCall.getSome(kc):
         if m.isRefKind:
           conds.add newCall(ident "of", path.toAccs(mainExpr), kc)
-          refCast.add AccsElem(inStruct: kObject, fld: kc.repr)
+          refCast.add AccsElem(
+            inStruct: kObject, fld: kc.repr)
         else:
           conds.add newCall(ident "hasKind", path.toAccs(mainExpr), kc)
 
@@ -1868,6 +1873,7 @@ func toNode(
   mainExpr: string): NimNode =
   var exprNew = nnkStmtList.newTree()
   var hasOption: bool = false
+  var hasSequence: bool = false
   for name, spec in vtable:
     let vname = ident(name)
     var typeExpr = toAccs(spec.typePath, mainExpr)
@@ -1876,8 +1882,18 @@ func toNode(
 
     case spec.varKind:
       of vkSequence:
+
+        block:
+          let varExpr = toAccs(spec.typePath[0 .. ^2], mainExpr)
+          exprNew.add quote do:
+            when not compiles(((discard `typeExpr`))):
+              static: error $typeof(`varExpr`) &
+                " does not support array indexing - no [] operator " &
+                "defined"
+
         exprNew.add quote do:
           var `vname`: seq[typeof(`typeExpr`)]
+
 
       of vkOption, vkAlt:
         hasOption = true
@@ -1894,7 +1910,8 @@ func toNode(
           var `wasSet`: bool = false
           var `vname`: typeof(`typeExpr`)
 
-  return quote do:
+
+  result = quote do:
     `exprNew`
     `expr`
 
@@ -1947,6 +1964,8 @@ macro match*(n: untyped): untyped =
       let pos {.inject.}: int = 0
       `matchcase`
 
+  # echo result.repr
+
 macro assertMatch*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and raise `MatchError` on
   ## failure. For DSL syntax details see start of the document.
@@ -1989,7 +2008,11 @@ macro matches*(input, pattern: untyped): untyped =
     `matched`
 
 func buildTreeMaker(
-  prefix: string, resType: NimNode, match: Match): NimNode =
+  prefix: string,
+  resType: NimNode,
+  match: Match,
+  newRes: bool = true,
+  tmp = genSym(nskVar, "res")): NimNode =
 
   case match.kind:
     of kItem:
@@ -2050,26 +2073,42 @@ func buildTreeMaker(
           tmp, ident name
         ), buildTreeMaker(prefix, resType, patt))
 
-      if match.seqMatches.isSome():
-        for sub in match.seqMatches.get().seqElems:
-          res.add newCall("add", tmp, buildTreeMaker(
-            prefix, resType, sub.patt))
+      if match.seqMatches.getSome(seqm):
+        res.add buildTreeMaker(prefix, resType, seqm, false, tmp)
+      # if match.seqMatches.isSome():
+      #   for sub in match.seqMatches.get().seqElems:
+      #     res.add newCall("add", tmp, buildTreeMaker(
+      #       prefix, resType, sub.patt))
 
       res.add tmp
 
       result = newBlockStmt(res)
     of kSeq:
       var res = newStmtList()
-      let tmp = genSym(nskVar, "res")
-      res.add quote do:
-        var `tmp`: seq[`resType`]
+      if newRes:
+        res.add quote do:
+          var `tmp`: seq[`resType`]
 
       for sub in match.seqElems:
-        res.add newCall("add", tmp, buildTreeMaker(
-          prefix, resType, sub.patt))
+        # debugecho sub.kind, " ", sub.decl.repr
+        case sub.kind:
+          of lkAll:
+            if sub.bindVar.getSome(bindv):
+              res.add quote do:
+                for elem in `bindv`:
+                  `tmp`.add elem
+            else:
+              error("`all` for pattern construction must have varaible",
+                    sub.decl)
+          of lkPos:
+            res.add newCall("add", tmp, buildTreeMaker(
+              prefix, resType, sub.patt))
+          else:
+            raiseAssert("#[ IMPLEMENT ]#")
 
-      res.add quote do:
-        `tmp`
+      if newRes:
+        res.add quote do:
+          `tmp`
 
       result = newBlockStmt(res)
     else:
@@ -2115,6 +2154,8 @@ macro makeTreeImpl(node, kind: typed, patt: untyped): untyped =
      patt[0].kind notin {nnkBracket}
     :
     result = nnkBracketExpr.newTree(result, newLit(0))
+
+  # echo result.repr
 
 template makeTree*(T: typed, patt: untyped): untyped =
   ## Construct tree from pattern matching expression. For example of

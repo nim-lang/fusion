@@ -746,19 +746,25 @@ suite "Matching":
 
     testImpl()
 
+  type
+    HtmlNodeKind = enum
+      htmlBase = "base"
+      htmlHead = "head"
+      htmlLink = "link"
+
+    HtmlNode = object
+      kind*: HtmlNodeKind
+      text*: string
+      subn*: seq[HtmlNode]
+
+  func add(n: var HtmlNode, s: HtmlNode) = n.subn.add s
+  func `[]`(node: HtmlNode, idx: int): HtmlNode =
+    node.subn[idx]
+
+  func len(n: HtmlNode): int = n.subn.len
+
+
   test "Tree builder custom type":
-    type
-      HtmlNodeKind = enum
-        htmlBase = "base"
-        htmlHead = "head"
-        htmlLink = "link"
-
-      HtmlNode = object
-        kind*: HtmlNodeKind
-        text*: string
-        subn*: seq[HtmlNode]
-
-    func add(n: var HtmlNode, s: HtmlNode) = n.subn.add s
 
     discard makeTree(HtmlNode, Base())
     discard makeTree(HtmlNode, base())
@@ -797,6 +803,25 @@ suite "Matching":
     discard wrapper2:
       base:
         link()
+
+
+  test "Tree construction sequence operators":
+    block:
+      let inTree = makeTree(HtmlNode):
+        base:
+          link(text: "link1")
+          link(text: "link2")
+
+      inTree.assertMatch:
+        base:
+          all @elems
+
+      let inTree3 = makeTree(HtmlNode):
+        base:
+          all @elems
+
+      assertEq inTree3, inTree
+
 
 
   test "withItCall":
