@@ -1,4 +1,4 @@
-import std/[strutils, sequtils, strformat,
+import std/[strutils, sequtils, strformat, sugar,
             macros, options, tables, json, algorithm]
 
 import fusion/matching
@@ -36,7 +36,12 @@ suite "Matching":
     macro main(): untyped =
       template t(body: untyped): untyped =
         block:
-          parseMatchExpr: quote: body
+          parseMatchExpr(
+            n = (
+              quote do:
+                body
+            )
+          )
 
       assert (t true).kind == kItem
 
@@ -461,6 +466,55 @@ suite "Matching":
       assert nice == 69
 
 
+  when (1, 2, 0) <= (NimMajor, NimMinor, NimPatch):
+    test "min":
+      macro min1(args: varargs[untyped]): untyped =
+        let tmp = genSym(nskVar, "minResult")
+        result = makeTree(NimNode):
+          StmtList:
+            VarSection:
+              IdentDefs:
+                == tmp
+                Empty()
+                == args[0]
+
+            IfStmt:
+              == (block:
+                collect(newSeq):
+                  for arg in args[1 .. ^1]:
+                    makeTree(NimNode):
+                      ElifBranch:
+                        Infix[== ident("<"), @arg, @tmp]
+                        Asgn [@tmp,          @arg]
+              )
+
+            == tmp
+
+      macro min2(args: varargs[untyped]): untyped =
+        let tmp = genSym(nskVar, "minResult")
+        result = makeTree(NimNode):
+          StmtList:
+            VarSection:
+              IdentDefs:
+                ==tmp
+                Empty()
+                ==args[0]
+
+            IfStmt:
+              all == (
+                block:
+                  collect(newSeq):
+                    for i in 1 ..< args.len:
+                      makeTree(NimNode):
+                        ElifBranch:
+                          Infix[== ident("<"), ==args[i], ==tmp]
+                          Asgn [== tmp,        ==args[i]]
+              )
+
+            == tmp
+
+      assert min1("a", "b", "c", "d") == "a"
+      assert min2("a", "b", "c", "d") == "a"
 
   test "Alternative":
     assertEq "matched", case (a: 12, c: 90):
@@ -1313,6 +1367,9 @@ suite "Gara tests":
       [until @vals == 5, .._] := @[2, 3, 4, 5]
       assert vals == @[2, 3, 4]
 
+
+    block:
+      [@a, @b] := @[2, 3]
 
 
   test "Sequence subpattern":

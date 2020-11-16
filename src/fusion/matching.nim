@@ -766,7 +766,7 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
     if elem.kind == nnkPrefix and elem[0].eqIdent(".."):
       elem[1].assertKind({nnkIdent})
       result.add SeqStructure(kind: lkTrail, patt: Match(
-        declNode: elem
+        declNode: elem,
       ), decl: elem)
     elif
       # `[0 .. 3 @head is Jstring()]`
@@ -835,6 +835,8 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
 
       # debugecho elem.treeRepr()
     else:
+      # debugecho elem.idxTreeRepr()
+      # debugecho elem.repr
       func toKwd(node: NimNode): SeqKeyword =
         for (key, val) in {
           "any" : lkAny,
@@ -867,7 +869,11 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
         match = parseMatchExpr(elem)
         bindv = match.bindVar
 
-      match.bindVar = none(NimNode)
+      # debugecho "Removing bound var from match"
+      # debugecho match.declNode.repr
+      if opKind != lkPos:
+        match.bindVar = none(NimNode)
+
       match.isOptional = opKind in {lkOpt}
 
       var it = SeqStructure(bindVar: bindv, kind: opKind, decl: topElem)
@@ -1046,8 +1052,12 @@ func parseMatchExpr*(n: NimNode): Match =
         # debugecho "Found var ", n.repr
         n[1].assertKind({nnkIdent})
         result = Match(
-          kind: kItem, itemMatch: imkInfixEq, isPlaceholder: true,
-          bindVar: some(n[1]), declNode: n)
+          kind: kItem,
+          itemMatch: imkInfixEq,
+          isPlaceholder: true,
+          bindVar: some(n[1]),
+          declNode: n
+        )
 
       else: # Other prefix expression, for example `== 12`
         result = Match(
@@ -1082,6 +1092,7 @@ func parseMatchExpr*(n: NimNode): Match =
       )
     elif n.kind in {nnkObjConstr, nnkCall, nnkCommand} and
          not n[0].eqIdent("opt"):
+      # debugecho n.idxTreeRepr()
       if n.isBrokenBracket():
         # Broken bracket expression that was written as `A [1]` and
         #subsequently parsed into
@@ -2023,7 +2034,9 @@ func buildTreeMaker(
           else:
             error(
               "Only variable placeholders allowed for pattern " &
-                "construction, but expression is a `_` placeholder",
+                "construction, but expression is a `_` placeholder - " &
+                match.declNode.toStrLit().strVal().codeFmt()
+              ,
               match.declNode
             )
         else:
@@ -2097,6 +2110,15 @@ func buildTreeMaker(
               res.add quote do:
                 for elem in `bindv`:
                   `tmp`.add elem
+            elif sub.patt.kind == kItem and
+                 sub.patt.itemMatch == imkInfixEq and
+                 sub.patt.infix == "==":
+              let body = sub.patt.rhsNode
+              res.add quote do:
+                for elem in `body`:
+                  `tmp`.add elem
+
+              # debugecho body.repr
             else:
               error("`all` for pattern construction must have varaible",
                     sub.decl)
@@ -2137,12 +2159,15 @@ func getTypeIdent(node: NimNode): NimNode =
 
 macro makeTreeImpl(node, kind: typed, patt: untyped): untyped =
   var inpatt = patt
+  # debugecho "\e[41m*====\e[49m  093q45ih4qw33  \e[41m=====*\e[49m"
+  # debugecho "patt: ", patt.repr
   if patt.kind in {nnkStmtList}:
     if patt.len > 1:
       inpatt = newStmtList(patt.toSeq())
     else:
       inpatt = patt[0]
 
+  # debugecho "inpatt: ", inpatt.repr
   let (pref, _) = kind.getKindNames()
 
   var match = inpatt.parseMatchExpr()
@@ -2170,7 +2195,6 @@ template makeTree*(T: typed, patt: untyped): untyped =
 
     when not compiles((var t: T; t.add t)):
       static: error "No `add` defined for " & $typeof(tmp)
-
 
     makeTreeImpl(tmp, tmp.kind, patt)
 

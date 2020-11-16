@@ -27,27 +27,26 @@ Quick reference
  Example                       Explanation
 ============================= =======================================================
  ``(fld: @val)``               Field ``fld`` into variable ``@val``
- ``Kind()``                    Object with `.kind == Kind()` [1]_
+ ``Kind()``                    Object with ``.kind == Kind()`` [1]_
  ``of Derived()``              Match object of derived type
  ``(@val, _)``                 First element in tuple in ``@val``
  ``(@val, @val)``              Tuple with two equal elements
  ``{"key" : @val}``            Table with "key", capture into ``@val`` [2]_
  ``[_, _]``                    Sequence with ``len == 2`` [3]_
  ``[_, .._]``                  At least one element
- ``[_, all @val]``             All elements starting from index `1`
+ ``[_, all @val]``             All elements starting from index ``1``
  ``[until @val == "2", .._]``  Capture all elements *until* first ``"2"`` [4]_
  ``[until @val == 1, @val]``   All *including* first match
- ``[all @val == 12]``          All elements are `== 12`, capture into ``@val``
- ``[some @val == 12]``         At least *one* is `== 12`, capture all matching into ``@val``
+ ``[all @val == 12]``          All elements are ``== 12``, capture into ``@val``
+ ``[some @val == 12]``         At least *one* is ``== 12``, capture all matching into ``@val``
 ============================= =======================================================
 
-- [1] Kind fields can use shorted enum names - both `nnkStrLit` and
-  `StrLit` will work (prefix `nnk` can be omitted)
+- [1] Kind fields can use shorted enum names - both ``nnkStrLit`` and
+  ``StrLit`` will work (prefix ``nnk`` can be omitted)
 - [2] Or any object with ``contains`` and ``[]`` defined (for necessary types)
 - [3] Or any object with ``len`` proc or field
-- [4] Note that sequence must mathc *fully* and it is necessary to
-  have `.._` at the end in order to accept sequences of arbitrary
-  length.
+- [4] Note that sequence must mathc *fully* and it is necessary to have
+  ``.._`` at the end in order to accept sequences of arbitrary length.
 
 Supported match elements
 ========================
@@ -69,21 +68,21 @@ Element access
 ==============
 
 To determine whether or not particular object matches pattern *access
-path* is generated - sequence of fields and `[]` operators that you
-would normally write by hand, like `fld.subfield["value"].len`. Due to
+path* is generated - sequence of fields and ``[]`` operators that you
+would normally write by hand, like ``fld.subfield["value"].len``. Due to
 support for `method call syntax
 <https://nim-lang.org/docs/manual.html#procedures-method-call-syntax>`_
 there is no difference between field acccess and proc call, so things
 like `(len: < 12)` also work as expected.
 
-``(fld: "3")`` Match field ``fld`` against ``"0"``. Generated access
+``(fld: "3")`` Match field ``fld`` against ``"3"``. Generated access
     is ``expr.fld == "3"``.
 
 ``["2"]`` Match first element of expression agains patt. Generate
-    acess ``expr[pos] == "2"``, where `pos` is an integer index for
+    acess ``expr[pos] == "2"``, where ``pos`` is an integer index for
     current position in sequence.
 
-``("2")`` For each field generate access using `[1]`
+``("2")`` For each field generate access using ``[1]``
 
 ``{"key": "val"}`` First check ``"key" in expr`` and then
     ``expr["key"] == "val"``. No exception on missing keys, just fail
@@ -99,9 +98,10 @@ sequence length.
 Checks
 ======
 
-- Any operator with exception of ``is`` is considered final comparison
-  and just pasted as-is into generated pattern match code. E.g. ``fld:
-  in {2,3,4}`` will generate ``expr.fld in {2,3,4}``
+- Any operators with exception of ``is`` (subpattern) and ``of`` (derived
+  object subpattern) is considered final comparison and just pasted as-is
+  into generated pattern match code. E.g. ``fld: in {2,3,4}`` will generate
+  ``expr.fld in {2,3,4}``
 
 - ``(fld: is Patt())`` - check if ``expr.fld`` matches pattern ``Patt()``
 
@@ -332,6 +332,23 @@ Input AST
   satisfies predicate ``isTuple()``. Bind match to ``a``
 - ``ForStmt([_, _, (len: in {1 .. 10})])`` between one to ten
   statements in the for loop body
+
+Ref object matching
+-------------------
+
+Matching for ref objects is not really different from regular one - the
+only difference is that you need to use ``of`` operator explicitly. For
+example, if you want to do ``case`` match for different object kinds - and
+
+.. code:: nim
+
+    case Obj():
+      of of StmtList(subfield: @capture):
+        # do something with `capture`
+
+You can use ``of`` as prefix operator - things like ``{12 : of
+SubRoot(fld1: @fld1)}``, or  ``[any of Derived()]``.
+
 
 KV-pairs matching
 -----------------
