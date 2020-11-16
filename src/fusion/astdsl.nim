@@ -1,7 +1,7 @@
 import macros, sets, strutils
 
 const # normalized
-  StmtContext = ["[]=", "inc", "echo", "dec", "!", "expectkind",
+  StmtContext = ["[]=", "add", "inc", "echo", "dec", "!", "expectkind",
                  "expectminlen", "expectlen", "expectident",
                  "error", "warning", "hint"]
   SpecialAttrs = ["intval", "floatval", "strval"]
