@@ -82,14 +82,48 @@ proc enumMapImpl(valKind: string, body: NimNode): NimNode =
   let body2 = copyNimTree(body)
   let isExported = body[0][0].kind == nnkPostfix and body[0][0][0].strVal == "*"
   let name = body[0][0].lastSon
-
-  let v = nnkBracket.newTree()
   let elems = body2[0][2]
+  var v = nnkBracket.newTree()
+  let elemsTmp = genSym(nskVar, "elemsTmp")
+  var elemFirst: NimNode
+  var valBlock = newStmtList()
+  valBlock.add quote do: discard
+  var useLitteralElems = true
+  var current: NimNode
   for i, ai in elems:
-    if i>0:
-      elems[i] = ai[0]
-      v.add newTree(nnkExprColonExpr, elems[i], ai[^1])
+    let index = i-1
+    if index>=0:
+      case ai.kind
+      of nnkEnumFieldDef:
+        current = ai[0]
+        elems[i] = current
+        let val = ai[^1]
+        if index == 0:
+          elemFirst = val
+        v.add newTree(nnkExprColonExpr, elems[i], val)
+        valBlock.add quote do:
+          `elemsTmp`[`current`] = `val`
+      else:
+        useLitteralElems = false
+        if index == 0:
+          elemFirst = 0.newLit
+          valBlock.add quote do:
+            `elemsTmp`[`ai`] = `elemFirst`
+        else:
+          valBlock.add quote do:
+            `elemsTmp`[`ai`] = `elemsTmp`[`current`] + 1
+        current = ai
+        elems[i] = current
       # this won't work: v.add newCommentStmtNode "..."
+
+  if not useLitteralElems:
+    valBlock[0] = quote do:
+      var `elemsTmp`: array[`name`, type(`elemFirst`)]
+    v = quote do:
+      block:
+        `valBlock`
+        `elemsTmp`
+
   let vals = ident"vals".maybeExport(isExported)
   let val = ident"val".maybeExport(isExported)
 

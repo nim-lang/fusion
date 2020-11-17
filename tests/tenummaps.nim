@@ -1,5 +1,7 @@
 import fusion/enummaps
-from sequtils import toSeq
+from sequtils import toSeq, mapIt
+
+template toDebug(A): untyped = toSeq(A).mapIt((it, it.ord, it.val))
 
 template isDefault[T](a: T): bool = a == default(type(a))
 
@@ -131,6 +133,26 @@ block:
   doAssert Foo.byVal("foo3") == f3
   doAssert Foo.byVal("nonexistant").isDefault
   doAssert Foo.byVal("nonexistant2").isDefault
+
+block: # enum k0=1, k2, k3=5
+  proc fn1() =
+    enumMap:
+      type A = enum k0 = 3, k1, k2, k3 = 8
+    doAssert A.toDebug == @[(k0, 0, 3), (k1, 1, 4), (k2, 2, 5), (k3, 3, 8)]
+
+  proc fn2() = # starting with: k0, k1=3
+    enumMap:
+      type A = enum k0, k1 = 3, k2, k3 = 8
+    doAssert A.toDebug == @[(k0, 0, 0), (k1, 1, 3), (k2, 2, 4), (k3, 3, 8)]
+
+  proc fn3() = # more complex example using CT evaluation
+    const s = -3
+    enumMap:
+      type A = enum k0 = s, k1, k2, k3=s*s, k4
+    doAssert A.toDebug == @[(k0, 0, -3), (k1, 1, -2), (k2, 2, -1), (k3, 3, 9), (k4, 4, 10)]
+  fn1()
+  fn2()
+  fn3()
 
 block:
   # example: cmdline application; this minimizes boilerplate and eliminates
