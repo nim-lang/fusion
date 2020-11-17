@@ -33,8 +33,6 @@ jobs:
             builder: windows-2019
     name: '${{ matrix.target.os }}-${{ matrix.target.cpu }} (${{ matrix.branch }})'
     runs-on: ${{ matrix.builder }}
-    env:
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
       - name: Checkout fusion
         uses: actions/checkout@v2
