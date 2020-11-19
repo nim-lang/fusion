@@ -9,7 +9,7 @@ const # normalized
 var
   allnimnodes {.compileTime.}: HashSet[string]
 
-proc isNimNode*(x: string): bool {.compileTime.} =
+proc isNimNode(x: string): bool {.compileTime.} =
   allnimnodes.contains(x)
 
 proc addNodes() {.compileTime.} =
@@ -97,18 +97,18 @@ macro buildAst*(node, children: untyped): NimNode =
       result = buildAst(stmtList):
         call(bindSym"echo", newLit"Hello world")
 
-    macro min(args: varargs[untyped]): untyped =
-      result = buildAst(stmtListExpr):
-        let tmp = genSym(nskVar, "minResult")
-        expectMinLen(args, 1)
-        newVarStmt(tmp, args[0])
-        ifStmt:
-          for i in 1..<args.len:
-            elifBranch(infix(ident"<", args[i], tmp)):
-              asgn(tmp, args[i])
-        tmp
+    macro check(body: untyped): untyped =
+      result = buildAst stmtList:
+        expectKind body, nnkStmtList
+        for b in body:
+          expectKind b, nnkPar
+          expectLen b, 2
+          call(bindSym"assert"):
+            infix(bindSym"==", b[0], b[1]))
 
-    assert min("a", "b", "c", "d") == "a"
+    check:
+      (min("f", "i"), "f")
+      (max("a", "l"), "l")
 
   let kids = newProc(procType=nnkDo, body=children)
   expectKind kids, nnkDo
