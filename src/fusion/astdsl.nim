@@ -104,7 +104,7 @@ macro buildAst*(node, children: untyped): NimNode =
           expectKind b, nnkPar
           expectLen b, 2
           call(bindSym"assert"):
-            infix(bindSym"==", b[0], b[1]))
+            infix(bindSym"==", b[0], b[1])
 
     check:
       (min("f", "i"), "f")
