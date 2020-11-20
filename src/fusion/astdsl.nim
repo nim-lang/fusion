@@ -102,24 +102,46 @@ macro buildAst*(node, children: untyped): NimNode =
   ##
   ## Also see ``dumpTree``, ``dumpAstGen`` and ``dumpLisp``.
   runnableExamples:
-    import macros
+    import macros, strutils, std/enumerate
 
-    macro hello(): untyped =
-      result = buildAst(stmtList):
-        call(bindSym"echo", newLit"Hello world")
+    macro eval(cmdName: untyped,
+        operations: varargs[untyped]): untyped =
+      var enumFields: seq[NimNode]
+      let caseStmt = buildAst(caseStmt(cmdName)):
+        for i, n in enumerate(operations):
+          if n.kind == nnkOfBranch:
+            enumFields.add nnkEnumFieldDef.newTree(
+                genSym(nskEnumField, "ck"), n[0])
+            ofBranch(enumFields[i][1]):
+              n[1]
+          else:
+            expectKind(n, nnkElse)
+            `else`(n[0])
+      result = newStmtList(newEnum(ident"CmdKind",
+          enumFields, false, false), caseStmt)
 
-    macro min(args: varargs[untyped]): untyped =
-      result = buildAst(stmtListExpr):
-        let tmp = genSym(nskVar, "minResult")
-        expectMinLen(args, 1)
-        newVarStmt(tmp, args[0])
-        ifStmt:
-          for i in 1..<args.len:
-            elifBranch(infix(ident"<", args[i], tmp)):
-              asgn(tmp, args[i])
-        tmp
+    template execute(stack, operation) =
+      let
+        a {.inject.} = stack.pop
+        b {.inject.} = stack.pop
+      stack.add(operation)
 
-    assert min("a", "b", "c", "d") == "a"
+    proc calc =
+      var stack: seq[float]
+      while true:
+        for command in @["3", "5", "+", "7", "2", "-", "*", "exit"]:
+          eval(command):
+          of "+":
+            stack.execute(a + b)
+          of "-":
+            stack.execute(b - a)
+          of "*":
+            stack.execute(a * b)
+          of "exit":
+            assert stack.pop == 40.0
+            return
+          else:
+            stack.add parseFloat(command)
 
   let kids = newProc(procType=nnkDo, body=children)
   expectKind kids, nnkDo
