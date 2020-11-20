@@ -9,7 +9,7 @@ const # normalized
 var
   allnimnodes {.compileTime.}: HashSet[string]
 
-proc isNimNode*(x: string): bool {.compileTime.} =
+proc isNimNode(x: string): bool {.compileTime.} =
   allnimnodes.contains(x)
 
 proc addNodes() {.compileTime.} =
@@ -19,6 +19,17 @@ proc addNodes() {.compileTime.} =
 
 static:
   addNodes()
+
+proc getName(n: NimNode): string =
+  case n.kind
+  of nnkStrLit..nnkTripleStrLit, nnkIdent, nnkSym:
+    result = n.strVal
+  of nnkDotExpr:
+    result = getName(n[1])
+  of nnkAccQuoted, nnkOpenSymChoice, nnkClosedSymChoice:
+    result = getName(n[0])
+  else:
+    expectKind(n, nnkIdent)
 
 proc newDotAsgn(tmp: NimNode, key: string, x: NimNode): NimNode =
   result = newTree(nnkAsgn, newDotExpr(tmp, newIdentNode key), x)
@@ -53,7 +64,7 @@ proc tcall(n, tmpContext: NimNode): NimNode =
   of nnkProcDef, nnkVarSection, nnkLetSection, nnkConstSection:
     result = n
   of nnkCallKinds:
-    let op = normalize($n[0])
+    let op = normalize(getName(n[0]))
     if isNimNode(op):
       let tmp = genSym(nskLet, "tmp")
       let call = newCall(bindSym"newNimNode", ident("nnk" & op))
@@ -63,7 +74,7 @@ proc tcall(n, tmpContext: NimNode): NimNode =
       for i in 1 ..< n.len:
         let x = n[i]
         if x.kind == nnkExprEqExpr:
-          let key = normalize($x[0])
+          let key = normalize(getName(x[0]))
           if key in SpecialAttrs:
             result.add newDotAsgn(tmp, key, x[1])
           else: error("Unsupported setter: " & key, x)
