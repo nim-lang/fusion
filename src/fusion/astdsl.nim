@@ -102,13 +102,13 @@ macro buildAst*(node, children: untyped): NimNode =
         let tmp = genSym(nskVar, "minResult")
         expectMinLen(args, 1)
         newVarStmt(tmp, args[0])
-        ifStmt:
-          for i in 1..<args.len:
+        for i in 1..<args.len:
+          ifStmt:
             elifBranch(infix(ident"<", args[i], tmp)):
               asgn(tmp, args[i])
         tmp
 
-    assert min("a", "b", "c", "d") == "a"
+    assert min("d", "c", "b", "a") == "a"
 
   let kids = newProc(procType=nnkDo, body=children)
   expectKind kids, nnkDo
