@@ -50,10 +50,41 @@ func fromFilePermissions*(perm: set[FilePermission]): uint =
   if fpOthersRead in perm:  inc result, 0o004
 
 
+func toFilePermissions*(perm: openArray[char]): set[FilePermission] =
+  ## Convenience func to convert from Unix like symbolic file permission to `set[FilePermission]`.
+  runnableExamples:
+    import os
+    doAssert toFilePermissions("rwx------") == {fpUserExec, fpUserRead, fpUserWrite}
+    doAssert toFilePermissions("---rwx---") == {fpGroupExec, fpGroupRead, fpGroupWrite}
+    doAssert toFilePermissions("------rwx") == {fpOthersExec, fpOthersRead, fpOthersWrite}
+    doAssert toFilePermissions("rwxrwxrwx") == {fpUserExec, fpUserWrite, fpUserRead, fpGroupExec, fpGroupWrite, fpGroupRead, fpOthersExec, fpOthersWrite, fpOthersRead}
+    doAssert toFilePermissions("---------") == {}
+    doAssert "rwxrwxrwx".toFilePermissions.fromFilePermissions == 0o777
+    doAssert toFilePermissions(['r', 'w', '-',
+                                'r', '-', '-',
+                                'r', '-', '-']) == {fpUserWrite, fpUserRead, fpGroupRead, fpOthersRead}
+  doAssert perm.len == 9
+  if perm[2] == 'x': result.incl fpUserExec   # User
+  if perm[1] == 'w': result.incl fpUserWrite
+  if perm[0] == 'r': result.incl fpUserRead
+  if perm[5] == 'x': result.incl fpGroupExec  # Group
+  if perm[4] == 'w': result.incl fpGroupWrite
+  if perm[3] == 'r': result.incl fpGroupRead
+  if perm[8] == 'x': result.incl fpOthersExec # Others
+  if perm[7] == 'w': result.incl fpOthersWrite
+  if perm[6] == 'r': result.incl fpOthersRead
+
+
 proc chmod*(path: string; permissions: Natural) {.inline.} =
   ## Convenience proc for `os.setFilePermissions("file.ext", filepermissions.toFilePermissions(0o666))`
   ## to change file permissions using Unix like octal file permission.
   ##
   ## See also:
   ## * `setFilePermissions <#setFilePermissions,string,set[FilePermission]>`_
+  setFilePermissions(path, toFilePermissions(permissions))
+
+
+proc chmod*(path: string; permissions: openArray[char]) {.inline.} =
+  ## Convenience proc for `os.setFilePermissions("file.ext", filepermissions.toFilePermissions("rwxrw-r--"))`
+  ## to change file permissions using Unix like symbolic file permission.
   setFilePermissions(path, toFilePermissions(permissions))
