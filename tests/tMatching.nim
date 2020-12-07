@@ -7,17 +7,47 @@ import fusion/matching
 import unittest
 
 template assertEq(a, b: untyped): untyped =
-  if a != b:
-    echo a
-    echo b
-    raiseAssert("Comparison failed in " & $instantiationInfo())
+  block:
+    let
+      aval = a
+      bval = b
 
-template fail(str: string): untyped =
-  echo "Fail on ", instantiationInfo(), ": ", str
-  fail()
+    if aval != bval:
+      raiseAssert("Comparison failed in " &
+        $instantiationInfo() &
+        " [a: " & $aval & "] [b: " & $bval & "] ")
+
+template testFail(str: string = ""): untyped =
+  doAssert false #, "Fail on " & $instantiationInfo() & ": " & str
+
+template multitest(name: string, body: untyped): untyped =
+  test name:
+    block:
+      body
+
+    block:
+      static:
+        body
+
+template multitestSince(
+  name: string,
+  minStaticVersion: static[(int,int, int)],
+  body: untyped): untyped =
+
+  when (NimMajor, NimMinor, NimPatch) >= minStaticVersion:
+    multitest(name, body)
+  else:
+    test name:
+      body
+
+
+template staticRepeat(body: untyped): untyped =
+  body
+  static:
+    body
 
 suite "Matching":
-  test "Has kind for anything":
+  multitest "Has kind for anything":
     type
       En1 = enum
         eN11
@@ -32,7 +62,7 @@ suite "Matching":
 
     let val = Obj1()
 
-  test "Pattern parser tests":
+  multitest "Pattern parser tests":
     macro main(): untyped =
       template t(body: untyped): untyped =
         block:
@@ -132,11 +162,6 @@ suite "Matching":
 
     main()
 
-    # block: [0 .. 2 @a is 12] := [12, 12, 12]; assert a == @[12, 12, 12]
-    # block:
-    #   assert not ([0 .. 2 is 12] ?= [1, 2, 3])
-    #   assert not ([(0 .. 2) is 12] ?= [1, 2, 3])
-
   test "Pattern parser broken brackets":
     block: JArray[@a, @b] := %*[1, 3]
     block: (JArray [@a, @b]) := %*[1, 3]
@@ -168,7 +193,7 @@ suite "Matching":
             :
             testTypes()
           else:
-            fail($val)
+            testFail($val)
 
         block:
           val.assertMatch(
@@ -207,17 +232,19 @@ suite "Matching":
           testTypes()
 
 
-  test "Simple uses":
-    assertEq 12, case (12, 24):
-                   of (_, 24): expr[1] div 2
-                   else: raiseAssert("#[ not possible ]#")
+  multitest "Simple uses":
+    case (12, 24):
+      of (_, 24):
+        discard
+      else:
+        raiseAssert("#[ not possible ]#")
 
 
     case [1]:
       of [_]: discard
 
     case [1,2,3,4]:
-      of [_]: fail()
+      of [_]: testfail()
       of [_, 2, 3, _]:
         discard
 
@@ -225,7 +252,7 @@ suite "Matching":
       of (3, 4), (1, 2):
         discard
       else:
-        fail()
+        testFail()
 
 
     assertEq "hehe", case (true, false):
@@ -239,11 +266,20 @@ suite "Matching":
            else: "default value"
 
     assert (a: 22, b: 90) ?= (a: 22, b: 90)
-    assertEq "default fallback", case (a: 22, b: 90):
-           of (b: 91): "900999"
-           elif "some other" == "check": "rly?"
-           elif true: "default fallback"
-           else: raiseAssert("#[ not possible ! ]#")
+    block:
+      var res: string
+
+      case (a: 22, b: 90):
+        of (b: 91):
+          res = "900999"
+        elif "some other" == "check":
+          res = "rly?"
+        elif true:
+          res = "default fallback"
+        else:
+          raiseAssert("#[ not possible ! ]#")
+
+      assertEq res, "default fallback"
 
     assertEq "000", case %{"hello" : %"world"}:
            of {"999": _}: "nice"
@@ -262,7 +298,7 @@ suite "Matching":
                   of (true, true) | (false, false): 3
                   else: 2
 
-  test "Len test":
+  multitest "Len test":
     macro e(body: untyped): untyped =
       case body:
         of Bracket([Bracket(len: in {1 .. 3})]):
@@ -277,7 +313,7 @@ suite "Matching":
     discard e([3, 4])
 
 
-  test "Regular objects":
+  multitest "Regular objects":
     type
       A1 = object
         f1: int
@@ -286,13 +322,13 @@ suite "Matching":
       of (f1: 12):
         discard "> 10"
       else:
-        fail()
+        testFail()
 
     assertEq 10, case A1(f1: 90):
                    of (f1: 20): 80
                    else: 10
 
-  test "Private fields":
+  multitest "Private fields":
     type
       A2 = object
         hidden: float
@@ -303,11 +339,11 @@ suite "Matching":
       of (public: _):
         discard
       else:
-        fail()
+        testFail()
 
     case A2(hidden: 8.0):
       of (public: "8.0"): discard
-      else: fail()
+      else: testFail()
 
   type
     En2 = enum
@@ -323,41 +359,44 @@ suite "Matching":
           fl: int
 
 
-  test "Case objects":
+  multitest "Case objects":
     case Obj2():
       of EE():
         discard
-      of ZZ(): fail()
+      of ZZ():
+        testFail()
 
     case Obj2():
       of (kind: in {enEE, enZZ}): discard
-      else: fail()
+      else:
+        testFail()
 
 
     when false: # FIXME
       const eKinds = {enEE, enEE1}
       case Obj2():
         of (kind: in {enEE} + eKinds): discard
-        else: fail()
+        else:
+          testFail()
 
     case (c: (a: 12)):
       of (c: (a: _)): discard
-      else: fail()
+      else: testfail()
 
     case [(a: 12, b: 3)]:
-      of [(a: 12, b: 22)]: fail()
+      of [(a: 12, b: 22)]: testfail()
       of [(a: _, b: _)]: discard
 
     case (c: [3, 3, 4]):
       of (c: [_, _, _]): discard
-      of (c: _): fail()
+      of (c: _): testfail()
 
     case (c: [(a: [1, 3])]):
-      of (c: [(a: [_])]): fail()
+      of (c: [(a: [_])]): testfail()
       else: discard
 
     case (c: [(a: [1, 3]), (a: [1, 4])]):
-      of (c: [(a: [_]), _]): fail()
+      of (c: [(a: [_]), _]): testfail()
       else:
         discard
 
@@ -365,56 +404,57 @@ suite "Matching":
       of enEE(eee: [(kind: enZZ, fl: 12)]):
         discard
       else:
-        fail()
+        testfail()
 
     case Obj2():
       of enEE():
         discard
       of enZZ():
-        fail()
+        testfail()
       else:
-        fail()
+        testfail()
 
     case Obj2():
       of (kind: in {enEE, enEE1}):
         discard
       else:
-        fail()
+        testfail()
 
-  test "Object items":
-    func `[]`(o: Obj2, idx: int): Obj2 = o.eee[idx]
-    func len(o: Obj2): int = o.eee.len
+  func `[]`(o: Obj2, idx: int): Obj2 = o.eee[idx]
+  func len(o: Obj2): int = o.eee.len
+
+  multitest "Object items":
 
     case Obj2(kind: enEE, eee: @[Obj2(), Obj2()]):
       of [_, _]:
         discard
       else:
-        fail()
+        testfail()
 
     case Obj2(kind: enEE, eee: @[Obj2(), Obj2()]):
-      of EE(eee: [_, _, _]): fail()
+      of EE(eee: [_, _, _]): testfail()
       of EE(eee: [_, _]): discard
-      else: fail()
+      else: testfail()
 
     case Obj2(kind: enEE1, eee: @[Obj2(), Obj2()]):
       of EE([_, _]):
-        fail()
+        testfail()
       of EE1([_, _, _]):
-        fail()
+        testfail()
       of EE1([_, _]):
         discard
       else:
-        fail()
+        testfail()
 
 
 
-  test "Variable binding":
+  multitest "Variable binding":
     when false: # NOTE compilation error test
       case (1, 2):
         of ($a, $a, $a, $a):
           discard
         else:
-          fail()
+          testfail()
 
     assertEq "122", case (a: 12, b: 2):
                       of (a: @a, b: @b): $a & $b
@@ -437,7 +477,7 @@ suite "Matching":
 
     assertEq 12, tupleOpen((true, 12))
 
-  test "Infix":
+  multitest "Infix":
     macro a(): untyped  =
       case newPar(ident "1", ident "2"):
         of Par([@ident1, @ident2]):
@@ -448,7 +488,7 @@ suite "Matching":
 
     a()
 
-  test "Iflet 2":
+  multitest "Iflet 2":
     macro ifLet2(head: untyped,  body: untyped): untyped =
       case head[0]:
         of Asgn([@lhs is Ident(), @rhs]):
@@ -466,8 +506,8 @@ suite "Matching":
       assert nice == 69
 
 
-  when (1, 2, 0) <= (NimMajor, NimMinor, NimPatch):
-    test "min":
+  when (NimMajor, NimMinor, NimPatch) >= (1, 2, 0):
+    multitest "min":
       macro min1(args: varargs[untyped]): untyped =
         let tmp = genSym(nskVar, "minResult")
         result = makeTree(NimNode):
@@ -516,7 +556,7 @@ suite "Matching":
       assert min1("a", "b", "c", "d") == "a"
       assert min2("a", "b", "c", "d") == "a"
 
-  test "Alternative":
+  multitest "Alternative":
     assertEq "matched", case (a: 12, c: 90):
       of (a: 12 | 90, c: _): "matched"
       else: "not matched"
@@ -526,12 +566,12 @@ suite "Matching":
                   else: 666
 
 
-  test "Set":
+  multitest "Set":
     case {0 .. 3}:
       of {2, 3}: discard
-      else: fail()
+      else: testfail()
 
-  test "Match assertions":
+  multitest "Match assertions":
     [1,2,3].assertMatch([all @res]); assertEq res, @[1,2,3]
     [1,2,3].assertMatch([all @res2]); assertEq res2, @[1,2,3]
     [1,2,3].assertMatch([@first, all @other])
@@ -628,13 +668,13 @@ suite "Matching":
       of [any @elem is JString()]:
         discard
       else:
-        fail()
+        testfail()
 
     case ("foo", 78)
       of ("foo", 78):
         discard
       of ("bar", 88):
-        fail()
+        testfail()
 
     block: Some(@x) := some("hello")
 
@@ -645,16 +685,19 @@ suite "Matching":
     else:
       discard
 
-  test "More examples":
+  multitest "More examples":
     func butLast(a: seq[int]): int =
       case a:
         of []: raiseAssert(
           "Cannot take one but last from empty seq!")
         of [_]: raiseAssert(
           "Cannot take one but last from seq with only one element!")
-        of [@pre, _]: pre
-        of [_, all @tail]: butLast(tail)
-        else: raiseAssert("Not possible")
+        of [@pre, _]:
+          return pre
+        of [_, all @tail]:
+          return butLast(tail)
+        else:
+          raiseAssert("Not possible")
 
     assertEq butLast(@[1,2,3,4]), 3
 
@@ -670,7 +713,7 @@ suite "Matching":
 
     assertEq butLastGen(@["1", "2"]), "1"
 
-  test "Use in generics":
+  multitest "Use in generics":
     func hello[T](a: seq[T]): T =
       [@head, .._] := a
       return head
@@ -678,19 +721,19 @@ suite "Matching":
     proc g1[T](a: seq[T]): T =
       case a:
         of [@a]: discard
-        else: fail()
+        else: testfail()
 
       expand case a:
         of [_]: discard
-        else: fail()
+        else: testfail()
 
       expand case a:
         of [_.startsWith("--")]: discard
-        else: fail()
+        else: testfail()
 
       expand case a:
         of [(len: < 12)]: discard
-        else: fail()
+        else: testfail()
 
     discard g1(@["---===---=="])
 
@@ -698,9 +741,9 @@ suite "Matching":
   test "Predicates":
     case ["hello"]:
       of [_.startsWith("--")]:
-        fail()
+        testfail()
       of [_.startsWith("==")]:
-        fail()
+        testfail()
       else:
         discard
 
@@ -722,28 +765,28 @@ suite "Matching":
     expect MatchError:
       exception()
 
-  test "One-or-more":
+  multitest "One-or-more":
     template testCase(main, patt, body: untyped): untyped =
       case main:
         of patt:
           body
         else:
-          fail()
+          testfail()
           raiseAssert("#[ IMPLEMENT ]#")
 
     case [1]:
       of [@a]: assertEq a, 1
-      else: fail()
+      else: testfail()
 
     case [1]:
       of [all @a]: assertEq a, @[1]
-      else: fail()
+      else: testfail()
 
     case [1,2,3,4]:
       of [_, until @a is 4, 4]:
         assertEq a, @[2,3]
       else:
-        fail()
+        testfail()
 
 
     case [1,2,3,4]:
@@ -751,7 +794,7 @@ suite "Matching":
         assert a is int
         assert a == 1
       else:
-        fail()
+        testfail()
 
 
     case [1,2,3,4]:
@@ -759,9 +802,9 @@ suite "Matching":
         assert a is seq[int]
         assert a == @[1,2,3,4]
       else:
-        fail()
+        testfail()
 
-  test "Optional matches":
+  multitest "Optional matches":
     case [1,2,3,4]:
       of [pref @a is (1 | 2), _, opt @a or 5]:
         assertEq a, @[1,2,4]
@@ -776,7 +819,7 @@ suite "Matching":
         assert a is seq[int]
         assertEq a, @[2, 2]
 
-  test "Tree construction":
+  multitest "Tree construction":
     macro testImpl(): untyped =
       let node = makeTree(NimNode):
         IfStmt[
@@ -818,7 +861,7 @@ suite "Matching":
   func len(n: HtmlNode): int = n.subn.len
 
 
-  test "Tree builder custom type":
+  multitestSince "Tree builder custom type", (1, 4, 0):
 
     discard makeTree(HtmlNode, Base())
     discard makeTree(HtmlNode, base())
@@ -859,7 +902,7 @@ suite "Matching":
         link()
 
 
-  test "Tree construction sequence operators":
+  multitest "Tree construction sequence operators":
     block:
       let inTree = makeTree(HtmlNode):
         base:
@@ -878,7 +921,7 @@ suite "Matching":
 
 
 
-  test "withItCall":
+  multitest "withItCall":
     macro withItCall(head: typed, body: untyped): untyped =
       result = newStmtList()
       result.add quote do:
@@ -905,7 +948,7 @@ suite "Matching":
       it = it.filterIt(it < 4)
       it.add 99
 
-  test "Examples from documentation":
+  multitest "Examples from documentation":
     block: [@a] := [1]; assert (a is int) and (a == 1)
     block:
       {"key" : @val} := {"key" : "val"}.toTable()
@@ -980,7 +1023,7 @@ suite "Matching":
     block:
       case (true, false):
         of (@a, @a):
-          fail()
+          testfail()
         of (@a, _):
           assert a == true
 
@@ -1021,7 +1064,7 @@ suite "Matching":
       assert val == @[2, 13, 12]
 
 
-  test "Generic types":
+  multitest "Generic types":
     type
       GenKind = enum
         ptkToken
@@ -1075,7 +1118,7 @@ suite "Matching":
 
 
 
-  test "Nested objects":
+  multitest "Nested objects":
     type
       Lvl3 = object
         f3: float
@@ -1095,16 +1138,16 @@ suite "Matching":
       of (f1: (f2: (f3: < 10))):
         discard
       else:
-        fail()
+        testfail()
 
-  test "Nested key access":
+  multitest "Nested key access":
     let val = (@[1,2,3], @[3,4,5])
 
     case val:
       of ((len: <= 3), (len: <= 3)):
         discard
       else:
-        fail()
+        testfail()
 
     let val2 = (hello: @[1,2,3])
 
@@ -1112,7 +1155,7 @@ suite "Matching":
       of (hello.len: <= 3):
         discard
       else:
-        fail()
+        testfail()
 
 
     let val3 = (hello3: @[@[@["eee"]]])
@@ -1141,7 +1184,7 @@ suite "Matching":
     [any is (1 | 2)] := [1, 2]
     try:
       [_, any is (1 | 2)] := [3,4,5]
-      fail("_, any is (1 | 2)")
+      testfail("_, any is (1 | 2)")
     except MatchError:
       let msg = getCurrentExceptionMsg()
       assert "any is (1 | 2)" in msg
@@ -1166,7 +1209,7 @@ suite "Matching":
 
     try:
       [(1 | 2)] := [3]
-      fail("[(1 | 2)] := [3]")
+      testfail("[(1 | 2)] := [3]")
     except MatchError:
       assert "pattern '(1 | 2)'" in getCurrentExceptionMsg()
 
@@ -1201,7 +1244,7 @@ suite "Matching":
       (fld.call(): _) := 12
 
 
-  test "Use in templates":
+  multitest "Use in templates":
     template match1(a: typed): untyped =
       [@nice, @hh69] := a
 
@@ -1220,12 +1263,12 @@ suite "Matching":
       fld3: int
 
 
-  test "Ref object field matching":
+  multitest "Ref object field matching":
     case (fld3: 12):
       of (fld3: @subf):
         discard
       else:
-        fail()
+        testfail()
 
     var tmp: Root = SubRoot(fld3: 12)
     assert tmp.SubRoot().fld3 == 12
@@ -1233,9 +1276,9 @@ suite "Matching":
       of of SubRoot(fld3: @subf):
         assert subf == 12
       else:
-        fail()
+        testfail()
 
-  test "Ref object in maps, subfields and sequences":
+  multitest "Ref object in maps, subfields and sequences":
     block:
       @[SubRoot(), Root()].assertMatch([any of SubRoot()])
 
@@ -1296,41 +1339,42 @@ suite "Gara tests":
         of ctFix:
           fix: string
 
-  let repo = Repo(
-    name: "ExampleDB",
-    author: Author(
-      name: "Example Author",
-      email: Email(raw: "example@exampledb.org")),
-    commits: @[
-      Commit(kind: ctFirst, message: "First", code: "e:0"),
-      Commit(kind: ctNormal, message: "Normal", diff: "+e:2\n-e:0")
-  ])
-
-  test "Capturing":
+  multitest "Capturing":
     let a = 2
     case [a]: ## Wrap in `[]` to trigger `match` macro, otherwise it
               ## will be treated as regular case match.
       of [@b == 2]:
         assertEq b, 2
       else:
-        fail()
+        testfail()
 
 
-  test "Object":
+  multitest "Object":
     let a = Rectangle(a: 2, b: 0)
 
     case a:
       of (a: 4, b: 1):
-        fail()
+        testfail()
       of (a: 2, b: @b):
         assertEq b, 0
       else :
-        fail()
+        testfail()
 
-  test "Subpattern":
+  multitest "Subpattern":
+    let repo = Repo(
+      name: "ExampleDB",
+      author: Author(
+        name: "Example Author",
+        email: Email(raw: "example@exampledb.org")),
+      commits: @[
+        Commit(kind: ctFirst, message: "First", code: "e:0"),
+        Commit(kind: ctNormal, message: "Normal", diff: "+e:2\n-e:0")
+    ])
+
+
     case repo:
       of (name: "New", commits: == @[]):
-        fail()
+        testfail()
       of (
         name: @name,
         author: (
@@ -1342,7 +1386,7 @@ suite "Gara tests":
         assertEq name, "ExampleDB"
         assertEq email.raw, "example@exampledb.org"
       else:
-        fail()
+        testfail()
 
   test "Sequence":
     let a = @[
@@ -1353,11 +1397,11 @@ suite "Gara tests":
 
     case a:
       of []:
-        fail()
+        testfail()
       of [_, all @others is (a: 4, b: 4)]:
-        check(others == a[1 .. ^1])
+        assertEq others, a[1 .. ^1]
       else:
-        fail()
+        testfail()
 
     # _ is always true, (a: 4, b: 4) didn't match element 2
 
@@ -1399,7 +1443,17 @@ suite "Gara tests":
       else:
         fail()
 
-  test "Custom unpackers":
+  multitest "Custom unpackers":
+    let repo = Repo(
+      name: "ExampleDB",
+      author: Author(
+        name: "Example Author",
+        email: Email(raw: "example@exampledb.org")),
+      commits: @[
+        Commit(kind: ctFirst, message: "First", code: "e:0"),
+        Commit(kind: ctNormal, message: "Normal", diff: "+e:2\n-e:0")
+    ])
+
     let email = repo.author.email
 
     proc data(email: Email): tuple[name: string, domain: string] =
@@ -1470,21 +1524,21 @@ suite "Gara tests":
 
     case email:
       of (data: (name: "academy")):
-        fail()
+        testfail()
 
       of (tokens: [_, _, _, _, @token]):
-        check(token == "org")
+        assertEq token, "org"
 
-  test "if":
+  multitest "if":
     let b = @[4, 0]
 
     case b:
       of [_, @t(it mod 2 == 0)]:
-        check(t == 0)
+        assertEq t, 0
       else:
-        fail()
+        testfail()
 
-  test "unification":
+  multitest "unification":
     let b = @["nim", "nim", "c++"]
 
     var res = ""
@@ -1498,36 +1552,36 @@ suite "Gara tests":
 
     case b:
       of [@x, @x, @x]:
-        fail()
+        testfail()
       of [@x, @x, _]:
-        check(x == "nim")
+        assertEq x, "nim"
       else:
-        fail()
+        testfail()
 
-  test "option":
+  multitest "option":
     let a = some[int](3)
 
     case a:
       of Some(@i):
-        check(i == 3)
+        assertEq i, 3
       else:
-        fail()
+        testfail()
 
 
-  test "nameless tuple":
+  multitest "nameless tuple":
     let a = ("a", "b")
 
     case a:
       of ("a", "c"):
-        fail()
+        testfail()
       of ("a", "c"):
-        fail()
+        testfail()
       of ("a", @c):
-        check(c == "b")
+        assertEq c, "b"
       else:
-        fail()
+        testfail()
 
-  test "ref":
+  multitest "ref":
     type
       Node = ref object
         name: string
@@ -1537,57 +1591,58 @@ suite "Gara tests":
 
     case node:
       of (name: @name):
-        check(name == "2")
+        assertEq name, "2"
       else:
-        fail()
+        testfail()
 
     let node2: Node = nil
 
     case node2:
       of (isNil: false, name: "4"):
-        fail()
+        testfail()
       else:
-        check(true)
+        discard
 
-  test "weird integers":
+  multitest "weird integers":
     let a = 4
 
     case [a]:
       of [4'i8]:
-        check(true)
+        discard
       else:
-        fail()
+        testfail()
 
-  test "dot access":
+  multitest "dot access":
     let a = Rectangle(b: 4)
 
     case a:
       of (b: == a.b):
-        check(true)
+        discard
       else:
-        fail()
+        testfail()
 
-  test "arrays":
+  multitest "arrays":
     let a = [1, 2, 3, 4]
 
     case a:
       of [1, @a, 3, @b, 5]:
-        fail()
+        testfail()
       of [1, @a, 3, @b]:
-        check(a == 2 and b == 4)
+        assertEq a, 2
+        assertEq b, 4
       else:
-        fail()
+        testfail()
 
-  test "bool":
+  multitest "bool":
     let a = Rectangle(a: 0, b: 0)
 
     if a.matches((b: 0)):
-      check(true)
+      discard
     else:
-      fail()
+      testfail()
 
 suite "More tests":
-  test "AST-AST conversion using pattern matching":
+  multitestSince "AST-AST conversion using pattern matching", (1, 2, 0):
     type
       Ast1Kind = enum
         akFirst1
@@ -1716,7 +1771,7 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 
 
 
-  test "Flow macro":
+  multitest "Flow macro":
     type
       FlowStageKind = enum
         fskMap

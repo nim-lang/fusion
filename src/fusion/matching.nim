@@ -28,10 +28,10 @@ const
     ## Set of all token-like nodes (primitive type literals or
     ## identifiers)
 
-func codeFmt(str: string): string =
+func codeFmt(str: string): string {.inline.} =
   &"\e[4m{str}\e[24m"
 
-func codeFmt(node: NimNode): NimNode =
+func codeFmt(node: NimNode): NimNode {.inline.} =
   node.strVal().codeFmt().newLit()
 
 func nodeStr(n: NimNode): string =
@@ -68,12 +68,12 @@ func idxTreeRepr(inputNode: NimNode, maxLevel: int = 120): string =
 
 
 
-template `->`(a, b: bool): bool = (if a: b else: true)
 
 template getSome[T](opt: Option[T], injected: untyped): bool =
   opt.isSome() and ((let injected {.inject.} = opt.get(); true))
 
 func splitDots(n: NimNode): seq[NimNode] =
+  ## Split nested `DotExpr` node into sequence of nodes. `a.b.c -> @[a, b, c]`
   result = case n.kind:
     of nnkDotExpr:
       if n[0].kind == nnkDotExpr:
@@ -100,7 +100,7 @@ func getVar(n: NimNode): NimNode =
   else:
     raiseAssert(&"Cannot get variable from node kind {n.kind}")
 
-func firstDot(n: NimNode): NimNode =
+func firstDot(n: NimNode): NimNode {.inline.} =
   splitDots(n)[0]
 
 func dropFirstDot(n: NimNode): NimNode =
@@ -524,12 +524,13 @@ func `$`(match: Match): string =
 
 
 func isNamedTuple(node: NimNode): bool =
+  template implies(a, b: bool): bool = (if a: b else: true)
   node.allIt(it.kind in {
     nnkExprColonExpr, # `(fld: )`
     nnkBracket, # `([])`
     nnkTableConstr # `{key: val}`
   }) and
-  node.allIt((it.kind == nnkIdent) -> (it.nodeStr == "_"))
+  node.allIt((it.kind == nnkIdent) .implies (it.nodeStr == "_"))
 
 func makeVarSet(
   varn: NimNode, expr: NimNode, vtable: VarTable, doRaise: bool): NimNode =
