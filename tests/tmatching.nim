@@ -73,13 +73,13 @@ suite "Matching":
             )
           )
 
-      assert (t true).kind == kItem
+      doAssert (t true).kind == kItem
 
       block:
         let s = t [1, 2, all @b, @a]
-        assert s.seqElems[3].bindVar == some(ident("a"))
-        assert s.seqElems[2].bindVar == some(ident("b"))
-        assert s.seqElems[2].patt.bindVar == none(NimNode)
+        doAssert s.seqElems[3].bindVar == some(ident("a"))
+        doAssert s.seqElems[2].bindVar == some(ident("b"))
+        doAssert s.seqElems[2].patt.bindVar == none(NimNode)
 
       discard t([1,2,3,4])
       discard t((1,2))
@@ -122,11 +122,11 @@ suite "Matching":
           Infix   [@infixId, @lhs, @rhs]
         ) := node
 
-        assert lhs is NimNode
-        assert rhs is NimNode
-        assert infixId is Option[NimNode]
-        assert lhs == newLit(12)
-        assert rhs == newLit(33)
+        doAssert lhs is NimNode
+        doAssert rhs is NimNode
+        doAssert infixId is Option[NimNode]
+        doAssert lhs == newLit(12)
+        doAssert rhs == newLit(33)
 
       block:
         discard node.matches(
@@ -141,9 +141,9 @@ suite "Matching":
           ]
         )
 
-        assert body is NimNode, $typeof(body)
-        assert ident is NimNode, $typeof(ident)
-        assert outType is Option[NimNode]
+        doAssert body is NimNode, $typeof(body)
+        doAssert ident is NimNode, $typeof(ident)
+        doAssert outType is Option[NimNode]
 
       block:
         case node:
@@ -151,14 +151,14 @@ suite "Matching":
              Command[@ident is Ident(), Bracket [@outType], @body]
             :
             static:
-              assert ident is NimNode, $typeof(ident)
-              assert body is NimNode, $typeof(body)
-              assert outType is Option[NimNode], $typeof(outType)
+              doAssert ident is NimNode, $typeof(ident)
+              doAssert body is NimNode, $typeof(body)
+              doAssert outType is Option[NimNode], $typeof(outType)
 
           of Call[@head is Ident(), @body]:
             static:
-              assert head is NimNode
-              assert body is NimNode
+              doAssert head is NimNode
+              doAssert body is NimNode
 
     main()
 
@@ -177,13 +177,13 @@ suite "Matching":
       ]
 
       template testTypes() {.dirty.} =
-        assert aa is JsonNode
-        assert bb is Option[JsonNode]
-        assert cc is JsonNode
+        doAssert aa is JsonNode
+        doAssert bb is Option[JsonNode]
+        doAssert cc is JsonNode
 
-        assert aa == %"AA"
-        if Some(@bb) ?= bb: assert bb == %"BB"
-        assert cc == %"CC"
+        doAssert aa == %"AA"
+        if Some(@bb) ?= bb: doAssert bb == %"BB"
+        doAssert cc == %"CC"
 
 
       for val in vals:
@@ -259,13 +259,13 @@ suite "Matching":
            of (true, _): "hehe"
            else: "2222"
 
-    assert (a: 12) ?= (a: 12)
+    doAssert (a: 12) ?= (a: 12)
     assertEq "hello world", case (a: 12, b: 12):
            of (a: 12, b: 22): "nice"
            of (a: 12, b: _): "hello world"
            else: "default value"
 
-    assert (a: 22, b: 90) ?= (a: 22, b: 90)
+    doAssert (a: 22, b: 90) ?= (a: 22, b: 90)
     block:
       var res: string
 
@@ -481,10 +481,10 @@ suite "Matching":
     macro a(): untyped  =
       case newPar(ident "1", ident "2"):
         of Par([@ident1, @ident2]):
-          assert ident1.strVal == "1"
-          assert ident2.strVal == "2"
+          doAssert ident1.strVal == "1"
+          doAssert ident2.strVal == "2"
         else:
-          assert false
+          doAssert false
 
     a()
 
@@ -503,7 +503,7 @@ suite "Matching":
           error("Expected assgn expression", head[0])
 
     ifLet2 (nice = some(69)):
-      assert nice == 69
+      doAssert nice == 69
 
 
   when (NimMajor, NimMinor, NimPatch) >= (1, 2, 0):
@@ -553,8 +553,8 @@ suite "Matching":
 
             == tmp
 
-      assert min1("a", "b", "c", "d") == "a"
-      assert min2("a", "b", "c", "d") == "a"
+      doAssert min1("a", "b", "c", "d") == "a"
+      doAssert min2("a", "b", "c", "d") == "a"
 
   multitest "Alternative":
     assertEq "matched", case (a: 12, c: 90):
@@ -592,8 +592,8 @@ suite "Matching":
       block: [pref (1|2|3)] := [1,2,3]
       block: [until 3, _] := [1,2,3]
       block: [all 1] := [1,1,1]
-      block: assert [all 1] ?= [1,1,1]
-      block: assert not ([all 1] ?= [1,2,3])
+      block: doAssert [all 1] ?= [1,1,1]
+      block: doAssert not ([all 1] ?= [1,2,3])
       block: [opt @a or 12] := `@`[int]([]); assertEq a, 12
       block: [opt(@a or 12)] := [1]; assertEq a, 1
       block: [opt @a] := [1]; assertEq a, some(1)
@@ -601,32 +601,32 @@ suite "Matching":
       block: [opt(@a)] := [1]; assertEq a, some(1)
       block:
         {"k": opt @val1 or "12"} := {"k": "22"}.toTable()
-        static: assert val1 is string
+        static: doAssert val1 is string
         {"k": opt(@val2 or "12")} := {"k": "22"}.toTable()
-        static: assert val2 is string
+        static: doAssert val2 is string
         assertEq val1, val2
         assertEq val1, "22"
         assertEq val2, "22"
 
       block:
         {"h": Some(@x)} := {"h": some("22")}.toTable()
-        assert x is string
-        assert x == "22"
+        doAssert x is string
+        doAssert x == "22"
 
       block:
         {"k": opt @val, "z": opt @val2} := {"z" : "2"}.toTable()
-        assert val is Option[string]
-        assert val.isNone()
-        assert val2 is Option[string]
-        assert val2.isSome()
-        assert val2.get() == "2"
+        doAssert val is Option[string]
+        doAssert val.isNone()
+        doAssert val2 is Option[string]
+        doAssert val2.isSome()
+        doAssert val2.get() == "2"
 
       block: [all(@a)] := [1]; assertEq a, @[1]
       block: (f: @hello is ("2" | "3")) := (f: "2"); assertEq hello, "2"
       block: (f: @a(it mod 2 == 0)) := (f: 2); assertEq a, 2
-      block: assert not ([1,2] ?= [1,2,3])
-      block: assert [1, .._] ?= [1,2,3]
-      block: assert [1,2,_] ?= [1,2,3]
+      block: doAssert not ([1,2] ?= [1,2,3])
+      block: doAssert [1, .._] ?= [1,2,3]
+      block: doAssert [1,2,_] ?= [1,2,3]
       block:
         ## Explicitly use `_` to match whole sequence
         [until @head is 'd', _] := "word"
@@ -791,16 +791,16 @@ suite "Matching":
 
     case [1,2,3,4]:
       of [@a, .._]:
-        assert a is int
-        assert a == 1
+        doAssert a is int
+        doAssert a == 1
       else:
         testfail()
 
 
     case [1,2,3,4]:
       of [all @a]:
-        assert a is seq[int]
-        assert a == @[1,2,3,4]
+        doAssert a is seq[int]
+        doAssert a == @[1,2,3,4]
       else:
         testfail()
 
@@ -816,7 +816,7 @@ suite "Matching":
 
     case [1,2,2,1,1,1]:
       of [all (1 | @a)]:
-        assert a is seq[int]
+        doAssert a is seq[int]
         assertEq a, @[2, 2]
 
   multitest "Tree construction":
@@ -881,7 +881,7 @@ suite "Matching":
       base: link()
       base: link()
 
-    assert tmp1 is seq[HtmlNode]
+    doAssert tmp1 is seq[HtmlNode]
 
 
     let tmp3 = wrapper1:
@@ -889,13 +889,13 @@ suite "Matching":
         base: link()
         base: link()
 
-    assert tmp3 is HtmlNode
+    doAssert tmp3 is HtmlNode
 
     let tmp2 = wrapper1:
       base:
         link()
 
-    assert tmp2 is HtmlNode
+    doAssert tmp2 is HtmlNode
 
     discard wrapper2:
       base:
@@ -949,37 +949,37 @@ suite "Matching":
       it.add 99
 
   multitest "Examples from documentation":
-    block: [@a] := [1]; assert (a is int) and (a == 1)
+    block: [@a] := [1]; doAssert (a is int) and (a == 1)
     block:
       {"key" : @val} := {"key" : "val"}.toTable()
-      assert val is string
-      assert val == "val"
+      doAssert val is string
+      doAssert val == "val"
 
-    block: [any @a] := [1,2,3]; assert a is seq[int]
+    block: [any @a] := [1,2,3]; doAssert a is seq[int]
     block:
       [any @a(it < 3)] := [1, 2, 3]
-      assert a is seq[int]
-      assert a == @[1, 2]
+      doAssert a is seq[int]
+      doAssert a == @[1, 2]
 
     block:
       [until @a == 6, _] := [1, 2, 3, 6]
-      assert a is seq[int]
-      assert a == @[1, 2, 3]
+      doAssert a is seq[int]
+      doAssert a == @[1, 2, 3]
 
     block:
       [all @a == 6] := [6, 6, 6]
-      assert a is seq[int]
-      assert a == @[6, 6, 6]
+      doAssert a is seq[int]
+      doAssert a == @[6, 6, 6]
 
     block:
       [any @a > 100] := [1, 2, 101]
-      assert @a is seq[int]
-      assert @a == @[101]
+      doAssert @a is seq[int]
+      doAssert @a == @[101]
 
     block:
       [any @a(it > 100)] := [1, 2, 101]
       [any @b > 100] := [1, 2, 101]
-      assert a == b
+      doAssert a == b
 
     block:
       [_ in {2 .. 10}] := [2]
@@ -991,77 +991,77 @@ suite "Matching":
 
     block:
       [none @a in {6 .. 10}] := [1, 2, 3]
-      assert a is seq[int]
-      assert a == @[1, 2, 3]
+      doAssert a is seq[int]
+      doAssert a == @[1, 2, 3]
 
       [none in {6 .. 10}] := [1, 2, 3]
       [none @b(it in {6 .. 10})] := [1, 2, 3]
 
     block:
       [opt @val or 12] := [1]
-      assert val is int
-      assert val  == 1
+      doAssert val is int
+      doAssert val  == 1
 
     block:
       [_, opt @val] := [1]
-      assert val is Option[int]
-      assert val.isNone()
+      doAssert val is Option[int]
+      doAssert val.isNone()
 
     block:
       [0 .. 3 @val, _] := [1, 2, 3, 4, 5]
-      assert val is seq[int]
-      assert val == @[1, 2, 3, 4]
+      doAssert val is seq[int]
+      doAssert val == @[1, 2, 3, 4]
       [0 .. 1 @val1, 2 .. 3 @val2] := [1, 2, 3, 4]
-      assert val1 is seq[int] and val1 == @[1, 2]
-      assert val2 is seq[int] and val2 == @[3, 4]
+      doAssert val1 is seq[int] and val1 == @[1, 2]
+      doAssert val2 is seq[int] and val2 == @[3, 4]
 
     block:
       let val = (1, 2, "fa")
-      assert (_, _, _) ?= val
-      assert not ((@a, @a, _) ?= val)
+      doAssert (_, _, _) ?= val
+      doAssert not ((@a, @a, _) ?= val)
 
     block:
       case (true, false):
         of (@a, @a):
           testfail()
         of (@a, _):
-          assert a == true
+          doAssert a == true
 
     block:
-      block: (fld: @val) := (fld: 12); assert val == 12
-      block: (@val, _) := (12, 2); assert val == 12
+      block: (fld: @val) := (fld: 12); doAssert val == 12
+      block: (@val, _) := (12, 2); doAssert val == 12
       block:
-        (@val, @val) := (12, 12); assert val == 12
-        block: assert (@a, @a) ?= (12, 12)
-        block: assert not ((@a, @a) ?= (12, 3))
+        (@val, @val) := (12, 12); doAssert val == 12
+        block: doAssert (@a, @a) ?= (12, 12)
+        block: doAssert not ((@a, @a) ?= (12, 3))
 
       block:
-        assert [_, _] ?= [12, 2]
-        assert not ([_, _] ?= [12, 2, 2])
+        doAssert [_, _] ?= [12, 2]
+        doAssert not ([_, _] ?= [12, 2, 2])
 
       block:
-        assert [_, .._] ?= [12]
-        assert not ([_, _, .._] ?= [12])
+        doAssert [_, .._] ?= [12]
+        doAssert not ([_, _, .._] ?= [12])
 
       block:
-        [_, all @val] := [12, 2, 2]; assert val == @[2, 2]
+        [_, all @val] := [12, 2, 2]; doAssert val == @[2, 2]
 
         # Note that
         block:
           # Does not work, because `assert` internally uses `if` and
           # all variables declared inside are not accesible to the
           # outside scope
-          assert [_, all @val] ?= [12, 2, 2]
+          doAssert [_, all @val] ?= [12, 2, 2]
           when false: # NOTE - will not compile
-            assert val == @[2, 2]
+            doAssert val == @[2, 2]
 
     block:
       [until @val is 12, _] := [2, 13, 12]
-      assert val == @[2, 13]
+      doAssert val == @[2, 13]
 
     block:
       [until @val is 12, @val] := [2, 13, 12]
-      assert val == @[2, 13, 12]
+      doAssert val == @[2, 13, 12]
 
 
   multitest "Generic types":
@@ -1129,8 +1129,8 @@ suite "Matching":
       Lvl1 = object
         f1: Lvl2
 
-    assert Lvl1().f1.f2.f3 < 10
-    assert (f1.f2.f3: < 10) ?= Lvl1()
+    doAssert Lvl1().f1.f2.f3 < 10
+    doAssert (f1.f2.f3: < 10) ?= Lvl1()
 
     case Lvl1():
       of (f1.f2.f3: < 10):
@@ -1160,16 +1160,16 @@ suite "Matching":
 
     let val3 = (hello3: @[@[@["eee"]]])
     if false: discard (hello3[0][1][2].len: < 10) ?= val3
-    assert (hello3[0][0][0].len: < 10) ?= val3
-    assert (hello3: is [[[(len: < 10)]]]) ?= val3
+    doAssert (hello3[0][0][0].len: < 10) ?= val3
+    doAssert (hello3: is [[[(len: < 10)]]]) ?= val3
 
   test "Match failure exceptions":
     try:
       [all 12] := [2,3,4]
     except MatchError:
       let msg = getCurrentExceptionMsg()
-      assert "all 1" in msg
-      assert "all elements" in msg
+      doAssert "all 1" in msg
+      doAssert "all elements" in msg
 
 
     expect MatchError:
@@ -1179,7 +1179,7 @@ suite "Matching":
       [any 1] := [2,3,4]
     except MatchError:
       let msg = getCurrentExceptionMsg()
-      assert "any 1" in msg
+      doAssert "any 1" in msg
 
     [any is (1 | 2)] := [1, 2]
     try:
@@ -1187,8 +1187,8 @@ suite "Matching":
       testfail("_, any is (1 | 2)")
     except MatchError:
       let msg = getCurrentExceptionMsg()
-      assert "any is (1 | 2)" in msg
-      assert "[any is (1 | 2)]" notin msg
+      doAssert "any is (1 | 2)" in msg
+      doAssert "[any is (1 | 2)]" notin msg
 
     expect MatchError:
       [none is 12] := [1, 2, 12]
@@ -1199,19 +1199,19 @@ suite "Matching":
     try:
       [_, _, _] := [1, 2]
     except MatchError:
-      assert "range '3 .. 3'" in getCurrentExceptionMsg()
+      doAssert "range '3 .. 3'" in getCurrentExceptionMsg()
 
     try:
       [_, opt _] := [1, 2, 3]
     except MatchError:
-      assert "range '1 .. 2'" in getCurrentExceptionMsg()
+      doAssert "range '1 .. 2'" in getCurrentExceptionMsg()
 
 
     try:
       [(1 | 2)] := [3]
       testfail("[(1 | 2)] := [3]")
     except MatchError:
-      assert "pattern '(1 | 2)'" in getCurrentExceptionMsg()
+      doAssert "pattern '(1 | 2)'" in getCurrentExceptionMsg()
 
 
     1 := 1
@@ -1250,8 +1250,8 @@ suite "Matching":
 
     match1([12, 3])
 
-    assert nice == 12
-    assert hh69 == 3
+    doAssert nice == 12
+    doAssert hh69 == 3
 
 
   type
@@ -1271,10 +1271,10 @@ suite "Matching":
         testfail()
 
     var tmp: Root = SubRoot(fld3: 12)
-    assert tmp.SubRoot().fld3 == 12
+    doAssert tmp.SubRoot().fld3 == 12
     case tmp:
       of of SubRoot(fld3: @subf):
-        assert subf == 12
+        doAssert subf == 12
       else:
         testfail()
 
@@ -1409,7 +1409,7 @@ suite "Gara tests":
 
     block:
       [until @vals == 5, .._] := @[2, 3, 4, 5]
-      assert vals == @[2, 3, 4]
+      doAssert vals == @[2, 3, 4]
 
 
     block:
@@ -1721,40 +1721,40 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 
     block:
       [@a, _] := "A|B".split("|")
-      assert a is string
-      assert a == "A"
+      doAssert a is string
+      doAssert a == "A"
 
     block:
       let it: seq[string] = "A|B".split("|")
       [@a.startsWith("A"), .._] := it
-      assert a is string
-      assert a == "A"
+      doAssert a is string
+      doAssert a == "A"
 
     block:
       (1, 2) | (@a, _) := (12, 3)
 
-      assert a is Option[int]
+      doAssert a is Option[int]
 
     macro test1(inBody: untyped): untyped =
       block:
         Call[BracketExpr[@ident, opt @outType], @body] := inBody
-        assert ident is NimNode
-        assert outType is Option[NimNode]
-        assert body is NimNode
+        doAssert ident is NimNode
+        doAssert outType is Option[NimNode]
+        doAssert body is NimNode
 
       block:
         Command[@ident is Ident(), Bracket[@outType], @body] := inBody
-        assert ident is NimNode
-        assert outType is NimNode
-        assert body is NimNode
+        doAssert ident is NimNode
+        doAssert outType is NimNode
+        doAssert body is NimNode
 
       block:
         Call[BracketExpr[@ident, opt @outType], @body] |
         Command[@ident is Ident(), Bracket[@outType], @body] := inBody
 
-        assert ident is NimNode
-        assert outType is Option[NimNode]
-        assert body is NimNode
+        doAssert ident is NimNode
+        doAssert outType is Option[NimNode]
+        doAssert body is NimNode
 
       block:
         var a = quote do:
@@ -1766,8 +1766,8 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
             @head
             @typeParam
 
-        assert head.strVal() == "map"
-        assert typeParam.strVal() == "string"
+        doAssert head.strVal() == "map"
+        doAssert typeParam.strVal() == "string"
 
 
 
@@ -1979,4 +1979,4 @@ nscd:x:28:28:NSCD Daemon:/:/sbin/nologin"""
       map:
         shell
 
-    assert res is seq[string]
+    doAssert res is seq[string]
