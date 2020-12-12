@@ -1642,6 +1642,27 @@ suite "Gara tests":
       testfail()
 
 suite "More tests":
+  test "Alt pattern in sequence of ref objects":
+    type
+      Base = ref object of RootObj
+        field1: int
+
+      Derived1 = ref object of Base
+        derived1: string
+
+      Derived2 = ref object of Base
+        derived2: string
+
+    let objs = [
+      Base(), Derived1(derived1: "hello"), Derived2(derived2: "world")]
+
+    objs.assertMatch([any (
+      of Derived1(derived1: @vals) |
+      of Derived2(derived2: @vals))
+    ])
+
+    assertEq vals, @["hello", "world"]
+
   multitestSince "AST-AST conversion using pattern matching", (1, 2, 0):
     type
       Ast1Kind = enum
