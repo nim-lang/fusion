@@ -7,3 +7,5 @@
   convenience functions to change file permissions using Unix like octal file permissions.
 - Added module `scripting` providing `withDir` to switch the directory temporarily. This
   was previously only available in the `nimscript` module.
+- Added `trash` module with `moveFileToTrash`,`moveFileFromTrash` and `getTrash`
+  convenience procedures for the operating system Trash support.
