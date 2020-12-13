@@ -3,10 +3,6 @@
 ##
 ## * http://www.freedesktop.org/wiki/Specifications/trash-spec
 ## * http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
-##
-## See also:
-## * `tryRemoveFile proc <#tryRemoveFile,string>`_
-## * `removeFile proc <#removeFile,string>`_
 when defined(js):
   {.fatal: "Module trash is not designed to be used with the JavaScript backend.".}
 
