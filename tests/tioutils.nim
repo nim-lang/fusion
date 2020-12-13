@@ -13,7 +13,7 @@ block: # duplicate, duplicateTo
   template captureStdout(body) : untyped =
     let stdoutFileno = stdout.getFileHandle()
     # Duplicate stoudFileno
-    let stdout_dupfd = duplicate(stdoutFileno)
+    let stdoutDupfd = duplicate(stdoutFileno)
     # Create a new file
     # You can use append strategy if you'd like
     let tmpFile: File = open(tmpFileName, fmWrite)
@@ -29,7 +29,7 @@ block: # duplicate, duplicateTo
     # Read tmp
     let ret = readFile(tmpFileName)
     # Restore stdout
-    duplicateTo(stdout_dupfd, stdoutFileno)
+    duplicateTo(stdoutDupfd, stdoutFileno)
     ret
 
   proc duplicateStdout() =
