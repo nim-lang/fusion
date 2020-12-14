@@ -3,7 +3,7 @@ import std/private/globs
 
 iterator findNimSrcFiles*(dir: string): string =
   proc follow(a: PathEntry): bool =
-    a.path.lastPathPart notin ["nimcache", "htmldocs"]
+    a.path.lastPathPart notin ["nimcache", "htmldocs", "js"]
   for entry in walkDirRecFilter(dir, follow = follow):
     if entry.path.splitFile.ext == ".nim" and entry.kind == pcFile:
       yield entry.path
