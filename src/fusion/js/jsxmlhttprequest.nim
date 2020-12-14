@@ -1,6 +1,6 @@
 ## `XMLHttpRequest` for the JavaScript target: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
 when not defined(js) and not defined(nimdoc):
-  {.fatal: "Module jsfetch is designed to be used with the JavaScript backend.".}
+  {.fatal: "Module jsxmlhttprequest is designed to be used with the JavaScript backend.".}
 
 from dom import Node
 export Node
