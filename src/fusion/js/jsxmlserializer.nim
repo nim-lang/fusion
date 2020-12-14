@@ -1,21 +1,25 @@
 ## - `XMLSerializer` for the JavaScript target: https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer
-when defined(js):
-  from dom import Node
-  export Node
+when not defined(js) and not defined(Nimdoc):
+  {.fatal: "Module jsxmlserializer is designed to be used with the JavaScript backend.".}
 
-  type XMLSerializer* = ref object  ## XMLSerializer API.
+from dom import Node
+export Node
 
-  func newXMLSerializer*(): XMLSerializer {.importjs: "new XMLSerializer()".}
-    ## https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer
+type XMLSerializer* = ref object  ## XMLSerializer API.
 
-  func serializeToString*(this: XMLSerializer; node: Node): cstring {.importjs: "#.serializeToString(#)".}
-    ## https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer/serializeToString
+func newXMLSerializer*(): XMLSerializer {.importjs: "new XMLSerializer()".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer
+
+func serializeToString*(this: XMLSerializer; node: Node): cstring {.importjs: "#.serializeToString(#)".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer/serializeToString
+
+func serializeToString*(node: Node): cstring {.importjs:
+  "(() => { const srlzr = new XMLSerializer(); return srlzr.serializeToString(#) })()".}
+  ## Convenience func for `XMLSerializer` that returns `cstring` directly.
 
 
-  runnableExamples:
-    when defined(nimJsXMLSerializerTests):
-      from dom import document
-      let cerealizer: XMLSerializer = newXMLSerializer()
-      echo cerealizer.serializeToString(node = document)
-else:
-  {.warning: "Module jsxmlserializer is designed to be used with the JavaScript backend.".}
+runnableExamples:
+  from dom import document
+  if defined(nimJsXMLSerializerTests):
+    let cerealizer: XMLSerializer = newXMLSerializer()
+    echo cerealizer.serializeToString(node = document)
