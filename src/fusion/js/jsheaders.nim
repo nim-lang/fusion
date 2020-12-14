@@ -1,53 +1,54 @@
 ## - HTTP Headers for the JavaScript target: https://developer.mozilla.org/en-US/docs/Web/API/Headers
-when defined(js):
-  type Headers* = ref object ## HTTP Headers for the JavaScript target.
+when not defined(js) and not defined(nimdoc):
+  {.fatal: "Module jsfetch is designed to be used with the JavaScript backend.".}
 
-  func newHeaders*(): Headers {.importjs: "new Headers()".}
-    ## https://developer.mozilla.org/en-US/docs/Web/API/Headers
+type Headers* = ref object ## HTTP Headers for the JavaScript target.
 
-  func newHeaders*(keyValuePairs: openArray[array[2, cstring]]): Headers {.importjs: """(
-    () => { const header = new Headers(); #.forEach((item) => header.append(item[0], item[1])); return header })()""".}
-    ## Same as `newHeaders` but initializes `Headers` with `keyValuePairs`.
+func newHeaders*(): Headers {.importjs: "new Headers()".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers
 
-  func append*(this: Headers; key: cstring; value: cstring) {.importjs: "#.append(#, #)".}
-    ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/append
+func newHeaders*(keyValuePairs: openArray[array[2, cstring]]): Headers {.importjs:
+  "(() => { const header = new Headers(); #.forEach((item) => header.append(item[0], item[1])); return header })()".}
+  ## Same as `newHeaders` but initializes `Headers` with `keyValuePairs`.
 
-  func delete*(this: Headers; key: cstring) {.importjs: "#.delete(#)".}
-    ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/delete
+func append*(this: Headers; key: cstring; value: cstring) {.importjs: "#.append(#, #)".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/append
 
-  func get*(this: Headers; key: cstring): cstring {.importjs: "#.get(#)".}
-    ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
+func delete*(this: Headers; key: cstring) {.importjs: "#.delete(#)".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/delete
 
-  func has*(this: Headers; key: cstring): bool {.importjs: "#.has(#)".}
-    ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/has
+func get*(this: Headers; key: cstring): cstring {.importjs: "#.get(#)".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
 
-  func set*(this: Headers; key: cstring; value: cstring) {.importjs: "#.set(#, #)".}
-    ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/set
+func has*(this: Headers; key: cstring): bool {.importjs: "#.has(#)".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/has
 
-  func keys*(this: Headers): seq[cstring] {.importjs: "Array.from(#.keys())".}
-    ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/keys
+func set*(this: Headers; key: cstring; value: cstring) {.importjs: "#.set(#, #)".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/set
 
-  func values*(this: Headers): seq[cstring] {.importjs: "Array.from(#.values())".}
-    ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/values
+func keys*(this: Headers): seq[cstring] {.importjs: "Array.from(#.keys())".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/keys
 
-  func entries*(this: Headers): seq[array[2, cstring]] {.importjs: "Array.from(#.entries())".}
-    ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/entries
+func values*(this: Headers): seq[cstring] {.importjs: "Array.from(#.values())".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/values
 
-  func clear*(this: Headers) {.importjs: "(() => { const header = #; Array.from(header.keys()).forEach((key) => header.delete(key)) })()".}
-    ## Convenience func to delete all items from `Headers`.
+func entries*(this: Headers): seq[array[2, cstring]] {.importjs: "Array.from(#.entries())".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/entries
+
+func clear*(this: Headers) {.importjs:
+  "(() => { const header = #; Array.from(header.keys()).forEach((key) => header.delete(key)) })()".}
+  ## Convenience func to delete all items from `Headers`.
 
 
-  runnableExamples:
-    if defined(nimJsHeadersTests):
-      var header = newHeaders()
-      header.append(r"key", r"value")
-      doAssert header.has(r"key")
-      doAssert header.keys() == @["key".cstring]
-      doAssert header.values() == @["value".cstring]
-      doAssert header.get(r"key") == "value".cstring
-      header.set(r"other", r"another")
-      doAssert header.get(r"other") == "another".cstring
-      doAssert header.entries() == @[["key".cstring, "value"], ["other".cstring, "another"]]
-      header.delete(r"other")
-else:
-  {.warning: "Module jsheaders is designed to be used with the JavaScript backend.".}
+runnableExamples:
+  if defined(nimJsHeadersTests):
+    var header = newHeaders()
+    header.append(r"key", r"value")
+    doAssert header.has(r"key")
+    doAssert header.keys() == @["key".cstring]
+    doAssert header.values() == @["value".cstring]
+    doAssert header.get(r"key") == "value".cstring
+    header.set(r"other", r"another")
+    doAssert header.get(r"other") == "another".cstring
+    doAssert header.entries() == @[["key".cstring, "value"], ["other".cstring, "another"]]
+    header.delete(r"other")
