@@ -1,6 +1,6 @@
 ## - HTTP Headers for the JavaScript target: https://developer.mozilla.org/en-US/docs/Web/API/Headers
 when not defined(js) and not defined(nimdoc):
-  {.fatal: "Module jsfetch is designed to be used with the JavaScript backend.".}
+  {.fatal: "Module jsheaders is designed to be used with the JavaScript backend.".}
 
 type Headers* = ref object ## HTTP Headers for the JavaScript target.
 
