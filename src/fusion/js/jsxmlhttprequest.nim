@@ -70,4 +70,4 @@ when defined(js):
       echo "responseType\t", rekuest.responseType
       rekuest.abort()
 else:
-  {.warning: "Module jsfetch is designed to be used with the JavaScript backend.".}
+  {.warning: "Module jsxmlhttprequest is designed to be used with the JavaScript backend.".}
