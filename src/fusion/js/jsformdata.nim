@@ -49,6 +49,9 @@ func keys*(this: FormData): seq[cstring] {.importjs: "Array.from(#.keys())".}
 func values*(this: FormData): seq[cstring] {.importjs: "Array.from(#.values())".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/values
 
+func entries*(this: FormData): seq[array[2, cstring]] {.importjs: "Array.from(#.entries())".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/entries
+
 func clear*(this: FormData) {.importjs:
   "(() => { const frmdt = #; Array.from(frmdt.keys()).forEach((key) => frmdt.delete(key)) })()".}
   ## Convenience func to delete all items from `FormData`.
