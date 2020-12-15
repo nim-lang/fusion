@@ -7,3 +7,8 @@
   convenience functions to change file permissions using Unix like octal file permissions.
 - Added module `scripting` providing `withDir` to switch the directory temporarily. This
   was previously only available in the `nimscript` module.
+
+
+
+
+- Added `jsformdata` module for [`FormData`](https://developer.mozilla.org/en-US/docs/Web/API/FormData) for the JavaScript target.
