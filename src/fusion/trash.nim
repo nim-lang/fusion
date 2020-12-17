@@ -72,7 +72,8 @@ proc moveFileToTrash*(path: string; trashPath = getTrash(); postfixStart = 1.Pos
 proc moveFileFromTrash*(path: string; trashPath = getTrash()) =
   ## Move file from `trashPath` to `path`.
   runnableExamples:
-    import os, trash
+    import os
+    import fusion/trash
     if off:
       writeFile("example.txt", "example")
       let trashedFile = moveFileToTrash("example.txt")
