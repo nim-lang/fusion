@@ -276,6 +276,15 @@ template hasKind*(head, kindExpr: untyped): untyped =
   else:
     static: error "No `kind` defined for " & $typeof(head)
 
+when (NimMajor, NimMinor, NimPatch) >= (1, 4, 2):
+  type FieldIndex* = distinct int
+  func `==`*(idx: FieldIndex, i: SomeInteger): bool = idx.int == i
+  template `[]`*(t: tuple, idx: static[FieldIndex]): untyped =
+    t[idx.int]
+
+else:
+  type FieldIndex* = int
+
 type
   MatchKind* = enum
     ## Different kinds of matching patterns
@@ -322,7 +331,6 @@ type
 
   MatchError* = ref object of CatchableError ## Exception indicating match failure
 
-  FieldIndex* = distinct int
 
   Match* = ref object
     ## Object describing single match for element
@@ -2352,8 +2360,3 @@ template `:=`*(lhs, rhs: untyped): untyped =
 template `?=`*(lhs, rhs: untyped): untyped =
   ## Shorthand for `matches`
   matches(rhs, lhs)
-
-template `[]`*(t: tuple, idx: static[FieldIndex]): untyped =
-  t[idx.int]
-
-func `==`*(idx: FieldIndex, i: SomeInteger): bool = idx.int == i
