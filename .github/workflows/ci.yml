@@ -97,7 +97,8 @@ jobs:
         shell: bash
         run: echo "${{ github.workspace }}/nim/bin" >> "${GITHUB_PATH}"
 
-      - uses: jiro4989/setup-nim-action@v1
+      - name: Setup Nim
+        uses: jiro4989/setup-nim-action@v1
         with:
           nim-version: 'devel'
           no-color: true  # --noColor
