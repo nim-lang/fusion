@@ -72,12 +72,13 @@ proc moveFileFromTrash*(path: string; trashPath = getTrash()) =
   ## If a file with the same name already exists in the Trash folder,
   ## then the generated postfix like `" (1)"`, `" (2)"`, `" (3)"`, etc,
   ## is required on `path` to restore the correct file.
-  ##
-  ## .. code-block:: nim
-  ##   import os, trash
-  ##   writeFile("example.txt", "")
-  ##   let trashedFile = moveFileToTrash("example.txt")
-  ##   moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile))
+  runnableExamples:
+    if off:
+      import os, trash
+      writeFile("example.txt", "example")
+      let trashedFile = moveFileToTrash("example.txt")
+      moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile))
+
   assert path.len > 0, "path must not be empty string"
   if dirExists(trashPath):
     when defined(linux) or defined(bsd):
