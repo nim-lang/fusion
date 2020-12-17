@@ -107,7 +107,7 @@ jobs:
         shell: bash
         run: |
           cd fusion
-          nimble --styleCheck:hint test
+          nimble test
 
       - name: docs
         if: matrix.branch == 'devel'
