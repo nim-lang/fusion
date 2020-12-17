@@ -73,7 +73,6 @@ proc moveFileFromTrash*(path: string; trashPath = getTrash()) =
   ## Move file from `trashPath` to `path`.
   runnableExamples:
     import os
-    import fusion/trash
     if off:
       writeFile("example.txt", "example")
       let trashedFile = moveFileToTrash("example.txt")
