@@ -62,7 +62,7 @@ suite "Matching":
 
     let val = Obj1()
 
-  multitest "Pattern parser tests":
+  test "Pattern parser tests":
     macro main(): untyped =
       template t(body: untyped): untyped =
         block:
@@ -107,6 +107,7 @@ suite "Matching":
 
       block:
         node.assertMatch(Par [_] | Par [_])
+
         node.assertMatch(Par[Infix()])
         node.assertMatch(Par [Infix()])
         node.assertMatch(Par[Infix ()])
@@ -232,7 +233,7 @@ suite "Matching":
           testTypes()
 
 
-  multitest "Simple uses":
+  test "Simple uses":
     case (12, 24):
       of (_, 24):
         discard
@@ -422,6 +423,9 @@ suite "Matching":
 
   func `[]`(o: Obj2, idx: int): Obj2 = o.eee[idx]
   func len(o: Obj2): int = o.eee.len
+  iterator items(o: Obj2): Obj2 =
+    for item in o.eee:
+      yield item
 
   multitest "Object items":
 
@@ -653,6 +657,7 @@ suite "Matching":
       block: [all (1|2|3|4|5)] := [1,2,3,4,1,1,2]
       block:
         [until @head is 2, all @tail] := [1,2,3]
+
         assertEq head, @[1]
         assertEq tail, @[2,3]
 
@@ -859,6 +864,9 @@ suite "Matching":
     node.subn[idx]
 
   func len(n: HtmlNode): int = n.subn.len
+  iterator items(node: HtmlNode): HtmlNode =
+    for sn in node.subn:
+      yield sn
 
 
   multitestSince "Tree builder custom type", (1, 4, 0):
@@ -959,7 +967,7 @@ suite "Matching":
     block:
       [any @a(it < 3)] := [1, 2, 3]
       doAssert a is seq[int]
-      doAssert a == @[1, 2]
+      assertEq a, @[1, 2]
 
     block:
       [until @a == 6, _] := [1, 2, 3, 6]
@@ -973,8 +981,9 @@ suite "Matching":
 
     block:
       [any @a > 100] := [1, 2, 101]
+
       doAssert @a is seq[int]
-      doAssert @a == @[101]
+      assertEq @a, @[101]
 
     block:
       [any @a(it > 100)] := [1, 2, 101]
@@ -1177,14 +1186,18 @@ suite "Matching":
 
     try:
       [any 1] := [2,3,4]
+
     except MatchError:
       let msg = getCurrentExceptionMsg()
       doAssert "any 1" in msg
 
     [any is (1 | 2)] := [1, 2]
+
     try:
       [_, any is (1 | 2)] := [3,4,5]
+
       testfail("_, any is (1 | 2)")
+
     except MatchError:
       let msg = getCurrentExceptionMsg()
       doAssert "any is (1 | 2)" in msg
@@ -1749,11 +1762,19 @@ suite "More tests":
 
     discard val.convert()
 
-when false:
-  [1 .. 6] := @[1111,1,1,1,1,1,1]
-  [1 .. 6 is _]
+import std/[deques, lists]
 
-  # TODO support reverse index for array pattern matching
+suite "stdlib container matches":
+  test "Ques":
+    var que = initDeque[(int, string)]()
+    que.addLast (12, "hello")
+    que.addLast (3, "iiiiii")
+
+    [any (_ < 12, @vals)] := que
+
+    assertEq vals, @["iiiiii"]
+
+
 
 suite "Article examples":
   test "Small parts":
