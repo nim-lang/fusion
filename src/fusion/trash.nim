@@ -31,8 +31,8 @@ proc getTrash*(): string =
       doAssert false, "Operating system Trash is currently not supported"
 
 
-proc moveFileToTrash*(path: string; trashPath = getTrash(); postfixStart = 1.Positive): string =
-  ## Move file from `path` to `trashPath`, `trashPath` defaults to `getTrash()`.
+proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): string =
+  ## Move file from `path` to `trashPath`.
   ##
   ## If a file with the same name already exists in the Trash folder,
   ## then appends a postfix like `" (1)"`, `" (2)"`, `" (3)"`, etc,
@@ -69,14 +69,14 @@ proc moveFileToTrash*(path: string; trashPath = getTrash(); postfixStart = 1.Pos
     moveFile(path, result)
 
 
-proc moveFileFromTrash*(path: string; trashPath = getTrash()) =
+proc moveFileFromTrash*(path, trashPath: string) =
   ## Move file from `trashPath` to `path`.
   runnableExamples:
     import os
     if off:
       writeFile("example.txt", "example")
-      let trashedFile = moveFileToTrash("example.txt")
-      moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile))
+      let trashedFile = moveFileToTrash("example.txt", getTrash())
+      moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile), getTrash())
 
   assert path.len > 0, "path must not be empty string"
   if dirExists(trashPath):
