@@ -68,10 +68,6 @@ proc moveFileToTrash*(path: string; trashPath = getTrash(); postfixStart = 1.Pos
 
 proc moveFileFromTrash*(path: string; trashPath = getTrash()) =
   ## Move file from `trashPath` to `path`.
-  ##
-  ## If a file with the same name already exists in the Trash folder,
-  ## then the generated postfix like `" (1)"`, `" (2)"`, `" (3)"`, etc,
-  ## is required on `path` to restore the correct file.
   runnableExamples:
     if off:
       import os, trash
@@ -84,6 +80,6 @@ proc moveFileFromTrash*(path: string; trashPath = getTrash()) =
     when defined(linux) or defined(bsd):
       let fname = extractFilename(path)
       moveFile(trashPath / "files" / fname, path)
-      discard tryRemoveFile(trashPath / "info" / fname & ".trashinfo")
+      removeFile(trashPath / "info" / fname & ".trashinfo")
     else:
       moveFile(trashPath / extractFilename(path), path)
