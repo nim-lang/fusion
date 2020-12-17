@@ -11,13 +11,17 @@ import os, times
 
 proc getTrash*(): string =
   ## Return the operating system Trash directory.
+  ## Android has no Trash, some apps just use a temporary folder.
+  ## Windows Trash is not supported.
   result =
     when defined(linux) or defined(bsd):
       getEnv("XDG_DATA_HOME", getHomeDir()) / ".local/share/Trash"
     elif defined(osx):
       getEnv("HOME", getHomeDir()) / ".Trash"
+    elif defined(android):
+      getTempDir()
     else:
-      getTempDir() # Android has no Trash, some apps just use a temporary folder.
+      doAssert false, "Operating system Trash is currently not supported"
 
 
 proc moveFileToTrash*(filename: string; trashPath = getTrash(); postfixStart = 1.Positive): string =
