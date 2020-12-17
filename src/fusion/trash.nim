@@ -24,8 +24,8 @@ proc getTrash*(): string =
       doAssert false, "Operating system Trash is currently not supported"
 
 
-proc moveFileToTrash*(filename: string; trashPath = getTrash(); postfixStart = 1.Positive): string =
-  ## Move file from `filename` to `trashPath`, `trashPath` defaults to `getTrash()`.
+proc moveFileToTrash*(path: string; trashPath = getTrash(); postfixStart = 1.Positive): string =
+  ## Move file from `path` to `trashPath`, `trashPath` defaults to `getTrash()`.
   ##
   ## If a file with the same name already exists in the Trash folder,
   ## then appends a postfix like `" (1)"`, `" (2)"`, `" (3)"`, etc,
@@ -33,9 +33,9 @@ proc moveFileToTrash*(filename: string; trashPath = getTrash(); postfixStart = 1
   ##
   ## If you know the latest highest postfix used on the Trash folder,
   ## then you can use `postfixStart` for better performance.
-  assert filename.len > 0, "filename must not be empty string"
+  assert path.len > 0, "path must not be empty string"
   discard existsOrCreateDir(trashPath)
-  let fullPath = expandFilename(filename)
+  let fullPath = expandFilename(path)
   var fname = extractFilename(fullPath)
   result =
     when defined(linux) or defined(bsd): trashPath / "files" / fname
@@ -63,26 +63,26 @@ proc moveFileToTrash*(filename: string; trashPath = getTrash(); postfixStart = 1
     moveFile(fullPath, result)
     writeFile(trashPath / "info" / fname & ".trashinfo", trashinfo)
   else:
-    moveFile(expandFilename(filename), result)
+    moveFile(expandFilename(path), result)
 
 
-proc moveFileFromTrash*(filename: string; trashPath = getTrash()) =
-  ## Move file from `trashPath` to `filename`, `trashPath` defaults to `getTrash()`.
+proc moveFileFromTrash*(path: string; trashPath = getTrash()) =
+  ## Move file from `trashPath` to `path`, `trashPath` defaults to `getTrash()`.
   ##
   ## If a file with the same name already exists in the Trash folder,
   ## then the generated postfix like `" (1)"`, `" (2)"`, `" (3)"`, etc,
-  ## is required on `filename` to restore the correct file.
+  ## is required on `path` to restore the correct file.
   ##
   ## .. code-block:: nim
   ##   import os, trash
   ##   writeFile("example.txt", "")
   ##   let trashedFile = moveFileToTrash("example.txt")
   ##   moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile))
-  assert filename.len > 0, "filename must not be empty string"
+  assert path.len > 0, "path must not be empty string"
   if dirExists(trashPath):
     when defined(linux) or defined(bsd):
-      let fname = extractFilename(filename)
-      moveFile(trashPath / "files" / fname, filename)
+      let fname = extractFilename(path)
+      moveFile(trashPath / "files" / fname, path)
       discard tryRemoveFile(trashPath / "info" / fname & ".trashinfo")
     else:
-      moveFile(trashPath / extractFilename(filename), filename)
+      moveFile(trashPath / extractFilename(path), path)
