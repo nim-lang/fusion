@@ -6,7 +6,14 @@
 when defined(js):
   {.fatal: "Module trash is not designed to be used with the JavaScript backend.".}
 
-import os, times
+import os, times, strutils
+
+
+const trashinfo = """
+[Trash Info]
+Path=$1
+DeletionDate=$2
+"""
 
 
 proc getTrash*(): string =
@@ -53,15 +60,11 @@ proc moveFileToTrash*(path: string; trashPath = getTrash(); postfixStart = 1.Pos
           else: trashPath / fname
         break
   when defined(linux) or defined(bsd):
-    var trashinfo = "[Trash Info]\nPath="
-    trashinfo.add fullPath
-    trashinfo.add "\nDeletionDate="
-    trashinfo.add now().format("yyyy-MM-dd'T'HH:MM:ss")
-    trashinfo.add '\n'
     discard existsOrCreateDir(trashPath / "files")
     discard existsOrCreateDir(trashPath / "info")
     moveFile(fullPath, result)
-    writeFile(trashPath / "info" / fname & ".trashinfo", trashinfo)
+    writeFile(trashPath / "info" / fname & ".trashinfo",
+      trashinfo % [fullPath, now().format("yyyy-MM-dd'T'HH:MM:ss")])
   else:
     moveFile(path, result)
 
