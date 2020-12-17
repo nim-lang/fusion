@@ -67,7 +67,7 @@ proc moveFileToTrash*(path: string; trashPath = getTrash(); postfixStart = 1.Pos
 
 
 proc moveFileFromTrash*(path: string; trashPath = getTrash()) =
-  ## Move file from `trashPath` to `path`, `trashPath` defaults to `getTrash()`.
+  ## Move file from `trashPath` to `path`.
   ##
   ## If a file with the same name already exists in the Trash folder,
   ## then the generated postfix like `" (1)"`, `" (2)"`, `" (3)"`, etc,
