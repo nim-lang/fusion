@@ -116,11 +116,11 @@ suite "Matching":
 
       block:
 
-        (
+        [
           Par     [Infix [_, @lhs, @rhs]] |
           Command [Infix [_, @lhs, @rhs]] |
           Infix   [@infixId, @lhs, @rhs]
-        ) := node
+        ] := node
 
         doAssert lhs is NimNode
         doAssert rhs is NimNode
@@ -1301,6 +1301,32 @@ suite "Matching":
       })
 
       assertEq fld1, 33
+
+  multitest "Custom object unpackers":
+    type
+      Point = object
+        x: int
+        y: int
+        metadata: string ## Some field that you dont' want to unpack
+
+    proc `[]`(p: Point, idx: static[FieldIndex]): auto =
+      when idx == 0:
+        p.x
+      elif idx == 1:
+        p.y
+      else:
+        static:
+          error("Cannot unpack `Point` into three-tuple")
+
+    let point = Point(x: 12, y: 13)
+
+    (@x, @y) := point
+
+    assertEq x, 12
+    assertEq y, 13
+
+
+
 
 
 

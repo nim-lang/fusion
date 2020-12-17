@@ -300,6 +300,8 @@ type
 
   MatchError* = ref object of CatchableError ## Exception indicating match failure
 
+  FieldIndex* = distinct int
+
   Match* = ref object
     ## Object describing single match for element
     bindVar*: Option[NimNode] ## Bound variable (if any)
@@ -613,14 +615,20 @@ func toAccs*(path: Path, name: string): NimNode =
     result = case head.inStruct:
       of kSeq:
         nnkBracketExpr.newTree(prefix, top[0].pos)
+
       of kTuple:
-        nnkBracketExpr.newTree(prefix, newLit(top[0].idx))
+        nnkBracketExpr.newTree(
+          prefix, newCall("FieldIndex", newLit(top[0].idx)))
+
       of kObject:
         nnkDotExpr.newTree(prefix, ident head.fld)
+
       of kPairs:
         nnkBracketExpr.newTree(prefix, head.key)
+
       of kItem, kAlt:
         prefix
+
       of kSet:
         raiseAssert(
           "Invalid access path: cannot create explicit access for set")
@@ -1027,17 +1035,25 @@ func parseMatchExpr*(n: NimNode): Match =
       else:
         result.rhsNode = n
         result.infix = "=="
+
     of nnkPar: # Named or unnamed tuple
       if n.isNamedTuple(): # `(fld1: ...)`
         result = parseKVTuple(n)
+
       elif n[0].kind == nnkInfix and n[0][0].eqIdent("|"):
         result = parseAltMatch(n[0])
+
       else: # Unnamed tuple `( , , , , )`
-        result = Match(kind: kTuple, declNode: n)
-        for elem in n:
-          # debugecho elem.repr
-          # debugecho elem.idxTreeRepr()
-          result.tupleElems.add parseMatchExpr(elem)
+        if n.len == 1: # Tuple with single argument is most likely used as
+                       # regular parens in order to change operator
+                       # precendence.
+
+          result = parseMatchExpr(n[0])
+        else:
+          result = Match(kind: kTuple, declNode: n)
+          for elem in n:
+            result.tupleElems.add parseMatchExpr(elem)
+
     of nnkPrefix: # `is Patt()`, `@capture` or other prefix expression
       if n[0].nodeStr() in ["is", "of"]: # `is Patt()`
         result = Match(
@@ -1046,8 +1062,6 @@ func parseMatchExpr*(n: NimNode): Match =
 
         if n[0].nodeStr() == "of" and result.rhsPatt.kind == kObject:
           result.rhsPatt.isRefKind = true
-
-        # debugecho "of kind: ", result.rhsPatt.kind
 
       elif n[0].nodeStr() == "@": # `@capture`
         # debugecho "Found var ", n.repr
@@ -1753,6 +1767,7 @@ func makeMatchExpr(
         ], mainExpr, doRaise, originalMainExpr)
 
       return conds.foldInfix("and")
+
     of kObject:
       var conds: seq[NimNode]
       var refCast: seq[AccsElem]
@@ -2206,3 +2221,8 @@ template `:=`*(lhs, rhs: untyped): untyped =
 template `?=`*(lhs, rhs: untyped): untyped =
   ## Shorthand for `matches`
   matches(rhs, lhs)
+
+template `[]`*(t: tuple, idx: static[FieldIndex]): untyped =
+  t[idx.int]
+
+func `==`*(idx: FieldIndex, i: SomeInteger): bool = idx.int == i
