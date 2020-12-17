@@ -63,7 +63,7 @@ proc moveFileToTrash*(path: string; trashPath = getTrash(); postfixStart = 1.Pos
     moveFile(fullPath, result)
     writeFile(trashPath / "info" / fname & ".trashinfo", trashinfo)
   else:
-    moveFile(expandFilename(path), result)
+    moveFile(path, result)
 
 
 proc moveFileFromTrash*(path: string; trashPath = getTrash()) =
