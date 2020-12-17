@@ -74,7 +74,6 @@ proc moveFileFromTrash*(path, trashPath: string) =
   runnableExamples:
     import os
     if off:
-      writeFile("example.txt", "example")
       let trashedFile = moveFileToTrash("example.txt", getTrash())
       moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile), getTrash())
 
