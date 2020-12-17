@@ -41,6 +41,7 @@ proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): strin
   ## If you know the latest highest postfix used on the Trash folder,
   ## then you can use `postfixStart` for better performance.
   assert path.len > 0, "path must not be empty string"
+  assert trashPath.len > 0, "trashPath must not be empty string"
   discard existsOrCreateDir(trashPath)
   let fullPath = expandFilename(path)
   var fname = extractFilename(fullPath)
@@ -78,6 +79,7 @@ proc moveFileFromTrash*(path, trashPath: string) =
       moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile), getTrash())
 
   assert path.len > 0, "path must not be empty string"
+  assert trashPath.len > 0, "trashPath must not be empty string"
   if dirExists(trashPath):
     when defined(linux) or defined(bsd):
       let fname = extractFilename(path)
