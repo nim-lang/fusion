@@ -33,6 +33,7 @@ proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): strin
   result =
     when defined(linux) or defined(bsd): trashPath / "files" / fname
     else: trashPath / fname
+
   # If file exists on Trash, append " (1)", " (2)", " (3)", etc.
   if fileExists(result):
     for i in postfixStart .. int.high:
@@ -45,6 +46,9 @@ proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): strin
           when defined(linux) or defined(bsd): trashPath / "files" / fname
           else: trashPath / fname
         break
+  else:
+    raise newException(IOError, "File not found: " & result)
+
   when defined(linux) or defined(bsd):
     discard existsOrCreateDir(trashPath / "files")
     discard existsOrCreateDir(trashPath / "info")
