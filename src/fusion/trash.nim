@@ -8,7 +8,6 @@ when defined(js):
 
 import os, times, strutils
 
-const trashDirDefault {.strdefine, used.}: string = ""
 const trashinfo = """
 [Trash Info]
 Path=$1
@@ -21,21 +20,26 @@ template trashHelper(trashPath: string; fname: string): string =
   else: trashPath / fname
 
 
-proc getTrash*(): string =
+proc getTrash*(trashDirDefault: static[string] = ""): string =
   ## Return the operating system Trash directory.
   ## Android has no Trash, some apps just use a temporary folder.
   ## Windows Trash is not supported.
-  ## Use `-d:trashDirDefault=/path/to/trash` for not supported operating systems.
+  ## Use `trashDirDefault` for not supported operating systems.
   when trashDirDefault.len > 0:
-    result = trashDirDefault
+    result = absolutePath(trashDirDefault)
   elif defined(linux) or defined(bsd):
-    result = getEnv("XDG_DATA_HOME", getHomeDir()) / ".local/share/Trash"
+    result = absolutePath(getEnv("XDG_DATA_HOME", getHomeDir()) / ".local/share/Trash")
   elif defined(osx):
-    result = getHomeDir() / ".Trash"
+    result = absolutePath(getHomeDir() / ".Trash")
   elif defined(android):
     result = getTempDir()
   else:
-    doAssert false, "Operating system Trash is currently not supported, use -d:trashDirDefault=path"
+    raise newException(ValueError, "Operating system Trash is currently not supported, use trashDirDefault argument")
+  when not defined(danger):
+    if result.len == 0:
+      raise newException(ValueError, "Trash path must not be empty string: " & result)
+    if not dirExists(result):
+      raise newException(ValueError, "Trash path must exist: " & result)
 
 
 proc moveFileToTrash*(path, trashPath: string;
