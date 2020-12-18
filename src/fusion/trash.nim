@@ -72,12 +72,12 @@ proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): strin
 
 proc moveFileFromTrash*(path, trashPath: string) =
   ## Move file from `trashPath` to `path`.
-  runnableExamples:
-    import os
-    when not defined(windows):
-      if off:
-        let trashedFile = moveFileToTrash("example.txt", getTrash())
-        moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile), getTrash())
+  # runnableExamples:
+  #   import os
+  #   when not defined(windows):
+  #     if off:
+  #       let trashedFile = moveFileToTrash("example.txt", getTrash())
+  #       moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile), getTrash())
 
   assert path.len > 0, "path must not be empty string"
   assert trashPath.len > 0, "trashPath must not be empty string"
