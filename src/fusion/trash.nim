@@ -26,18 +26,16 @@ proc getTrash*(): string =
   ## Android has no Trash, some apps just use a temporary folder.
   ## Windows Trash is not supported.
   ## Use `-d:trashDirDefault=/path/to/trash` for not supported operating systems.
-  result =
-    when defined(linux) or defined(bsd):
-      getEnv("XDG_DATA_HOME", getHomeDir()) / ".local/share/Trash"
-    elif defined(osx):
-      getHomeDir() / ".Trash"
-    elif defined(android):
-      getTempDir()
-    else:
-      when trashDirDefault.len > 0:
-        trashDirDefault
-      else:
-        doAssert false, "Operating system Trash is currently not supported, use -d:trashDirDefault=path"
+  when trashDirDefault.len > 0:
+    result = trashDirDefault
+  elif defined(linux) or defined(bsd):
+    result = getEnv("XDG_DATA_HOME", getHomeDir()) / ".local/share/Trash"
+  elif defined(osx):
+    result = getHomeDir() / ".Trash"
+  elif defined(android):
+    result = getTempDir()
+  else:
+    doAssert false, "Operating system Trash is currently not supported, use -d:trashDirDefault=path"
 
 
 proc moveFileToTrash*(path, trashPath: string;
