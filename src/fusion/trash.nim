@@ -16,21 +16,6 @@ DeletionDate=$2
 """
 
 
-proc getTrash*(): string =
-  ## Return the operating system Trash directory.
-  ## Android has no Trash, some apps just use a temporary folder.
-  ## Windows Trash is not supported.
-  result =
-    when defined(linux) or defined(bsd):
-      getEnv("XDG_DATA_HOME", getHomeDir()) / ".local/share/Trash"
-    elif defined(osx):
-      getEnv("HOME", getHomeDir()) / ".Trash"
-    elif defined(android):
-      getTempDir()
-    else:
-      doAssert false, "Operating system Trash is currently not supported"
-
-
 proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): string =
   ## Move file from `path` to `trashPath`.
   ##
@@ -72,12 +57,11 @@ proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): strin
 
 proc moveFileFromTrash*(path, trashPath: string) =
   ## Move file from `trashPath` to `path`.
-  # runnableExamples:
-  #   import os
-  #   when not defined(windows):
-  #     if off:
-  #       let trashedFile = moveFileToTrash("example.txt", getTrash())
-  #       moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile), getTrash())
+  runnableExamples:
+    import os
+    if off:
+      let trashedFile = moveFileToTrash("example.txt", "/path/to/trash/folder")
+      moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile), "/path/to/trash/folder")
 
   assert path.len > 0, "path must not be empty string"
   assert trashPath.len > 0, "trashPath must not be empty string"
