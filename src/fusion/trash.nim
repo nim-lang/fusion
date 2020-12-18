@@ -35,11 +35,12 @@ proc getTrash*(trashDirDefault: static[string] = ""): string =
     result = getTempDir()
   else:
     raise newException(ValueError, "Operating system Trash is currently not supported, use trashDirDefault argument")
-  when not defined(danger):
-    if not dirExists(result):
-      raise newException(ValueError, "Trash path must exist: " & result)
-    if not isAbsolute(result):
-      raise newException(ValueError, "Trash path must be absolute: " & result)
+  if not dirExists(result):
+    raise newException(ValueError, "Trash path must exist: " & result)
+  if not isAbsolute(result):
+    raise newException(ValueError, "Trash path must be absolute: " & result)
+  if symlinkExists(result):
+    raise newException(ValueError, "Trash path must not be a symlink: " & result)
 
 
 proc moveFileToTrash*(path: string, trashPath = getTrash();
@@ -55,11 +56,10 @@ proc moveFileToTrash*(path: string, trashPath = getTrash();
   ##
   ## If `postfixStart` and `postfixStop` are provided,
   ## then the file scan loop can be reduced to a single iteration.
-  when not defined(danger):
-    if path.len == 0:
-      raise newException(ValueError, "path must not be empty string: " & path)
-    if trashPath.len == 0:
-      raise newException(ValueError, "trashPath must not be empty string: " & trashPath)
+  if path.len == 0:
+    raise newException(ValueError, "path must not be empty string: " & path)
+  if trashPath.len == 0:
+    raise newException(ValueError, "trashPath must not be empty string: " & trashPath)
 
   discard existsOrCreateDir(trashPath)
   let fullPath = absolutePath(path)
@@ -76,9 +76,7 @@ proc moveFileToTrash*(path: string, trashPath = getTrash();
         fname = fname & prefix
         result = trashHelper(trashPath, fname)
         break
-  else:
-    raise newException(IOError, "File not found: " & result)
-
+  # Do NOT add an else here, because it only changes filename if it exists.
   when defined(linux) or defined(bsd):
     discard existsOrCreateDir(trashPath / "files")
     discard existsOrCreateDir(trashPath / "info")
@@ -89,7 +87,7 @@ proc moveFileToTrash*(path: string, trashPath = getTrash();
     moveFile(path, result)
 
 
-proc moveFileFromTrash*(path: string; trashPath: string) =
+proc moveFileFromTrash*(path: string, trashPath = getTrash()) =
   ## Move file from `trashPath` to `path`.
   runnableExamples:
     import os
@@ -97,14 +95,11 @@ proc moveFileFromTrash*(path: string; trashPath: string) =
       let trashedFile = moveFileToTrash("example.txt", "/path/to/trash/folder")
       moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile), "/path/to/trash/folder")
 
-  assert path.len > 0, "path must not be empty string"
-  assert trashPath.len > 0, "trashPath must not be empty string"
-  if dirExists(trashPath):
-    when defined(linux) or defined(bsd):
-      let fname = extractFilename(path)
-      moveFile(trashHelper(trashPath, fname), path)
-      removeFile(trashPath / "info" / fname & ".trashinfo")
-    else:
-      moveFile(trashPath / extractFilename(path), path)
-  else:
-    raise newException(IOError, "Directory not found: " & trashPath)
+  if path.len == 0:
+    raise newException(ValueError, "path must not be empty string: " & path)
+  if trashPath.len == 0:
+    raise newException(ValueError, "trashPath must not be empty string: " & trashPath)
+  let fname = extractFilename(path)
+  moveFile(trashHelper(trashPath, fname), path)
+  when defined(linux) or defined(bsd):
+    removeFile(trashPath / "info" / fname & ".trashinfo")
