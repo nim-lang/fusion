@@ -285,6 +285,7 @@ when (NimMajor, NimMinor, NimPatch) >= (1, 4, 2):
 else:
   type FieldIndex* = int
 
+
 type
   MatchKind* = enum
     ## Different kinds of matching patterns

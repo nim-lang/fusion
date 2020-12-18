@@ -1681,6 +1681,25 @@ suite "Gara tests":
       testfail()
 
 suite "More tests":
+  test "Line scanner":
+    iterator splitLines(str: string, sep: set[char]): seq[string] =
+      for line in str.split(sep):
+        yield line.split(" ")
+
+    for line in splitLines("# a|#+ b :|#+ begin_txt :", {'|'}):
+      case line:
+        of ["#+", @name.startsWith("begin"), .._]:
+          assertEq name, "begin_txt"
+
+        of ["#+", @name, .._]:
+          assertEq name, "b"
+
+        of ["#", @name, .._]:
+          assertEq name, "a"
+
+        else:
+          testFail()
+
   test "Alt pattern in sequence of ref objects":
     type
       Base = ref object of RootObj
@@ -1791,6 +1810,15 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
       [@a, _] := "A|B".split("|")
       doAssert a is string
       doAssert a == "A"
+
+    block:
+      case parseJson("""{ "key" : "value" }"""):
+        of { "key" : JInt() }:
+          testFail()
+
+        of { "key" : (getStr: @val) }:
+          doAssert val is string, $typeof(val)
+
 
     block:
       let it: seq[string] = "A|B".split("|")
