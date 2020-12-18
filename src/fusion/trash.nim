@@ -36,15 +36,13 @@ proc getTrash*(trashDirDefault: static[string] = ""): string =
   else:
     raise newException(ValueError, "Operating system Trash is currently not supported, use trashDirDefault argument")
   when not defined(danger):
-    if result.len == 0:
-      raise newException(ValueError, "Trash path must not be empty string: " & result)
     if not dirExists(result):
       raise newException(ValueError, "Trash path must exist: " & result)
     if not isAbsolute(result):
       raise newException(ValueError, "Trash path must be absolute: " & result)
 
 
-proc moveFileToTrash*(path, trashPath: string;
+proc moveFileToTrash*(path: string, trashPath = getTrash();
     postfixRange = 1.Positive..int.high.Positive): string =
   ## Move file from `path` to `trashPath`.
   ##
