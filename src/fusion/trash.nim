@@ -30,7 +30,7 @@ proc getTrash*(): string =
     when defined(linux) or defined(bsd):
       getEnv("XDG_DATA_HOME", getHomeDir()) / ".local/share/Trash"
     elif defined(osx):
-      getEnv("HOME", getHomeDir()) / ".Trash"
+      getHomeDir() / ".Trash"
     elif defined(android):
       getTempDir()
     else:
