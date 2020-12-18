@@ -45,18 +45,15 @@ proc getTrash*(trashDirDefault: static[string] = ""): string =
 
 
 proc moveFileToTrash*(path, trashPath: string;
-    postfixStart = 1.Positive; postfixStop = int.high.Positive): string =
+    postfixRange = 1.Positive..int.high.Positive): string =
   ## Move file from `path` to `trashPath`.
   ##
   ## If a file with the same name already exists in the Trash folder,
   ## then appends a postfix like `" (1)"`, `" (2)"`, `" (3)"`, etc,
   ## returns the path of the file in the Trash, with the generated postfix if any.
   ##
-  ## If the latest lowest postfix used on the Trash folder is known,
-  ## then can be used as `postfixStart`.
-  ##
-  ## If the latest highest postfix used on the Trash folder is known,
-  ## then can be used as `postfixStop`.
+  ## If the latest lowest and/or highest postfix used on the Trash folder is known,
+  ## then can be used as `postfixRange`.
   ##
   ## If `postfixStart` and `postfixStop` are provided,
   ## then the file scan loop can be reduced to a single iteration.
@@ -65,8 +62,6 @@ proc moveFileToTrash*(path, trashPath: string;
       raise newException(ValueError, "path must not be empty string: " & path)
     if trashPath.len == 0:
       raise newException(ValueError, "trashPath must not be empty string: " & trashPath)
-    if postfixStart > postfixStop:
-      raise newException(ValueError, "postfixStop must be greater or equal than postfixStart")
 
   discard existsOrCreateDir(trashPath)
   let fullPath = absolutePath(path)
@@ -75,7 +70,7 @@ proc moveFileToTrash*(path, trashPath: string;
 
   # If file exists on Trash, append " (1)", " (2)", " (3)", etc.
   if fileExists(result):
-    for i in postfixStart .. postfixStop:
+    for i in postfixRange:
       var prefix = " ("
       prefix.add $i
       prefix.add ')'
