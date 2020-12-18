@@ -39,7 +39,7 @@ proc moveFileToTrash*(path, trashPath: string;
   ## then the file scan loop can be reduced to a single iteration.
   assert path.len > 0, "path must not be empty string"
   assert trashPath.len > 0, "trashPath must not be empty string"
-  assert postfixStop > postfixStart
+  assert postfixStop >= postfixStart
   discard existsOrCreateDir(trashPath)
   let fullPath = expandFilename(path)
   var fname = extractFilename(fullPath)
