@@ -60,7 +60,7 @@ proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): strin
     moveFile(path, result)
 
 
-proc moveFileFromTrash*(path, trashPath: string) =
+proc moveFileFromTrash*(path: string; trashPath: string) =
   ## Move file from `trashPath` to `path`.
   runnableExamples:
     import os
@@ -77,3 +77,5 @@ proc moveFileFromTrash*(path, trashPath: string) =
       removeFile(trashPath / "info" / fname & ".trashinfo")
     else:
       moveFile(trashPath / extractFilename(path), path)
+  else:
+    raise newException(IOError, "Directory not found: " & trashPath)
