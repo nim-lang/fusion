@@ -40,6 +40,8 @@ proc getTrash*(trashDirDefault: static[string] = ""): string =
       raise newException(ValueError, "Trash path must not be empty string: " & result)
     if not dirExists(result):
       raise newException(ValueError, "Trash path must exist: " & result)
+    if not isAbsolute(result):
+      raise newException(ValueError, "Trash path must be absolute: " & result)
 
 
 proc moveFileToTrash*(path, trashPath: string;
