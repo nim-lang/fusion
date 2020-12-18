@@ -16,6 +16,11 @@ DeletionDate=$2
 """
 
 
+template trashHelper(trashPath: string; fname: string): string =
+  when defined(linux) or defined(bsd): trashPath / "files" / fname
+  else: trashPath / fname
+
+
 proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): string =
   ## Move file from `path` to `trashPath`.
   ##
@@ -30,9 +35,7 @@ proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): strin
   discard existsOrCreateDir(trashPath)
   let fullPath = expandFilename(path)
   var fname = extractFilename(fullPath)
-  result =
-    when defined(linux) or defined(bsd): trashPath / "files" / fname
-    else: trashPath / fname
+  result = trashHelper(trashPath, fname)
 
   # If file exists on Trash, append " (1)", " (2)", " (3)", etc.
   if fileExists(result):
@@ -42,9 +45,7 @@ proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): strin
       prefix.add ')'
       if not fileExists(result & prefix):
         fname = fname & prefix
-        result =
-          when defined(linux) or defined(bsd): trashPath / "files" / fname
-          else: trashPath / fname
+        result = trashHelper(trashPath, fname)
         break
   else:
     raise newException(IOError, "File not found: " & result)
@@ -72,7 +73,7 @@ proc moveFileFromTrash*(path, trashPath: string) =
   if dirExists(trashPath):
     when defined(linux) or defined(bsd):
       let fname = extractFilename(path)
-      moveFile(trashPath / "files" / fname, path)
+      moveFile(trashHelper(trashPath, fname), path)
       removeFile(trashPath / "info" / fname & ".trashinfo")
     else:
       moveFile(trashPath / extractFilename(path), path)
