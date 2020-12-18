@@ -60,7 +60,7 @@ proc moveFileToTrash*(path, trashPath: string;
   assert trashPath.len > 0, "trashPath must not be empty string"
   assert postfixStop >= postfixStart
   discard existsOrCreateDir(trashPath)
-  let fullPath = expandFilename(path)
+  let fullPath = absolutePath(path)
   var fname = extractFilename(fullPath)
   result = trashHelper(trashPath, fname)
 
