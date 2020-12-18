@@ -8,7 +8,7 @@ when defined(js):
 
 import os, times, strutils
 
-
+const trashDirDefault {.strdefine, used.}: string = ""
 const trashinfo = """
 [Trash Info]
 Path=$1
@@ -19,6 +19,25 @@ DeletionDate=$2
 template trashHelper(trashPath: string; fname: string): string =
   when defined(linux) or defined(bsd): trashPath / "files" / fname
   else: trashPath / fname
+
+
+proc getTrash*(): string =
+  ## Return the operating system Trash directory.
+  ## Android has no Trash, some apps just use a temporary folder.
+  ## Windows Trash is not supported.
+  ## Use `-d:trashDirDefault=/path/to/trash` for not supported operating systems.
+  result =
+    when defined(linux) or defined(bsd):
+      getEnv("XDG_DATA_HOME", getHomeDir()) / ".local/share/Trash"
+    elif defined(osx):
+      getEnv("HOME", getHomeDir()) / ".Trash"
+    elif defined(android):
+      getTempDir()
+    else:
+      when trashDirDefault.len > 0:
+        trashDirDefault
+      else:
+        doAssert false, "Operating system Trash is currently not supported, use -d:trashDirDefault=path"
 
 
 proc moveFileToTrash*(path, trashPath: string;
