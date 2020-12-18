@@ -21,17 +21,25 @@ template trashHelper(trashPath: string; fname: string): string =
   else: trashPath / fname
 
 
-proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): string =
+proc moveFileToTrash*(path, trashPath: string;
+    postfixStart = 1.Positive; postfixStop = int.high.Positive): string =
   ## Move file from `path` to `trashPath`.
   ##
   ## If a file with the same name already exists in the Trash folder,
   ## then appends a postfix like `" (1)"`, `" (2)"`, `" (3)"`, etc,
   ## returns the path of the file in the Trash, with the generated postfix if any.
   ##
-  ## If you know the latest highest postfix used on the Trash folder,
-  ## then you can use `postfixStart` for better performance.
+  ## If the latest lowest postfix used on the Trash folder is known,
+  ## then can be used as `postfixStart`.
+  ##
+  ## If the latest highest postfix used on the Trash folder is known,
+  ## then can be used as `postfixStop`.
+  ##
+  ## If `postfixStart` and `postfixStop` are provided,
+  ## then the file scan loop can be reduced to a single iteration.
   assert path.len > 0, "path must not be empty string"
   assert trashPath.len > 0, "trashPath must not be empty string"
+  assert postfixStop > postfixStart
   discard existsOrCreateDir(trashPath)
   let fullPath = expandFilename(path)
   var fname = extractFilename(fullPath)
@@ -39,7 +47,7 @@ proc moveFileToTrash*(path, trashPath: string; postfixStart = 1.Positive): strin
 
   # If file exists on Trash, append " (1)", " (2)", " (3)", etc.
   if fileExists(result):
-    for i in postfixStart .. int.high:
+    for i in postfixStart .. postfixStop:
       var prefix = " ("
       prefix.add $i
       prefix.add ')'
