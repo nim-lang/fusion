@@ -2,14 +2,10 @@
 when not defined(js) and not defined(nimdoc):
   {.fatal: "Module jsheaders is designed to be used with the JavaScript backend.".}
 
-type Headers* = ref object ## HTTP Headers for the JavaScript target.
+type Headers* = ref object of JsRoot ## HTTP Headers for the JavaScript target.
 
 func newHeaders*(): Headers {.importjs: "new Headers()".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/Headers
-
-func newHeaders*(keyValuePairs: openArray[array[2, cstring]]): Headers {.importjs:
-  "(() => { const header = new Headers(); #.forEach((item) => header.append(item[0], item[1])); return header })()".}
-  ## Same as `newHeaders` but initializes `Headers` with `keyValuePairs`.
 
 func append*(this: Headers; key: cstring; value: cstring) {.importjs: "#.append(#, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/append
@@ -41,8 +37,8 @@ func clear*(this: Headers) {.importjs:
 
 
 runnableExamples:
-  if defined(nimJsHeadersTests):
-    var header = newHeaders()
+  if defined(fusionJsHeadersTests):
+    let header = newHeaders()
     header.append(r"key", r"value")
     doAssert header.has(r"key")
     doAssert header.keys() == @["key".cstring]
