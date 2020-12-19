@@ -2,13 +2,9 @@
 when not defined(js) and not defined(nimdoc):
   {.fatal: "Module jsformdata is designed to be used with the JavaScript backend.".}
 
-type FormData* = ref object ## FormData API.
+type FormData* = ref object of JsRoot ## FormData API.
 
 func newFormData*(): FormData {.importjs: "new FormData()".}
-
-func newFormData*(keyValuePairs: openArray[array[2, cstring]]): FormData {.importjs:
-  "(() => { const frmdt = new FormData(); #.forEach((item) => frmdt.append(item[0], item[1])); return frmdt })()".}
-  ## Same as `newFormData` but initializes `FormData` with `keyValuePairs`.
 
 func append*(this: FormData; name, value: cstring) {.importjs: "#.append(#, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/append
@@ -40,7 +36,7 @@ func getAll*(this: FormData; name: cstring): seq[cstring] {.importjs: "#.getAll(
 func has*(this: FormData; name: cstring): bool {.importjs: "#.has(#)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/has
 
-func set*(this: FormData; name, value: cstring; filename = "".cstring) {.importjs: "#.set(#, #, #)".} 
+func set*(this: FormData; name, value: cstring; filename = "".cstring) {.importjs: "#.set(#, #, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/set
 
 func keys*(this: FormData): seq[cstring] {.importjs: "Array.from(#.keys())".}
@@ -58,7 +54,7 @@ func clear*(this: FormData) {.importjs:
 
 
 runnableExamples:
-  if defined(nimJsFormdataTests):
+  if defined(fusionJsFormdataTests):
     let data: FormData = newFormData()
     data.set("key0".cstring, "value0".cstring)
     data.append("key1".cstring, "value1".cstring)
