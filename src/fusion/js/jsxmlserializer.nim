@@ -5,7 +5,7 @@ when not defined(js) and not defined(Nimdoc):
 from dom import Node
 export Node
 
-type XMLSerializer* = ref object  ## XMLSerializer API.
+type XMLSerializer* = ref object of JsRoot  ## XMLSerializer API.
 
 func newXMLSerializer*(): XMLSerializer {.importjs: "new XMLSerializer()".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer
@@ -20,6 +20,6 @@ func serializeToString*(node: Node): cstring {.importjs:
 
 runnableExamples:
   from dom import document
-  if defined(nimJsXMLSerializerTests):
+  if defined(fusionJsXMLSerializerTests):
     let cerealizer: XMLSerializer = newXMLSerializer()
     echo cerealizer.serializeToString(node = document)
