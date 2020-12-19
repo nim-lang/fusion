@@ -5,7 +5,7 @@ when not defined(js) and not defined(nimdoc):
 from dom import Node
 export Node
 
-type XMLHttpRequest* = ref object  ## https://xhr.spec.whatwg.org
+type XMLHttpRequest* = ref object of JsRoot  ## https://xhr.spec.whatwg.org
   responseXML*: Node
   withCredentials*: bool
   status*, timeout*, readyState*: cint
@@ -53,7 +53,7 @@ func setRequestHeader*(this: XMLHttpRequest; keyValuePairs: openArray[array[2, c
 
 
 runnableExamples:
-  if defined(nimJsXmlhttprequestTests):
+  if defined(fusionJsXmlhttprequestTests):
     let rekuest: XMLHttpRequest = newXMLHttpRequest()
     rekuest.open("GET".cstring, "http://localhost:8000/".cstring, false)
     rekuest.setRequestHeader("mode".cstring, "no-cors".cstring)
