@@ -20,6 +20,13 @@ template trashHelper(trashPath: string; fname: string): string =
   else: trashPath / fname
 
 
+template trashHelper2(path: string; trashPath: string) =
+  if path.len == 0:
+    raise newException(ValueError, "path must not be empty string")
+  if trashPath.len == 0:
+    raise newException(ValueError, "trashPath must not be empty string")
+
+
 proc getTrash*(trashDirDefault: static[string] = ""): string =
   ## Return the operating system Trash directory.
   ## Android has no Trash, some apps just use a temporary folder.
@@ -56,11 +63,7 @@ proc moveFileToTrash*(path: string, trashPath = getTrash();
   ##
   ## If `postfixStart` and `postfixStop` are provided,
   ## then the file scan loop can be reduced to a single iteration.
-  if path.len == 0:
-    raise newException(ValueError, "path must not be empty string")
-  if trashPath.len == 0:
-    raise newException(ValueError, "trashPath must not be empty string")
-
+  trashHelper2(path, trashPath)
   discard existsOrCreateDir(trashPath)
   let fullPath = absolutePath(path)
   var fname = extractFilename(fullPath)
@@ -87,7 +90,7 @@ proc moveFileToTrash*(path: string, trashPath = getTrash();
     moveFile(path, result)
 
 
-proc moveFileFromTrash*(path: string, trashPath = getTrash()) =
+proc moveFileFromTrash*(path: string; trashPath = getTrash()) =
   ## Move file from `trashPath` to `path`.
   runnableExamples:
     import os
@@ -95,11 +98,17 @@ proc moveFileFromTrash*(path: string, trashPath = getTrash()) =
       let trashedFile = moveFileToTrash("example.txt", "/path/to/trash/folder")
       moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile), "/path/to/trash/folder")
 
-  if path.len == 0:
-    raise newException(ValueError, "path must not be empty string")
-  if trashPath.len == 0:
-    raise newException(ValueError, "trashPath must not be empty string")
+  trashHelper2(path, trashPath)
   let fname = extractFilename(path)
   moveFile(trashHelper(trashPath, fname), path)
   when defined(linux) or defined(bsd):
     removeFile(trashPath / "info" / fname & ".trashinfo")
+
+
+proc moveDirFromTrash*(path: string; trashPath = getTrash()) =
+  ## Move directory from `trashPath` to `path`.
+  trashHelper2(path, trashPath)
+  let fname = extractFilename(path)
+  moveDir(trashHelper(trashPath, fname), path)
+  when defined(linux) or defined(bsd):
+    removeDir(trashPath / "info" / fname & ".trashinfo")
