@@ -135,7 +135,7 @@ jobs:
         uses: actions/cache@v1
         with:
           path: ~/.choosenim
-          key: ${{ runner.os }}-choosenim-devel-latest-${{ steps.get-date.outputs.date }}
+          key: ${{ runner.os }}-choosenim-devel-latest
 
       - name: Cache nimble
         id: cache-nimble
