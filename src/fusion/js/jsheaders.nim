@@ -48,3 +48,4 @@ runnableExamples:
     doAssert header.get(r"other") == "another".cstring
     doAssert header.entries() == @[["key".cstring, "value"], ["other".cstring, "another"]]
     header.delete(r"other")
+    doAssert header.entries() == @[]
