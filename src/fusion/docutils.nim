@@ -2,12 +2,13 @@ import std/[os, strformat, sugar, osproc]
 import std/private/globs
 
 
+const blockList =
+  when not defined(js): ["nimcache", "htmldocs", "js"]
+  else: ["nimcache", "htmldocs"]
+
 iterator findNimSrcFiles*(dir: string): string =
   proc follow(a: PathEntry): bool =
-    let dir = a.path.lastPathPart
-    if dir in  ["nimcache", "htmldocs"]: return false
-    when not defined(js): return true
-    else: return dir != "js"
+    a.path.lastPathPart notin blockList
 
   for entry in walkDirRecFilter(dir, follow = follow):
     if entry.path.splitFile.ext == ".nim" and entry.kind == pcFile:
