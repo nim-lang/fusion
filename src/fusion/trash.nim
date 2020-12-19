@@ -57,9 +57,9 @@ proc moveFileToTrash*(path: string, trashPath = getTrash();
   ## If `postfixStart` and `postfixStop` are provided,
   ## then the file scan loop can be reduced to a single iteration.
   if path.len == 0:
-    raise newException(ValueError, "path must not be empty string: " & path)
+    raise newException(ValueError, "path must not be empty string")
   if trashPath.len == 0:
-    raise newException(ValueError, "trashPath must not be empty string: " & trashPath)
+    raise newException(ValueError, "trashPath must not be empty string")
 
   discard existsOrCreateDir(trashPath)
   let fullPath = absolutePath(path)
@@ -96,9 +96,9 @@ proc moveFileFromTrash*(path: string, trashPath = getTrash()) =
       moveFileFromTrash(getCurrentDir() / extractFilename(trashedFile), "/path/to/trash/folder")
 
   if path.len == 0:
-    raise newException(ValueError, "path must not be empty string: " & path)
+    raise newException(ValueError, "path must not be empty string")
   if trashPath.len == 0:
-    raise newException(ValueError, "trashPath must not be empty string: " & trashPath)
+    raise newException(ValueError, "trashPath must not be empty string")
   let fname = extractFilename(path)
   moveFile(trashHelper(trashPath, fname), path)
   when defined(linux) or defined(bsd):
