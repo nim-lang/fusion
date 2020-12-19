@@ -3,8 +3,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    if: |
-      !contains(format('{0} {1}', github.event.head_commit.message, github.event.pull_request.title), '[skip ci]')
+    if: !contains(format('{0} {1}', github.event.head_commit.message, github.event.pull_request.title), '[skip ci]')
 
     strategy:
       fail-fast: false
@@ -100,8 +99,9 @@ jobs:
       - name: Setup Nim
         uses: jiro4989/setup-nim-action@v1
         with:
-          nim-version: 'devel'
+          nim-version: ${{ matrix.branch }}
           no-color: true  # --noColor
+          yes: true       # --yes
 
       - name: Run fusion tests
         shell: bash
@@ -129,3 +129,17 @@ jobs:
           target_branch: gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache choosenim
+        id: cache-choosenim
+        uses: actions/cache@v1
+        with:
+          path: ~/.choosenim
+          key: ${{ runner.os }}-choosenim-devel-latest-${{ steps.get-date.outputs.date }}
+
+      - name: Cache nimble
+        id: cache-nimble
+        uses: actions/cache@v1
+        with:
+          path: ~/.nimble
+          key: ${{ runner.os }}-nimble-devel-latest
