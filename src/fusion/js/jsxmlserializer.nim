@@ -10,11 +10,11 @@ type XMLSerializer* = ref object of JsRoot  ## XMLSerializer API.
 func newXMLSerializer*(): XMLSerializer {.importjs: "new XMLSerializer()".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer
 
-func serializeToString*(this: XMLSerializer; node: Node): cstring {.importjs: "#.serializeToString(#)".}
+func serializeToString*(this: XMLSerializer; node: Node): cstring {.importjs: "#.$1(#)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer/serializeToString
 
 func serializeToString*(node: Node): cstring {.importjs:
-  "(() => { const srlzr = new XMLSerializer(); return srlzr.serializeToString(#) })()".}
+  "(() => { const srlzr = new XMLSerializer(); return srlzr.$1(#) })()".}
   ## Convenience func for `XMLSerializer` that returns `cstring` directly.
 
 
