@@ -7,29 +7,29 @@ type Headers* = ref object of JsRoot ## HTTP Headers for the JavaScript target.
 func newHeaders*(): Headers {.importjs: "new Headers()".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/Headers
 
-func append*(this: Headers; key: cstring; value: cstring) {.importjs: "#.append(#, #)".}
+func append*(this: Headers; key: cstring; value: cstring) {.importjs: "#.$1(#, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/append
 
-func delete*(this: Headers; key: cstring) {.importjs: "#.delete(#)".}
+func delete*(this: Headers; key: cstring) {.importjs: "#.$1(#)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/delete
 
-func get*(this: Headers; key: cstring): cstring {.importjs: "#.get(#)".}
-  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
-
-func has*(this: Headers; key: cstring): bool {.importjs: "#.has(#)".}
+func has*(this: Headers; key: cstring): bool {.importjs: "#.$1(#)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/has
 
-func set*(this: Headers; key: cstring; value: cstring) {.importjs: "#.set(#, #)".}
-  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/set
-
-func keys*(this: Headers): seq[cstring] {.importjs: "Array.from(#.keys())".}
+func keys*(this: Headers): seq[cstring] {.importjs: "Array.from(#.$1())".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/keys
 
-func values*(this: Headers): seq[cstring] {.importjs: "Array.from(#.values())".}
+func values*(this: Headers): seq[cstring] {.importjs: "Array.from(#.$1())".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/values
 
-func entries*(this: Headers): seq[array[2, cstring]] {.importjs: "Array.from(#.entries())".}
+func entries*(this: Headers): seq[array[2, cstring]] {.importjs: "Array.from(#.$1())".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/entries
+
+func `[]`*(this: Headers; key: cstring): cstring {.importjs: "#.get(#)".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
+
+func `[]=`*(this: Headers; key: cstring; value: cstring) {.importjs: "#.set(#, #)".}
+  ## https://developer.mozilla.org/en-US/docs/Web/API/Headers/set
 
 func clear*(this: Headers) {.importjs:
   "(() => { const header = #; Array.from(header.keys()).forEach((key) => header.delete(key)) })()".}
@@ -43,9 +43,9 @@ runnableExamples:
     doAssert header.has(r"key")
     doAssert header.keys() == @["key".cstring]
     doAssert header.values() == @["value".cstring]
-    doAssert header.get(r"key") == "value".cstring
-    header.set(r"other", r"another")
-    doAssert header.get(r"other") == "another".cstring
+    doAssert header[r"key"] == "value".cstring
+    header[r"other"] = r"another"
+    doAssert header[r"other"] == "another".cstring
     doAssert header.entries() == @[["key".cstring, "value"], ["other".cstring, "another"]]
     header.delete(r"other")
     doAssert header.entries() == @[]
