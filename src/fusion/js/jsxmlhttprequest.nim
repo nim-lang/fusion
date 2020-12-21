@@ -14,41 +14,41 @@ type XMLHttpRequest* = ref object of JsRoot  ## https://xhr.spec.whatwg.org
 func newXMLHttpRequest*(): XMLHttpRequest {.importjs: "new XMLHttpRequest()".}
   ## Constructor for `XMLHttpRequest`.
 
-func open*(this: XMLHttpRequest; metod, url: cstring) {.importjs: "#.open(#, #)".}
+func open*(this: XMLHttpRequest; metod, url: cstring) {.importjs: "#.$1(#, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
 
-func open*(this: XMLHttpRequest; metod, url: cstring; async: bool) {.importjs: "#.open(#, #, #)".}
+func open*(this: XMLHttpRequest; metod, url: cstring; async: bool) {.importjs: "#.$1(#, #, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
 
-func open*(this: XMLHttpRequest; metod, url: cstring; async: bool; user: cstring) {.importjs: "#.open(#, #, #, #)".}
+func open*(this: XMLHttpRequest; metod, url: cstring; async: bool; user: cstring) {.importjs: "#.$1(#, #, #, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
 
-func open*(this: XMLHttpRequest; metod, url: cstring; async: bool; user, password: cstring) {.importjs: "#.open(#, #, #, #, #)".}
+func open*(this: XMLHttpRequest; metod, url: cstring; async: bool; user, password: cstring) {.importjs: "#.$1(#, #, #, #, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
 
-func send*(this: XMLHttpRequest) {.importjs: "#.send()".}
+func send*(this: XMLHttpRequest) {.importjs: "#.$1()".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
 
-func send*(this: XMLHttpRequest; body: cstring) {.importjs: "#.send(#)".}
+func send*(this: XMLHttpRequest; body: cstring) {.importjs: "#.$1(#)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/send
 
-func send*(this: XMLHttpRequest; body: Node) {.importjs: "#.send(#)".}
+func send*(this: XMLHttpRequest; body: Node) {.importjs: "#.$1(#)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/send
 
-func abort*(this: XMLHttpRequest) {.importjs: "#.abort()".}
+func abort*(this: XMLHttpRequest) {.importjs: "#.$1()".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/abort
 
-func getAllResponseHeaders*(this: XMLHttpRequest): cstring {.importjs: "#.getAllResponseHeaders()".}
+func getAllResponseHeaders*(this: XMLHttpRequest): cstring {.importjs: "#.$1()".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/getAllResponseHeaders
 
-func overrideMimeType*(this: XMLHttpRequest; mimeType: cstring) {.importjs: "#.overrideMimeType(#)".}
+func overrideMimeType*(this: XMLHttpRequest; mimeType: cstring) {.importjs: "#.$1(#)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/overrideMimeType
 
-func setRequestHeader*(this: XMLHttpRequest; key, value: cstring) {.importjs: "#.setRequestHeader(#, #)".}
+func setRequestHeader*(this: XMLHttpRequest; key, value: cstring) {.importjs: "#.$1(#, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/setRequestHeader
 
 func setRequestHeader*(this: XMLHttpRequest; keyValuePairs: openArray[array[2, cstring]]) {.importjs:
-  "(() => { const rqst = #; #.forEach((item) => rqst.setRequestHeader(item[0], item[1])) })()".}
+  "(() => { const rqst = #; #.forEach((item) => rqst.$1(item[0], item[1])) })()".}
   ## Same as `setRequestHeader` but takes `openArray[array[2, cstring]]`.
 
 
