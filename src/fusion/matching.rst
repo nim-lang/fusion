@@ -4,7 +4,6 @@
   </p></blockquote>
 
 :Author: haxscramper
-:Version: 0.7
 
 This module implements pattern matching for objects, tuples,
 sequences, key-value pairs, case and derived objects. DSL can also be
