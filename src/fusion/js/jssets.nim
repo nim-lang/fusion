@@ -3,7 +3,7 @@
 when not defined(js) and not defined(nimdoc):
   {.fatal: "Module jssets is designed to be used with the JavaScript backend.".}
 
-type JsSet* = ref object of JsRoot ## Set API.
+type JsSet* {.importjs: "Set".} = ref object of JsRoot ## Set API.
   size: cint
 
 func newJsSet*(): JsSet {.importjs: "new Set()".} ## Constructor for `JsSet`.
