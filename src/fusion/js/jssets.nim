@@ -4,6 +4,7 @@ when not defined(js) and not defined(nimdoc):
   {.fatal: "Module jssets is designed to be used with the JavaScript backend.".}
 
 type JsSet* = ref object of JsRoot ## Set API.
+  size: cint
 
 func newJsSet*(): JsSet {.importjs: "new Set()".} ## Constructor for `JsSet`.
 
@@ -35,6 +36,8 @@ runnableExamples:
     block:
       let a: JsSet = newJsSet([1, 2, 3, 4, 5])
       let b: JsSet = newJsSet([1.0, 2.0, 3.0])
+      doAssert a.size == 5
+      doAssert b.size == 3
       doAssert a.getInt() == @[1, 2, 3, 4, 5]
       doAssert b.getFloat() == @[1.0, 2.0, 3.0]
       a.clear()
@@ -42,6 +45,7 @@ runnableExamples:
       doAssert a.getInt() == @[]
       doAssert b.getFloat() == @[]
       let d: JsSet = newJsSet([1, 2, 3])
+      doAssert d.size == 3
       d.add(4)
       d.delete(2)
       doAssert 3 in d
