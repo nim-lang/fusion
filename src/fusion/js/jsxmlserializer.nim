@@ -1,5 +1,5 @@
 ## - `XMLSerializer` for the JavaScript target: https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer
-when not defined(js) and not defined(Nimdoc):
+when not defined(js) and not defined(nimdoc):
   {.fatal: "Module jsxmlserializer is designed to be used with the JavaScript backend.".}
 
 from dom import Node
@@ -12,10 +12,6 @@ func newXMLSerializer*(): XMLSerializer {.importjs: "new XMLSerializer()".}
 
 func serializeToString*(this: XMLSerializer; node: Node): cstring {.importjs: "#.$1(#)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer/serializeToString
-
-func serializeToString*(node: Node): cstring {.importjs:
-  "(() => { const srlzr = new XMLSerializer(); return srlzr.$1(#) })()".}
-  ## Convenience func for `XMLSerializer` that returns `cstring` directly.
 
 
 runnableExamples:
