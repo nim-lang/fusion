@@ -367,6 +367,7 @@ type
 
       of kSet:
         setElems*: seq[Match]
+
       of kObject:
         kindCall*: Option[NimNode] ## Optional node with kind
         ## expression pattern (see `hasKind`)
@@ -1041,6 +1042,7 @@ func parseMatchExpr*(n: NimNode): Match =
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
       if n == ident "_":
         result.isPlaceholder = true
+
       else:
         result.rhsNode = n
         result.infix = "=="
@@ -1093,17 +1095,45 @@ func parseMatchExpr*(n: NimNode): Match =
       # (stmt list)
       result = Match(
         kind: kSeq, seqElems: parseSeqMatch(n), declNode: n)
+
     of nnkTableConstr: # `{"key": "val"}` - key-value matches
       result = Match(
         kind: kPairs, pairElems: parseTableMatch(n), declNode: n)
+
     of nnkCurly: # `{1, 2}` - set pattern
       result = Match(kind: kSet, declNode: n)
       for node in n:
         if node.kind in {nnkExprColonExpr}:
           error("Unexpected colon", node)
 
+        case node.kind:
+          of nnkIntKinds, nnkIdent, nnkSym:
+            # Regular set element, `{1, 2}`, possibly with enum idents
+            result.setElems.add Match(
+              kind: kItem,
+              itemMatch: imkInfixEq,
+              rhsNode: node,
+              declNode: node
+            )
 
-        result.setElems.add parseMatchExpr(node)
+          of nnkInfix:
+            if not node[0].eqIdent(".."):
+              error(
+                "Set patter expects infix `..`, but found " & node[0].repr, node)
+
+            else:
+              result.setElems.add Match(
+                kind: kItem,
+                itemMatch: imkInfixEq,
+                rhsNode: node,
+                declNode: node
+              )
+
+          else:
+            error(
+              &"Unexpected node kind in set pattern - {node.kind}", node)
+
+
     of nnkBracketExpr:
       result = Match(
         kindCall: some n[0],
@@ -1113,6 +1143,7 @@ func parseMatchExpr*(n: NimNode): Match =
           nnkBracket.newTree(n[1..^1])
         )
       )
+
     elif n.kind in {nnkObjConstr, nnkCall, nnkCommand} and
          not n[0].eqIdent("opt"):
       if n.isBrokenBracket():
@@ -1177,9 +1208,11 @@ func parseMatchExpr*(n: NimNode): Match =
       result = lhs.parseMatchExpr()
       result.isOptional = true
       result.fallback = rhs
+
     elif n.kind == nnkInfix and n[0].eqIdent("|"):
       # `(true, true) | (false, false)`
       result = parseAltMatch(n)
+
     elif n.kind in {nnkInfix, nnkPragmaExpr}:
       n[1].assertKind({nnkPrefix, nnkIdent, nnkPragma})
       if n[1].kind in {nnkPrefix}:
@@ -1978,6 +2011,7 @@ func makeMatchExpr(
                   true
 
       return conds.foldInfix("and")
+
     of kAlt:
       var conds: seq[NimNode]
       for idx, alt in m.altElems:
@@ -2002,18 +2036,14 @@ func makeMatchExpr(
           ); true)
 
     of kSet:
-      var conds: seq[NimNode]
+      var testSet = nnkCurly.newTree()
       let setPath = path.toAccs(mainExpr, false)
       for elem in m.setElems:
-        if elem.kind == kItem and elem.infix == "==":
-          conds.add nnkInfix.newTree(ident "in", elem.rhsNode, setPath)
-        else:
-          error(
-            "Only `contains` check are supported for sets",
-            elem.declNode
-          )
+        if elem.kind == kItem:
+          testSet.add elem.rhsNode
 
-      return conds.foldInfix("and")
+      return quote do:
+        `setPath` in `testSet`
 
 
 func makeMatchExpr*(

@@ -571,9 +571,14 @@ suite "Matching":
 
 
   multitest "Set":
-    case {0 .. 3}:
-      of {2, 3}: discard
+    case [3]:
+      of [{2, 3}]: discard
       else: testfail()
+
+    [{'a' .. 'z'}, {' ', '*'}] := "z "
+
+    "hello".assertMatch([all @ident in {'a' .. 'z'}])
+    "hello:".assertMatch([prefix in {'a' .. 'z'}, opt {':', '-'}])
 
   multitest "Match assertions":
     [1,2,3].assertMatch([all @res]); assertEq res, @[1,2,3]
