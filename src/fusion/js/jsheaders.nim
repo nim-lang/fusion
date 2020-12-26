@@ -39,13 +39,13 @@ func clear*(this: Headers) {.importjs:
 runnableExamples:
   if defined(fusionJsHeadersTests):
     let header = newHeaders()
-    header.add(r"key", r"value")
-    doAssert header.hasKey(r"key")
+    header.add("key", "value")
+    doAssert header.hasKey("key")
     doAssert header.keys() == @["key".cstring]
     doAssert header.values() == @["value".cstring]
-    doAssert header[r"key"] == "value".cstring
-    header[r"other"] = r"another"
-    doAssert header[r"other"] == "another".cstring
+    doAssert header["key"] == "value".cstring
+    header["other"] = "another".cstring
+    doAssert header["other"] == "another".cstring
     doAssert header.entries() == @[["key".cstring, "value"], ["other".cstring, "another"]]
-    header.delete(r"other")
+    header.delete("other")
     doAssert header.entries() == @[]
