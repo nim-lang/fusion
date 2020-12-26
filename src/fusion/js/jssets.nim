@@ -28,6 +28,8 @@ func toString*(this: JsSet): seq[cstring] {.importjs: """
   (() => {const result = []; #.forEach(item => result.push(JSON.stringify(item))); return result})()""".}
   ## Convert `JsSet` to `seq[cstring]`, all items will be converted to `cstring`.
 
+func `$`*(this: JsSet): string = $this.toString()
+
 
 runnableExamples:
   if defined(fusionJsSetTests):
@@ -35,8 +37,8 @@ runnableExamples:
     let b: JsSet = newJsSet([1.0.toJs, 2.0.toJs, 3.0.toJs])
     doAssert a.size == 4
     doAssert b.size == 3
-    a.toString() == @["1".cstring, "2", "3", "4"]
-    b.toString() == @["1.0".cstring, "2.0", "3.0"]
+    doAssert a.toString() == @["1".cstring, "2", "3", "4"]
+    doAssert b.toString() == @["1".cstring, "2", "3"]
     a.clear()
     b.clear()
     let d: JsSet = newJsSet([1.toJs, 2.toJs, 3.toJs])
@@ -44,4 +46,6 @@ runnableExamples:
     d.add(4.toJs)
     d.delete(2.toJs)
     doAssert 3.toJs in d
+    doAssert "3".cstring.toJs notin d
     doAssert d.contains 1.toJs
+    echo $d  # @["1", "3", "4"]
