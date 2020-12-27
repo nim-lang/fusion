@@ -4,6 +4,7 @@ when not defined(js) and not defined(nimdoc):
   {.fatal: "Module jssets is designed to be used with the JavaScript backend.".}
 
 import jsffi
+export jsffi
 
 type JsSet* {.importjs: "Set".} = ref object of JsRoot ## Set API.
   size: cint
