@@ -4,7 +4,6 @@ when not defined(js) and not defined(nimdoc):
   {.fatal: "Module jssets is designed to be used with the JavaScript backend.".}
 
 import jsffi
-export jsffi
 
 type JsSet* {.importjs: "Set".} = ref object of JsRoot ## Set API.
   size: cint
@@ -33,6 +32,7 @@ func `$`*(this: JsSet): string = $this.toString()
 
 
 runnableExamples:
+  import jsffi
   if defined(fusionJsSetTests):
     let a: JsSet = newJsSet([1.toJs, 2.toJs, 3.toJs, 4.toJs])
     let b: JsSet = newJsSet([1.0.toJs, 2.0.toJs, 3.0.toJs])
