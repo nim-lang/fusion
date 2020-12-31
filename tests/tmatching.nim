@@ -580,6 +580,9 @@ suite "Matching":
     "hello".assertMatch([all @ident in {'a' .. 'z'}])
     "hello:".assertMatch([prefix in {'a' .. 'z'}, opt {':', '-'}])
 
+    const identChars = {'a' .. 'z'}
+    assertMatch("zzz", [_ in identChars, .._])
+
   multitest "Match assertions":
     [1,2,3].assertMatch([all @res]); assertEq res, @[1,2,3]
     [1,2,3].assertMatch([all @res2]); assertEq res2, @[1,2,3]

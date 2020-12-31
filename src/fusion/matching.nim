@@ -2135,6 +2135,7 @@ macro match*(n: untyped): untyped =
 
       of nnkElifBranch, nnkElse:
         matchcase.add elem
+
       else:
         discard
 
