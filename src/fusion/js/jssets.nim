@@ -6,7 +6,7 @@ when not defined(js) and not defined(nimdoc):
 import jsffi
 
 type JsSet* {.importjs: "Set".} = ref object of JsRoot ## Set API.
-  size*: cint
+  size: cint
 
 func newJsSet*(): JsSet {.importjs: "new Set()".} ## Constructor for `JsSet`.
 
@@ -28,6 +28,8 @@ func toString*(this: JsSet): seq[cstring] {.importjs: """
   (() => {const result = []; #.forEach(item => result.push(JSON.stringify(item))); return result})()""".}
   ## Convert `JsSet` to `seq[cstring]`, all items will be converted to `cstring`.
 
+func len*(this: JsSet): int = this.size.int
+
 func `$`*(this: JsSet): string = $this.toString()
 
 
@@ -36,17 +38,17 @@ runnableExamples:
   if defined(fusionJsSetTests):
     let a: JsSet = newJsSet([1.toJs, 2.toJs, 3.toJs, 4.toJs])
     let b: JsSet = newJsSet([1.0.toJs, 2.0.toJs, 3.0.toJs])
-    doAssert a.size == 4
-    doAssert b.size == 3
+    doAssert a.len == 4
+    doAssert b.len == 3
     doAssert a.toString() == @["1".cstring, "2", "3", "4"]
     doAssert b.toString() == @["1".cstring, "2", "3"]
     a.clear()
     b.clear()
     let d: JsSet = newJsSet([1.toJs, 2.toJs, 3.toJs])
-    doAssert d.size == 3
+    doAssert d.len == 3
     d.add(4.toJs)
     d.delete(2.toJs)
     doAssert 3.toJs in d
     doAssert "3".cstring.toJs notin d
     doAssert d.contains 1.toJs
-    echo $d  # @["1", "3", "4"]
+    doAssert $d == """@["1", "3", "4"]"""
