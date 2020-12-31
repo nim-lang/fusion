@@ -3,7 +3,6 @@ when not defined(js) and not defined(nimdoc):
   {.fatal: "Module jsxmlhttprequest is designed to be used with the JavaScript backend.".}
 
 from dom import Node
-export Node
 
 type XMLHttpRequest* = ref object of JsRoot  ## https://xhr.spec.whatwg.org
   responseXML*: Node
