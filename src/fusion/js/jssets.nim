@@ -6,7 +6,7 @@ when not defined(js) and not defined(nimdoc):
 import jsffi
 
 type JsSet* {.importjs: "Set".} = ref object of JsRoot ## Set API.
-  size: cint
+  size*: cint
 
 func newJsSet*(): JsSet {.importjs: "new Set()".} ## Constructor for `JsSet`.
 
