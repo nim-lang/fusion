@@ -15,9 +15,15 @@ Use example
 
 .. code:: nim
 
+    {.experimental: "caseStmtMacros".}
+
     case [(1, 3), (3, 4)]:
-      of [(1, _), _]: 1
-      else: 999
+      of [(1, @a), _]:
+        echo @a
+
+      else:
+        echo "Match failed"
+
 
 Quick reference
 ===============
