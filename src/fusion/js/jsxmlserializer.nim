@@ -3,7 +3,6 @@ when not defined(js) and not defined(nimdoc):
   {.fatal: "Module jsxmlserializer is designed to be used with the JavaScript backend.".}
 
 from dom import Node
-export Node
 
 type XMLSerializer* = ref object of JsRoot  ## XMLSerializer API.
 
