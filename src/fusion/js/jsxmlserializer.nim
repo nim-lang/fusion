@@ -14,7 +14,7 @@ func serializeToString*(this: XMLSerializer; node: Node): cstring {.importjs: "#
 
 
 runnableExamples:
-  from dom import document
+  from std/dom import document
   if defined(fusionJsXMLSerializerTests):
     let cerealizer: XMLSerializer = newXMLSerializer()
     echo cerealizer.serializeToString(node = document)
