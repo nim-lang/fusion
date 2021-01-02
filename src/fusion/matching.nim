@@ -799,10 +799,13 @@ func parseKVTuple(n: NimNode): Match =
             )
 
         result.fldElems.add((str, elem.parseNestedKey()))
+
       of nnkBracket, nnkStmtList:
         result.seqMatches = some(elem.parseMatchExpr())
+
       of nnkTableConstr:
         result.kvMatches = some(elem.parseMatchExpr())
+
       else:
         elem.assertKind({nnkExprColonExpr})
 
@@ -907,10 +910,15 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
         opKind = toKwd(elem[0])
         elem = elem[1]
       elif elem.kind in {nnkInfix} and
-           elem[1].kind in {nnkIdent} and
-           elem[1].nodeStr() in seqKwds:
-        opKind = toKwd(elem[1])
-        elem = nnkInfix.newTree(elem[0], ident "_", elem[2])
+           elem[1].kind in {nnkIdent}:
+
+        if elem[1].nodeStr() in seqKwds:
+          opKind = toKwd(elem[1])
+          elem = nnkInfix.newTree(elem[0], ident "_", elem[2])
+
+        else:
+          if not elem[1].eqIdent("_"):
+            error("Invalid node match keyword - " & elem[1].repr.codeFmt() & "",elem[1])
 
       var
         match = parseMatchExpr(elem)
@@ -1153,8 +1161,10 @@ func parseMatchExpr*(n: NimNode): Match =
         # when actually it was ment to be used as `A[1]`
         # `(BracketExpr (Ident "A") (IntLit 1))`
         result = parseMatchExpr(n.fixBrokenBracket())
+
       elif n.isBrokenPar():
         result = parseMatchExpr(n.fixBrokenPar())
+
       else:
         if n[0].kind == nnkPrefix:
           n[0][1].assertKind({nnkIdent}) # `@capture(<some-expression>)`
@@ -1165,6 +1175,7 @@ func parseMatchExpr*(n: NimNode): Match =
             declNode: n,
             predBody: n[1]
           )
+
         elif n[0].kind == nnkDotExpr:
           var body = n
           var bindVar: Option[NimNode]
@@ -1175,6 +1186,7 @@ func parseMatchExpr*(n: NimNode): Match =
             # Store name of the bound variable and then replace `_` with
             # `it` to make `it.call("arguments")`
             body[0][0] = ident("it")
+
           else: # `_.call("Arguments")`
             # `(DotExpr (Ident "_") (Ident "<function-name>"))`
             n[0][1].assertKind({nnkIdent, nnkOpenSymChoice})
@@ -1189,6 +1201,7 @@ func parseMatchExpr*(n: NimNode): Match =
             declNode: n,
             predBody: body,
             bindVar: bindVar
+
           )
         elif n.kind == nnkCall and n[0].eqIdent("_"):
           # `_(some < expression)`. NOTE - this is probably a
@@ -1200,6 +1213,7 @@ func parseMatchExpr*(n: NimNode): Match =
             declNode: n[1],
             predBody: n[1]
           )
+
         else:
           result = parseKVTuple(n)
 
@@ -1622,31 +1636,6 @@ proc makeElemMatch(
               else:
                 `failBreak`
 
-
-          # when false:
-          #   let allOk = genSym(nskVar, "allOk")
-          #   var check: NimNode
-
-          #   if expr.kind in {nnkSym, nnkIdent} and expr.eqIdent("true"):
-          #     check = quote do:
-          #       `varset`
-          #   else:
-          #     check = quote do:
-          #       if `expr`:
-          #         `allOk` = false
-          #       else:
-          #         discard `varset`
-
-          #   result.body.add quote do:
-          #     block:
-          #       var `allOk`: bool = true
-          #       while `posid` < `getLen` and `allOk`:
-          #         `check`
-          #         inc `posid`
-
-          #       if not `allOk`:
-          #         `failBreak`
-
         of lkTrail, lkPos:
           # ???
           discard
@@ -1694,10 +1683,17 @@ func makeSeqMatch(
   # Default valudes for `opt` matches
   var defaults = newStmtList()
 
+  let successBlock = ident("successBlock")
+
   # Find necessary element size (fail-fast on `len` mismatch)
   for idx, elem in seqm.seqElems:
+    let idLit = newLit(idx)
     if elem.kind == lkTrail:
       maxLen = 5000
+      loopBody.add quote do:
+        if `counter` == `idLit`:
+          break `successBlock`
+
     else:
       let
         parent: Path = path & @[AccsElem(
@@ -1736,7 +1732,6 @@ func makeSeqMatch(
         posid     = posid,
         vtable    = vtable,
         parent    = parent,
-        # mainExpr  = mainExpr,
         expr      = expr,
         getLen    = getLen,
         idx       = idx,
@@ -1746,22 +1741,9 @@ func makeSeqMatch(
 
       defaults.add defsets
 
-      let idLit = newLit(idx)
       loopBody.add quote do:
         if `counter` == `idLit`:
-          # debugecho "counter:", `counter`
-          # debugecho "posid:", `posid`
-          # debugecho `elemId`.repr
-
           `body`
-
-      # debugecho body.repr
-      # nnkIfStmt.newTree(
-      #   nnkElifBranch.newTree(
-      #     nnkInfix.newTree(ident "==", counter, newLit(idx)),
-      #     body
-      #   )
-      # )
 
       for (varname, init) in state:
         statevars.add nnkVarSection.newTree(
@@ -1820,11 +1802,15 @@ func makeSeqMatch(
       inc `posid`
 
 
+  let patternLiteral = seqm.declNode.toStrLit().codeFmt()
   result = quote do:
     `comment`
     when not compiles(((discard `tmpExpr`.len()))):
       static:
-        error " no `len` defined for " & $typeof(`tmpExpr`)
+        error " no `len` defined for " & $typeof(`tmpExpr`) &
+          " - needed to find number of elements for pattern " &
+          `patternLiteral`
+
     var `matched` = false
     # Main expression of match
 
@@ -1841,7 +1827,9 @@ func makeSeqMatch(
       # State variable initalization
       `statevars`
 
-      `result`
+      # Block for early successfuly return from iteration
+      block `successBlock`:
+        `result`
 
       `defaults`
 

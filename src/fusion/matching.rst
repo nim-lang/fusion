@@ -250,7 +250,8 @@ subpatterns or have trailing ``.._`` in pattern.
                ``[1,2,_]``    **Ok**
 ============= ============== ==============
 
-More use examples
+Use examples
+~~~~~~~~~~~~
 
 - capture all elements in sequence: ``[all @elems]``
 - get all elements until (not including "d"): ``[until @a is "d"]``
@@ -264,6 +265,13 @@ More use examples
 - Extract all conditions from IfStmt: ``IfStmt([all ElseIf([@cond,
   _]), .._])``
 
+To keep examples short examples for string matching will be used, but as
+mentioned earlier it is possible to use sequences for matching nested
+subpatterns.
+
+
+Generated code overview
+~~~~~~~~~~~~~~~~~~~~~~~
 
 How different sequence matching keywords map to regular for-loops?
 

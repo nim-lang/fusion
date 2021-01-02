@@ -578,7 +578,7 @@ suite "Matching":
     [{'a' .. 'z'}, {' ', '*'}] := "z "
 
     "hello".assertMatch([all @ident in {'a' .. 'z'}])
-    "hello:".assertMatch([prefix in {'a' .. 'z'}, opt {':', '-'}])
+    "hello:".assertMatch([pref in {'a' .. 'z'}, opt {':', '-'}])
 
   multitest "Match assertions":
     [1,2,3].assertMatch([all @res]); assertEq res, @[1,2,3]
@@ -1801,6 +1801,70 @@ suite "stdlib container matches":
 
 
 suite "Article examples":
+  test "Simple string scanner":
+    "2019 school start".assertMatch([
+      # Capture all prefix integers
+      pref @year in {'0' .. '9'},
+      # Then skip all whitespaces
+      until notin {' '},
+      # And store remained of the string in `events` variable
+      all @event
+    ])
+
+    doAssert year == "2019".toSeq()
+    doAssert event == "school start".toSeq()
+
+  test "Tokenized string scanner":
+    func allIs(str: string, chars: set[char]): bool = str.allIt(it in chars)
+
+    "2019-10-11 school start".split({'-', ' '}).assertMatch([
+      pref @dateParts(it.allIs({'0' .. '9'})),
+      pref _(it.allIs({' '})),
+      all @text
+    ])
+
+    doAssert dateParts == @["2019", "10", "11"]
+    doAssert text == @["school", "start"]
+
+
+  test "Pattern matching lexer":
+    type
+      Lexer = object
+        buf: seq[string]
+        bufpos: int
+
+    var maxbuf: int = 0
+    iterator items(lex: Lexer): string =
+      for i in lex.bufpos .. lex.buf.high:
+        maxbuf = max(maxbuf, i)
+        yield lex.buf[i]
+
+    func len(lex: Lexer): int = lex.buf.len - lex.bufpos
+    func isAllnum(str: string): bool = str.allIt(it in {'0' .. '9'})
+
+    var lexer = Lexer(buf: @["2019", "10", "11", "hello", "world"])
+
+
+    if lexer.matches([
+      # `isAlnum` is converted to `[somePos].isAlnum == true`, and can be
+      # used to check for properties of particular sequence elements, even
+      # though there are no such fields in the element itself.
+      @year  is (isAllnum: true, len: 4),
+      @month is (isAllnum: true, len: 2),
+                # Capturing results of procs is also possible, though there
+                # is no particular guarantee wrt. to number of times proc
+                # could be executed, so some caution is necessary.
+                (isAllnum: true, len: 2, parseInt: @day),
+      .._
+    ]):
+      assertEq year, "2019"
+      assertEq month, "10"
+      assertEq day, 11
+      assertEq lexer.buf[maxbuf], "hello"
+
+    else:
+      testFail()
+
   test "Small parts":
     let txt = """
 root:x:0:0::/root:/bin/bash
