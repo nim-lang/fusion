@@ -10,6 +10,7 @@
 - Added module `scripting` providing `withDir` to switch the directory temporarily. This
   was previously only available in the `nimscript` module.
 
+- Added `jsxmlserializer` module for [`XMLSerializer`](https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer) for the JavaScript target.
 
 - Added `jssets` module, Set for the JavaScript target
   https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
