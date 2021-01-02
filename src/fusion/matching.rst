@@ -265,46 +265,25 @@ Use examples
 - Extract all conditions from IfStmt: ``IfStmt([all ElseIf([@cond,
   _]), .._])``
 
-To keep examples short examples for string matching will be used, but as
-mentioned earlier it is possible to use sequences for matching nested
-subpatterns.
 
-
-Generated code overview
-~~~~~~~~~~~~~~~~~~~~~~~
-
-How different sequence matching keywords map to regular for-loops?
+In addition to working with nested subpatterns it is possible to use
+pattern matching as simple text scanner, similar to strscans. Main
+difference is that it allows to work on arbitrary sequences, meaning it is
+possible, for example, to operate on tokens, or as in this example on
+strings (for the sake of simplicity).
 
 .. code:: nim
 
-    # all
-    var allOk = false
-    while position < len:
-      if matchExpr(): inc position
-      else: allOk = false; break
+    func allIs(str: string, chars: set[char]): bool = str.allIt(it in chars)
 
-    if not allOk: # Fail match
+    "2019-10-11 school start".split({'-', ' '}).assertMatch([
+      pref @dateParts(it.allIs({'0' .. '9'})),
+      pref _(it.allIs({' '})),
+      all @text
+    ])
 
-.. code:: nim
-
-    # any
-    var foundOk = false
-    while position < len:
-      if matchExpr(): foundOk = true
-      inc position
-
-    if not foundOk: # Fail match
-
-
-.. code:: nim
-
-    # until
-    var foundOk = false
-    while position < len:
-      if not matchExpr(): break
-      else: inc position
-
-    # Continue with next matches
+    doAssert dateParts == @["2019", "10", "11"]
+    doAssert text == @["school", "start"]
 
 Tuple matching
 --------------
@@ -320,8 +299,55 @@ Input tuple: ``(1, 2, "fa")``
  ``(1, 1 | 2, _)``            **Ok**
 ============================ ========== ============
 
-Case object matching
---------------------
+There are not a lot of features implemented for tuple matching, though it
+should be noted that `:=` operator can be quite handy when it comes to
+unpacking nested tuples -
+
+.. code:: nim
+
+    (@a, (@b, _), _) := ("hello", ("world", 11), 0.2)
+
+Object matching
+---------------
+
+For matching object fields you can use ``(fld: value)`` -
+
+.. code:: nim
+
+    type
+      Obj = object
+        fld1: int8
+
+    func len(o: Obj): int = 0
+
+    case Obj():
+      of (fld1: < -10):
+        discard
+
+      of (len: > 10):
+        # can use results of function evaluation as fields - same idea as
+        # method call syntax in regular code.
+        discard
+
+      of (fld1: in {1 .. 10}):
+        discard
+
+      of (fld1: @capture):
+        doAssert capture == 0
+
+Variant object matching
+-----------------------
+
+Matching on ``.kind`` field is a very common operation and has special
+syntax sugar - ``ForStmt()`` is functionally equivalent to ``(kind:
+nnkForStmt)``, but much more concise.
+
+`nnk` pefix can be omitted - in general if your enum field name folows
+`nep1` naming `conventions
+<https://nim-lang.org/docs/nep1.html#introduction-naming-conventions>`_
+(each enum name starts with underscore prefix (common for all enum
+elements), followed PascalCase enum name.
+
 
 Input AST
 

@@ -1801,6 +1801,37 @@ suite "stdlib container matches":
 
 
 suite "Article examples":
+  test "Object matching":
+    type
+      Obj = object
+        fld1: int8
+
+    func len(o: Obj): int = 0
+
+    case Obj():
+      of (fld1: < -10):
+        testFail()
+
+      of (len: > 10):
+        # can use results of function evaluation as fields - same idea as
+        # method call syntax in regular code.
+        testFail()
+
+      of (fld1: in {1 .. 10}):
+        testFail()
+
+      of (fld1: @capture):
+        doAssert capture == 0
+
+      else:
+        testFail()
+
+
+
+
+  test "Nested tuples unpacking":
+    (@a, (@b, _), _) := ("hello", ("world", 11), 0.2)
+
   test "Simple string scanner":
     "2019 school start".assertMatch([
       # Capture all prefix integers
