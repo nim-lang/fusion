@@ -50,7 +50,7 @@ Quick reference
   ``StrLit`` will work (prefix ``nnk`` can be omitted)
 - [2] Or any object with ``contains`` and ``[]`` defined (for necessary types)
 - [3] Or any object with ``len`` proc or field
-- [4] Note that sequence must mathc *fully* and it is necessary to have
+- [4] Note that sequence must match *fully* and it is necessary to have
   ``.._`` at the end in order to accept sequences of arbitrary length.
 
 Supported match elements
@@ -72,12 +72,12 @@ Supported match elements
 Element access
 ==============
 
-To determine whether or not particular object matches pattern *access
+To determine whether particular object matches pattern *access
 path* is generated - sequence of fields and ``[]`` operators that you
 would normally write by hand, like ``fld.subfield["value"].len``. Due to
 support for `method call syntax
 <https://nim-lang.org/docs/manual.html#procedures-method-call-syntax>`_
-there is no difference between field acccess and proc call, so things
+there is no difference between field access and proc call, so things
 like `(len: < 12)` also work as expected.
 
 ``(fld: "3")`` Match field ``fld`` against ``"3"``. Generated access
