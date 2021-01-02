@@ -11,4 +11,6 @@
   was previously only available in the `nimscript` module.
 
 
+- Added `jssets` module, Set for the JavaScript target
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 - Added `jsheaders` module for [`Headers`](https://developer.mozilla.org/en-US/docs/Web/API/Headers) for the JavaScript target.
