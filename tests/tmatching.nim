@@ -1740,6 +1740,7 @@ suite "More tests":
           of akSecond1:
             second: int
           of akThird1:
+            asdf: int
             third: seq[Ast1]
 
       Ast2Kind = enum
@@ -1765,6 +1766,17 @@ suite "More tests":
     func add(a1: var Ast1, sub: Ast1) = a1.third.add sub
     func add(a2: var Ast2, sub: Ast2) = a2.third.add sub
 
+    func len(a1: Ast1): int = a1.third.len
+    func len(a2: Ast2): int = a2.third.len
+
+    iterator items(a1: Ast1): Ast1 =
+      for it in a1.third:
+        yield it
+
+    iterator items(a2: Ast2): Ast2 =
+      for it in a2.third:
+        yield it
+
     func convert(a1: Ast1): Ast2 =
       case a1:
         of First1(first: @value):
@@ -1785,6 +1797,30 @@ suite "More tests":
         Second1(second: 12)
 
     discard val.convert()
+
+    when true:
+      Ast1().assertMatch:
+        First1()
+
+    when true:
+      Ast1().assertMatch:
+        First1(first: "")
+
+    when true:
+      Ast1(kind1: akThird1, third: @[Ast1(), Ast1()]).assertMatch:
+        Third1(asdf: 0):
+          First1()
+          First1()
+
+    when true:
+      Ast1(kind1: akThird1, third: @[Ast1()]).assertMatch:
+        Third1(asdf: 0):
+          First1()
+
+    when true:
+      Ast1().assertMatch:
+        First1(first: "")
+
 
 import std/[deques, lists]
 

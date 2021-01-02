@@ -29,6 +29,19 @@ const
     ## identifiers)
 
 
+const debugWIP = false
+
+template echov(arg: untyped): untyped =
+  {.noSideEffect.}:
+    when debugWIP:
+      let val = $arg
+      if split(val).len > 1:
+        echo instantiationInfo().line, " \e[32m", astToStr(arg), "\e[39m "
+        echo val
+
+      else:
+        echo instantiationInfo().line, " \e[32m", astToStr(arg), "\e[39m ", val
+
 template varOfIteration*(arg: untyped): untyped =
   when compiles(
     for item in items(arg):
@@ -273,6 +286,7 @@ template hasKind*(head, kindExpr: untyped): untyped =
   ##   `nnk` prefix can be omitted.
   when compiles(head.kind):
     hasKindImpl(head.kind, kindExpr)
+
   else:
     static: error "No `kind` defined for " & $typeof(head)
 
@@ -598,7 +612,7 @@ func makeVarSet(
       let varStr = varn.toStrLit()
       let ln = lineIInfo(vtable[varn.nodeStr()].decl)
       let matchError =
-        if doRaise:
+        if doRaise and not debugWIP:
           quote do:
             when compiles($(`varn`)):
               {.line: `ln`.}:
@@ -781,6 +795,12 @@ func parseKVTuple(n: NimNode): Match =
   if n.kind in {nnkCall, nnkObjConstr}:
     start = 1
     result.kindCall = some(n[0])
+    # echov "\e[31mKind call\e[39m:"
+    # echov n[0].idxTreeRepr()
+    # echov "\e[33mMain node\e[39m:"
+    # echov n.idxTreeRepr()
+    # raiseAssert("#[ IMPLEMENT ]#")
+
 
   for elem in n[start .. ^1]:
     case elem.kind:
@@ -821,6 +841,7 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
       result.add SeqStructure(kind: lkTrail, patt: Match(
         declNode: elem,
       ), decl: elem)
+
     elif
       # `[0 .. 3 @head is Jstring()]`
       (elem.kind == nnkInfix and (elem[0].startsWith(".."))) or
@@ -918,7 +939,8 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
 
         else:
           if not elem[1].eqIdent("_"):
-            error("Invalid node match keyword - " & elem[1].repr.codeFmt() & "",elem[1])
+            error("Invalid node match keyword - " &
+              elem[1].repr.codeFmt() & "",elem[1])
 
       var
         match = parseMatchExpr(elem)
@@ -1045,6 +1067,8 @@ macro dumpIdxTree(n: untyped) =
 func parseMatchExpr*(n: NimNode): Match =
   ## Parse match expression from nim node
 
+  # echov "Parse match expression"
+  # echov n.idxTreeRepr()
   case n.kind:
     of nnkIdent, nnkSym, nnkIntKinds, nnkStrKinds, nnkFloatKinds:
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
@@ -1154,9 +1178,10 @@ func parseMatchExpr*(n: NimNode): Match =
 
     elif n.kind in {nnkObjConstr, nnkCall, nnkCommand} and
          not n[0].eqIdent("opt"):
+      # echov n.idxTreeRepr()
       if n.isBrokenBracket():
         # Broken bracket expression that was written as `A [1]` and
-        #subsequently parsed into
+        # subsequently parsed into
         # `(Command (Ident "A") (Bracket (IntLit 1)))`
         # when actually it was ment to be used as `A[1]`
         # `(BracketExpr (Ident "A") (IntLit 1))`
@@ -1214,7 +1239,48 @@ func parseMatchExpr*(n: NimNode): Match =
             predBody: n[1]
           )
 
+        # elif n.kind == nnkStmtList:
+        #   echov "\e[31mParsing statement list\e[39m"
+        #   result = Match(
+        #     kind: kSeq, seqElems: parseSeqMatch(n), declNode: n)
+
+        elif n.kind == nnkCall and
+             n.len > 1 and
+             n[1].kind == nnkStmtList:
+
+          # echov n.idxTreeRepr()
+          # var refix = newStmtList()
+          # refix.add n[0]
+          # for node in n[1][0..^1]:
+          #   refix.add node
+
+          # var refix = n[0]
+          # refix.copyLineInfo(n[0])
+
+          # echov refix.idxTreeRepr()
+
+          echov n.idxTreeRepr()
+          if n[0].kind == nnkIdent:
+            result = parseKVTuple(n)
+
+          else:
+            result = parseMatchExpr(n[0])
+            result.seqMatches = some(parseMatchExpr(n[1]))
+
+          # echov parseKVTuple(n)
+          # echov parseKVTuple(n).kind
+          # echov result.kind
+          # echov result
+          # result.seqMatches = some(parseMatchExpr(n[1]))
+          # result = parseKVTuple(n)
+          # result = Match(
+          #   kind: kObject, seqElems: @[
+          #     SeqStructure(decl: n[0], kind: lkPos, patt: parseMatchExpr(refix)),
+          #     SeqStructure(decl: n[1], kind: lkPos, patt: parseMatchExpr(n[1]))
+          #   ], declNode: n)
+
         else:
+          # echov "Parsing KV tuple"
           result = parseKVTuple(n)
 
     elif (n.kind in {nnkCommand, nnkCall}) and n[0].eqIdent("opt"):
@@ -1460,7 +1526,7 @@ proc makeElemMatch(
       inc minLen
       inc maxLen
       let ln = elem.decl.lineIInfo()
-      if doRaise:
+      if doRaise and not debugWIP:
         var str = newNimNode(nnkRStrLit)
         str.strVal = "Match failure for pattern '" & pattStr.strVal() &
             "'. Item at index "
@@ -1512,7 +1578,7 @@ proc makeElemMatch(
         # vtable.addvar(bindv, parent) # XXXX
 
       let ln = elem.decl.lineIInfo()
-      if doRaise:
+      if doRaise and not debugWIP:
         case elem.kind:
           of lkAll:
             failBreak = quote do:
@@ -1751,8 +1817,6 @@ func makeSeqMatch(
 
 
   result.add loopBody
-  # debugecho "\e[41m*=========\e[49m  ----  \e[41m=========*\e[49m"
-  # debugecho result.repr
 
 
   let
@@ -1768,7 +1832,7 @@ func makeSeqMatch(
     setCheck = quote do:
       `getLen` notin {`minNode` .. `maxNode`}
 
-  if doRaise:
+  if doRaise and not debugWIP:
     let pattStr = seqm.declNode.toStrLit().codeFmt()
     let ln = seqm.declNode.lineIInfo()
     let lenObj = path.toAccs(originalMainExpr, false).toStrLit().codeFmt()
@@ -1802,15 +1866,38 @@ func makeSeqMatch(
       inc `posid`
 
 
-  let patternLiteral = seqm.declNode.toStrLit().codeFmt()
+  var str = seqm.declNode.toStrLit().strVal()
+  if split(str, '\n').len > 1:
+    str = "\n" & str
+
+  let patternLiteral = newLit(str).codeFmt()
+
+  let compileCheck =
+    if debugWIP:
+      newStmtList()
+
+    else:
+      quote do:
+        when not compiles(((discard `tmpExpr`.len()))):
+          static:
+            error " no `len` defined for " & $typeof(`tmpExpr`) &
+              " - needed to find number of elements for pattern " &
+              `patternLiteral`
+
+        when not compiles(((
+          for item in items(`tmpExpr`):
+            discard
+        ))):
+          static:
+            error " no `items` defined for " & $typeof(`tmpExpr`) &
+              " - iteration is require for pattern " &
+              `patternLiteral`
+
+
+
   result = quote do:
     `comment`
-    when not compiles(((discard `tmpExpr`.len()))):
-      static:
-        error " no `len` defined for " & $typeof(`tmpExpr`) &
-          " - needed to find number of elements for pattern " &
-          `patternLiteral`
-
+    `compileCheck`
     var `matched` = false
     # Main expression of match
 
