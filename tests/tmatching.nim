@@ -893,7 +893,7 @@ suite "Matching":
 
     let tmp1 = wrapper1:
       base: link()
-      base: link()
+      # base: link()  # https://github.com/nim-lang/fusion/pull/64/checks?check_run_id=1640367574#step:8:67
 
     doAssert tmp1 is seq[HtmlNode]
 
