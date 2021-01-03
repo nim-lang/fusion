@@ -134,14 +134,14 @@ jobs:
 
       - name: Cache choosenim
         id: cache-choosenim
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.choosenim
           key: ${{ runner.os }}-${{ runner.cpu }}-choosenim-${{ matrix.branch }}
 
       - name: Cache nimble
         id: cache-nimble
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.nimble
           key: ${{ runner.os }}-${{ runner.cpu }}-nimble-${{ matrix.branch }}
