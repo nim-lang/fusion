@@ -3,8 +3,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    if: |
-      !contains(format('{0} {1}', github.event.head_commit.message, github.event.pull_request.title), '[skip ci]')
+    if: !contains(format('{0} {1}', github.event.head_commit.message, github.event.pull_request.title), '[skip ci]')
 
     strategy:
       fail-fast: false
@@ -97,87 +96,12 @@ jobs:
         shell: bash
         run: echo "${{ github.workspace }}/nim/bin" >> "${GITHUB_PATH}"
 
-      - name: Get latest Nim commit hash
-        id: versions
-        shell: bash
-        run: |
-          getHash() {
-            git ls-remote "https://github.com/$1" "${2:-HEAD}" | cut -f 1
-          }
-          nimHash=$(getHash nim-lang/Nim '${{ matrix.branch }}')
-          csourcesHash=$(getHash nim-lang/csources)
-          echo "::set-output name=nim::$nimHash"
-          echo "::set-output name=csources::$csourcesHash"
-
-      - name: Restore prebuilt Nim from cache
-        id: nim-cache
-        uses: actions/cache@v1
+      - name: Setup Nim
+        uses: jiro4989/setup-nim-action@v1
         with:
-          path: nim
-          key: 'nim-${{ matrix.target.os }}-${{ matrix.target.cpu }}-${{ steps.versions.outputs.nim }}'
-
-      - name: Restore prebuilt csources from cache
-        if: steps.nim-cache.outputs.cache-hit != 'true'
-        id: csources-cache
-        uses: actions/cache@v1
-        with:
-          path: csources/bin
-          key: 'csources-${{ matrix.target.os }}-${{ matrix.target.cpu }}-${{ steps.versions.outputs.csources }}'
-
-      - name: Checkout Nim csources
-        if: >
-          steps.csources-cache.outputs.cache-hit != 'true' &&
-          steps.nim-cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v2
-        with:
-          repository: nim-lang/csources
-          path: csources
-          ref: ${{ steps.versions.outputs.csources }}
-
-      - name: Checkout Nim
-        if: steps.nim-cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v2
-        with:
-          repository: nim-lang/Nim
-          path: nim
-          ref: ${{ steps.versions.outputs.nim }}
-
-      - name: Build Nim and associated tools
-        if: steps.nim-cache.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          ncpu=
-          ext=
-          case '${{ runner.os }}' in
-          'Linux')
-            ncpu=$(nproc)
-            ;;
-          'macOS')
-            ncpu=$(sysctl -n hw.ncpu)
-            ;;
-          'Windows')
-            ncpu=$NUMBER_OF_PROCESSORS
-            ext=.exe
-            ;;
-          esac
-          [[ -z "$ncpu" || $ncpu -le 0 ]] && ncpu=1
-
-          if [[ ! -e csources/bin/nim$ext ]]; then
-            make -C csources -j $ncpu CC=gcc ucpu='${{ matrix.target.cpu }}'
-          else
-            echo 'Using prebuilt csources'
-          fi
-          cp -v csources/bin/nim$ext nim/bin
-
-          cd nim
-          nim c koch
-          ./koch boot -d:release
-          ./koch tools -d:release
-          # clean up to save cache space
-          rm koch
-          rm -rf nimcache
-          rm -rf dist
-          rm -rf .git
+          nim-version: ${{ matrix.branch }}
+          no-color: true  # --noColor
+          yes: true       # --yes
 
       - name: Run fusion tests
         shell: bash
@@ -205,3 +129,17 @@ jobs:
           target_branch: gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache choosenim
+        id: cache-choosenim
+        uses: actions/cache@v1
+        with:
+          path: ~/.choosenim
+          key: ${{ runner.os }}-choosenim-devel-latest
+
+      - name: Cache nimble
+        id: cache-nimble
+        uses: actions/cache@v1
+        with:
+          path: ~/.nimble
+          key: ${{ runner.os }}-nimble-devel-latest
