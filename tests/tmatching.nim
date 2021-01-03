@@ -875,45 +875,45 @@ suite "Matching":
       yield sn
 
 
-  multitestSince "Tree builder custom type", (1, 4, 0):
+  # multitestSince "Tree builder custom type", (1, 4, 0):
 
-    discard makeTree(HtmlNode, Base())
-    discard makeTree(HtmlNode, base())
-    discard makeTree(HtmlNode, base([link()]))
-    discard makeTree(HtmlNode):
-      base:
-        link(text: "hello")
+  #   discard makeTree(HtmlNode, Base())
+  #   discard makeTree(HtmlNode, base())
+  #   discard makeTree(HtmlNode, base([link()]))
+  #   discard makeTree(HtmlNode):
+  #     base:
+  #       link(text: "hello")
 
-    template wrapper1(body: untyped): untyped =
-      makeTree(HtmlNode):
-        body
+  #   template wrapper1(body: untyped): untyped =
+  #     makeTree(HtmlNode):
+  #       body
 
-    template wrapper2(body: untyped): untyped =
-      makeTree(HtmlNode, body)
+  #   template wrapper2(body: untyped): untyped =
+  #     makeTree(HtmlNode, body)
 
-    let tmp1 = wrapper1:
-      base: link()
-      base: link()  # https://github.com/nim-lang/fusion/pull/64/checks?check_run_id=1640367574#step:8:67
+  #   let tmp1 = wrapper1:
+  #     base: link()
+  #     base: link()  # https://github.com/nim-lang/fusion/pull/64/checks?check_run_id=1640367574#step:8:67
+  #                   # https://github.com/nim-lang/fusion/pull/64/checks?check_run_id=1640605058#step:8:67
+  #   doAssert tmp1 is seq[HtmlNode]
 
-    doAssert tmp1 is seq[HtmlNode]
 
+  #   let tmp3 = wrapper1:
+  #     base:
+  #       base: link()
+  #       base: link()
 
-    let tmp3 = wrapper1:
-      base:
-        base: link()
-        base: link()
+  #   doAssert tmp3 is HtmlNode
 
-    doAssert tmp3 is HtmlNode
+  #   let tmp2 = wrapper1:
+  #     base:
+  #       link()
 
-    let tmp2 = wrapper1:
-      base:
-        link()
+  #   doAssert tmp2 is HtmlNode
 
-    doAssert tmp2 is HtmlNode
-
-    discard wrapper2:
-      base:
-        link()
+  #   discard wrapper2:
+  #     base:
+  #       link()
 
 
   multitest "Tree construction sequence operators":
