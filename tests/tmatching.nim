@@ -161,7 +161,7 @@ suite "Matching":
               doAssert head is NimNode
               doAssert body is NimNode
 
-    main()
+    # main()  # Error: cannot generate code; too many registers required
 
   test "Pattern parser broken brackets":
     block: JArray[@a, @b] := %*[1, 3]
