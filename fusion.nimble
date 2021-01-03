@@ -13,4 +13,4 @@ requires "nim >= 1.0.0"
 task docs, "":
   exec "nim c -r src/fusion/docutils " & srcDir & " --outdir:htmldocs"
   # JavaScript
-  exec "nim c -r src/fusion/docutils " & srcDir & " --outdir:htmldocs_js -d:js"
+  exec "nim c -r src/fusion/docutils " & srcDir & " --outdir:htmldocs_js -d:js -d:fusionDocJs"
