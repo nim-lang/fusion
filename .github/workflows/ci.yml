@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: ["1.0", "1.2", "1.4", "devel"]
+        branch: ["1.0.0", "1.2.0", "1.4.0", "devel"]
         target:
           - os: linux
             cpu: amd64
