@@ -6,7 +6,7 @@ const
   blockList = ["nimcache", "htmldocs"] # Folders to explicitly ignore.
   baseCmd = " doc --project --docroot --styleCheck:hint " # nim doc command part that never changes
   jsDocOpts =  # nim doc command part that changes for JS compat.
-    when defined(fusionDocJs) and (NimMajor, NimMinor) >= (1, 5): "-b:js "
+    when defined(fusionDocJs): "-b:js "
     else: ""
   docComand = baseCmd & jsDocOpts
 
