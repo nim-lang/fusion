@@ -4,7 +4,11 @@ import std/private/globs
 
 const
   blockList = ["nimcache", "htmldocs"] # Folders to explicitly ignore.
-  docComand = " doc --project --docroot --outdir:htmldocs --styleCheck:hint " # nim doc command part that never changes
+  baseCmd = " doc --project --docroot --styleCheck:hint " # nim doc command part that never changes
+  jsDocOpts =  # nim doc command part that changes for JS compat.
+    when defined(fusionDocJs) and (NimMajor, NimMinor) >= (1, 5): "-b:js "
+    else: ""
+  docComand = baseCmd & jsDocOpts
 
 
 iterator findNimSrcFiles*(dir: string): string =
