@@ -33,6 +33,7 @@ jobs:
     name: '${{ matrix.target.os }}-${{ matrix.target.cpu }} (${{ matrix.branch }})'
     runs-on: ${{ matrix.builder }}
     steps:
+      - uses: actions/setup-node@v2
       - name: Checkout fusion
         uses: actions/checkout@v2
         with:
@@ -103,11 +104,25 @@ jobs:
           no-color: true  # --noColor
           yes: true       # --yes
 
+      - name: Cache choosenim
+        id: cache-choosenim
+        uses: actions/cache@v1
+        with:
+          path: ~/.choosenim
+          key: ${{ runner.os }}-choosenim-devel-latest
+
+      - name: Cache nimble
+        id: cache-nimble
+        uses: actions/cache@v1
+        with:
+          path: ~/.nimble
+          key: ${{ runner.os }}-nimble-devel-latest
+
       - name: Run fusion tests
         shell: bash
         run: |
           cd fusion
-          nimble test
+          nimble --styleCheck:error test
 
       - name: docs
         if: matrix.branch == 'devel'
@@ -129,17 +144,3 @@ jobs:
           target_branch: gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cache choosenim
-        id: cache-choosenim
-        uses: actions/cache@v1
-        with:
-          path: ~/.choosenim
-          key: ${{ runner.os }}-choosenim-devel-latest
-
-      - name: Cache nimble
-        id: cache-nimble
-        uses: actions/cache@v1
-        with:
-          path: ~/.nimble
-          key: ${{ runner.os }}-nimble-devel-latest
