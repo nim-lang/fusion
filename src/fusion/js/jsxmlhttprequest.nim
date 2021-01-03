@@ -53,19 +53,19 @@ func setRequestHeader*(this: XMLHttpRequest; keyValuePairs: openArray[array[2, c
 
 runnableExamples:
   if defined(fusionJsXmlhttprequestTests):
-    let rekuest: XMLHttpRequest = newXMLHttpRequest()
-    rekuest.open("GET".cstring, "http://localhost:8000/".cstring, false)
-    rekuest.setRequestHeader("mode".cstring, "no-cors".cstring)
-    rekuest.setRequestHeader([["mode".cstring, "no-cors".cstring]])
-    rekuest.overrideMimeType("text/plain".cstring)
-    rekuest.send()
-    echo rekuest.getAllResponseHeaders()
-    echo "responseText\t", rekuest.responseText
-    echo "responseURL\t", rekuest.responseURL
-    echo "statusText\t", rekuest.statusText
-    echo "responseXML\t", rekuest.responseXML is Node
-    echo "status\t", rekuest.status
-    echo "timeout\t", rekuest.timeout
-    echo "withCredentials\t", rekuest.withCredentials
-    echo "readyState\t", rekuest.readyState
-    rekuest.abort()
+    let request: XMLHttpRequest = newXMLHttpRequest()
+    request.open("GET".cstring, "http://localhost:8000/".cstring, false)
+    request.setRequestHeader("mode".cstring, "no-cors".cstring)
+    request.setRequestHeader([["mode".cstring, "no-cors".cstring]])
+    request.overrideMimeType("text/plain".cstring)
+    request.send()
+    echo request.getAllResponseHeaders()
+    echo "responseText\t", request.responseText
+    echo "responseURL\t", request.responseURL
+    echo "statusText\t", request.statusText
+    echo "responseXML\t", request.responseXML is Node
+    echo "status\t", request.status
+    echo "timeout\t", request.timeout
+    echo "withCredentials\t", request.withCredentials
+    echo "readyState\t", request.readyState
+    request.abort()
