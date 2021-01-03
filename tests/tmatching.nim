@@ -1,8 +1,9 @@
 import std/[strutils, sequtils, strformat, sugar,
-            macros, options, tables, json, algorithm]
+            macros, options, tables, json]
 
 import fusion/matching
 {.experimental: "caseStmtMacros".}
+{.hint[XDeclaredButNotUsed]: off.} # TODO: Macro generates a ton of XDeclaredButNotUsed ?
 
 import unittest
 
