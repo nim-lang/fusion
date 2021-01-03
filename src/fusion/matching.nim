@@ -2154,7 +2154,7 @@ macro match*(n: untyped): untyped =
       # `mixinList`
       `pos`
       let expr {.inject.} = `head`
-      let pos {.inject.}: int = 0
+      let pos {.inject, used.}: int = 0
       `matchcase`
 
   # echo result.repr

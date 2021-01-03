@@ -60,7 +60,7 @@ suite "Matching":
          of eN12:
            f2: float
 
-    let val = Obj1()
+    let val {.used.} = Obj1()
 
   test "Pattern parser tests":
     macro main(): untyped =
