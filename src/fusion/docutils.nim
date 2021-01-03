@@ -23,7 +23,7 @@ proc genCodeImportAll*(dir: string): string =
     name = nimfile.extractFilename
     prefix =
       if name[0] == 'j' and name[1] == 's':
-        "when defined(js): import "
+        "when defined(js): import \""
       else:
         "when not defined(js): import \""
     result.add prefix & nimfile & "\"\n"
