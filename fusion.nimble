@@ -13,6 +13,6 @@ requires "nim >= 1.0.0"
 task docs, "":
   # JavaScript
   when (NimMajor, NimMinor) >= (1, 4):
-    exec "nim c -r -d:fusionDocJs src/fusion/docutils " & srcDir & " --outdir:htmldocs_js -d:js -d:fusionDocJs"
+    exec "nim c -r -d:fusionDocJs src/fusion/docutils " & srcDir & " -d:js -d:fusionDocJs"
   # C
-  exec "nim c -r src/fusion/docutils " & srcDir & " --outdir:htmldocs"
+  exec "nim c -r src/fusion/docutils " & srcDir
