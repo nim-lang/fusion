@@ -4,7 +4,7 @@ import std/private/globs
 
 const
   blockList = ["nimcache", "htmldocs"] # Folders to explicitly ignore.
-  docComand = " doc -r --project --docroot --outdir:htmldocs --styleCheck:error -" # nim doc command part that never changes
+  docComand = " doc -r --project --docroot --outdir:htmldocs --styleCheck:hint -" # nim doc command part that never changes
 
 
 iterator findNimSrcFiles*(dir: string): string =
