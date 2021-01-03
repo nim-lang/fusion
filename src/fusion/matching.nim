@@ -31,7 +31,7 @@ const
 
 const debugWIP = false
 
-template echov(arg: untyped): untyped =
+template echov(arg: untyped): untyped {.used.} =
   {.noSideEffect.}:
     when debugWIP:
       let val = $arg
@@ -138,24 +138,8 @@ func splitDots(n: NimNode): seq[NimNode] =
     else:
       @[n]
 
-func getVar(n: NimNode): NimNode =
-  if n.kind == nnkPragmaExpr:
-    n[1][0][1]
-  elif n.kind == nnkPrefix:
-    n[1]
-  else:
-    raiseAssert(&"Cannot get variable from node kind {n.kind}")
-
 func firstDot(n: NimNode): NimNode {.inline.} =
   splitDots(n)[0]
-
-func dropFirstDot(n: NimNode): NimNode =
-  let drop = splitDots(n)
-  if drop.len == 1:
-    drop[0]
-  else:
-    drop[1..^1].foldl(nnkDotExpr.newTree(a, b))
-
 
 template assertKind(node: NimNode, kindSet: set[NimNodeKind]): untyped =
   if node.kind notin kindSet:
@@ -1064,7 +1048,7 @@ func fixBrokenPar(inNode: NimNode): NimNode =
 
   result = aux(inNode)
 
-macro dumpIdxTree(n: untyped) =
+macro dumpIdxTree(n: untyped) {.used.} =
   echo n.idxTreeRepr()
 
 func parseMatchExpr*(n: NimNode): Match =
@@ -2030,7 +2014,7 @@ func makeMatchExpr(
             let varsetOk = makeVarSet(varn, valGet, vtable, doRaise)
             if pair.patt.fallback.getSome(fallback):
               let varsetFail = makeVarSet(
-                varn, pair.patt.fallback.get(), vtable, doRaise)
+                varn, fallback, vtable, doRaise)
 
               conds.add quote do:
                 block:
@@ -2202,8 +2186,8 @@ macro match*(n: untyped): untyped =
     block:
       # `mixinList`
       `pos`
-      let expr {.inject.} = `head`
-      let pos {.inject.}: int = 0
+      let expr {.inject, used.} = `head`
+      let pos {.inject, used.}: int = 0
       discard pos
       `matchcase`
 
@@ -2226,13 +2210,10 @@ macro assertMatch*(input, pattern: untyped): untyped =
 
     matched = toNode(mexpr, vtable, expr)
 
-  let patt = newLit(pattern.repr)
   result = quote do:
     let `expr` = `input`
     let ok = `matched`
     discard ok
-
-  # echo result.repr
 
 macro matches*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and return `false` on

@@ -1,8 +1,10 @@
 import std/[strutils, sequtils, strformat, sugar,
-            macros, options, tables, json, algorithm]
+            macros, options, tables, json]
 
 import fusion/matching
 {.experimental: "caseStmtMacros".}
+{.push hint[ConvFromXtoItselfNotNeeded]:off.}
+{.push hint[CondTrue]:off.}
 
 import unittest
 
@@ -41,27 +43,7 @@ template multitestSince(
       body
 
 
-template staticRepeat(body: untyped): untyped =
-  body
-  static:
-    body
-
 suite "Matching":
-  multitest "Has kind for anything":
-    type
-      En1 = enum
-        eN11
-        eN12
-
-      Obj1 = object
-        case kind: En1
-         of eN11:
-           f1: int
-         of eN12:
-           f2: float
-
-    let val = Obj1()
-
   test "Pattern parser tests":
     macro main(): untyped =
       template t(body: untyped): untyped =
@@ -776,14 +758,6 @@ suite "Matching":
       exception()
 
   multitest "One-or-more":
-    template testCase(main, patt, body: untyped): untyped =
-      case main:
-        of patt:
-          body
-        else:
-          testfail()
-          raiseAssert("#[ IMPLEMENT ]#")
-
     case [1]:
       of [@a]: assertEq a, 1
       else: testfail()
@@ -955,9 +929,10 @@ suite "Matching":
       result = newBlockStmt(result)
 
 
-    let res = @[12,3,3].withItCall do:
+    let res {.used.} = @[12,3,3].withItCall do:
       it = it.filterIt(it < 4)
       it.add 99
+
 
   multitest "Examples from documentation":
     block: [@a] := [1]; doAssert (a is int) and (a == 1)
@@ -1121,6 +1096,8 @@ suite "Matching":
         k3_val:
           k2_val(lex: "Hello")
           k1_val(lex: "Nice")
+
+      doAssert tree.kind == k3_val
 
     block:
       (lex: @lex) := Gen[void, string](tKind: ptkToken, lex: "hello")
