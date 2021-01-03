@@ -1556,16 +1556,16 @@ proc makeElemMatch(
           inc `counter`
           inc `posid`
           continue
-          # newCall(ident "inc", counter)
       else:
         result.body.add quote do:
           if `expr`:
-            # lk pos matched - advance to next step
+            # debugecho "Match ok"
             inc `counter`
             inc `posid`
             continue
 
           else:
+            # debugecho "Fail break"
             `failBreak`
 
     else:
@@ -1703,8 +1703,8 @@ proc makeElemMatch(
                 `failBreak`
 
         of lkTrail, lkPos:
-          # ???
           discard
+
 
 
 
@@ -1833,7 +1833,17 @@ func makeSeqMatch(
       `getLen` notin {`minNode` .. `maxNode`}
 
   if doRaise and not debugWIP:
-    let pattStr = seqm.declNode.toStrLit().codeFmt()
+    var pattStr =
+      block:
+        var tmp = seqm.declNode.toStrLit().strVal()
+        if split(tmp, '\n').len > 1:
+          tmp = "\n" & tmp.split('\n').mapIt("  " & it).join("\n") & "\n\n"
+
+        else:
+          tmp = codeFmt(tmp) & ". "
+
+        newLit(tmp)
+
     let ln = seqm.declNode.lineIInfo()
     let lenObj = path.toAccs(originalMainExpr, false).toStrLit().codeFmt()
 
@@ -1841,8 +1851,8 @@ func makeSeqMatch(
       failBreak = quote do:
         {.line: `ln`.}:
           raise MatchError(
-            msg: "Match failure for pattern '" & `pattStr` &
-              "'. Expected at least " & $(`minNode`) &
+            msg: "Match failure for pattern " & `pattStr` &
+              "Expected at least " & $(`minNode`) &
               " elements, but " & (`lenObj`) &
               " has .len of " & $(`getLen`) & "."
           )
@@ -1851,8 +1861,8 @@ func makeSeqMatch(
       failBreak = quote do:
         {.line: `ln`.}:
           raise MatchError(
-            msg: "Match failure for pattern '" & `pattStr` &
-              "'. Expected length in range '" & $(`minNode`) & " .. " &
+            msg: "Match failure for pattern " & `pattStr` &
+              "Expected length in range '" & $(`minNode`) & " .. " &
               $(`maxNode`) & "', but `" & (`lenObj`) &
               "` has .len of " & $(`getLen`) & "."
           )
@@ -1986,16 +1996,6 @@ func makeMatchExpr(
             else:
               false
 
-      if doRaise:
-        let msgLit = newLit(
-          "Pattern match failed: element does not match '" &
-            m.declNode.toStrLit().strVal() & "'")
-
-        result = quote do:
-          `result` or ((block: raise MatchError(msg: `msgLit`) ; false))
-
-
-
     of kSeq:
       return makeSeqMatch(
         m, vtable, path, mainExpr, doRaise, originalMainExpr)
@@ -2007,7 +2007,7 @@ func makeMatchExpr(
         conds.add it.makeMatchExpr(
           vtable, path, path, mainExpr, doRaise, originalMainExpr)
 
-      return conds.foldInfix("and")
+      result = conds.foldInfix("and")
 
     of kObject:
       var conds: seq[NimNode]
@@ -2034,7 +2034,7 @@ func makeMatchExpr(
         conds.add kv.makeMatchExpr(
           vtable, path, path, mainExpr, doRaise, originalMainExpr)
 
-      return conds.foldInfix("and")
+      result = conds.foldInfix("and")
 
     of kPairs:
       var conds: seq[NimNode]
@@ -2085,7 +2085,7 @@ func makeMatchExpr(
                 else:
                   true
 
-      return conds.foldInfix("and")
+      result = conds.foldInfix("and")
 
     of kAlt:
       var conds: seq[NimNode]
@@ -2102,6 +2102,7 @@ func makeMatchExpr(
       let res = conds.foldInfix("or")
       if not doRaise:
         return res
+
       else:
         let pattStr = m.declNode.toStrLit()
         return quote do:
@@ -2117,8 +2118,16 @@ func makeMatchExpr(
         if elem.kind == kItem:
           testSet.add elem.rhsNode
 
-      return quote do:
+      result = quote do:
         `setPath` in `testSet`
+
+  if doRaise:
+    let msgLit = newLit(
+      "Pattern match failed: element does not match '" &
+        m.declNode.toStrLit().strVal() & "'")
+
+    result = quote do:
+      `result` or ((block: raise MatchError(msg: `msgLit`) ; false))
 
 
 func makeMatchExpr*(

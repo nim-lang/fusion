@@ -1726,57 +1726,57 @@ suite "More tests":
 
     assertEq vals, @["hello", "world"]
 
+  type
+    Ast1Kind = enum
+      akFirst1
+      akSecond1
+      akThird1
+
+    Ast1 = object
+      case kind1: Ast1Kind
+        of akFirst1:
+          first: string
+        of akSecond1:
+          second: int
+        of akThird1:
+          asdf: int
+          third: seq[Ast1]
+
+    Ast2Kind = enum
+      akFirst2
+      akSecond2
+      akThird2
+
+    Ast2 = object
+      case kind2: Ast2Kind
+        of akFirst2:
+          first: string
+        of akSecond2:
+          second: int
+        of akThird2:
+          third: seq[Ast2]
+
+  func `kind=`(a1: var Ast1, k: Ast1Kind) = a1 = Ast1(kind1: k)
+  func `kind=`(a2: var Ast2, k: Ast2Kind) = a2 = Ast2(kind2: k)
+
+  func kind(a1: Ast1): Ast1Kind = a1.kind1
+  func kind(a2: Ast2): Ast2Kind = a2.kind2
+
+  func add(a1: var Ast1, sub: Ast1) = a1.third.add sub
+  func add(a2: var Ast2, sub: Ast2) = a2.third.add sub
+
+  func len(a1: Ast1): int = a1.third.len
+  func len(a2: Ast2): int = a2.third.len
+
+  iterator items(a1: Ast1): Ast1 =
+    for it in a1.third:
+      yield it
+
+  iterator items(a2: Ast2): Ast2 =
+    for it in a2.third:
+      yield it
+
   multitestSince "AST-AST conversion using pattern matching", (1, 2, 0):
-    type
-      Ast1Kind = enum
-        akFirst1
-        akSecond1
-        akThird1
-
-      Ast1 = object
-        case kind1: Ast1Kind
-          of akFirst1:
-            first: string
-          of akSecond1:
-            second: int
-          of akThird1:
-            asdf: int
-            third: seq[Ast1]
-
-      Ast2Kind = enum
-        akFirst2
-        akSecond2
-        akThird2
-
-      Ast2 = object
-        case kind2: Ast2Kind
-          of akFirst2:
-            first: string
-          of akSecond2:
-            second: int
-          of akThird2:
-            third: seq[Ast2]
-
-    func `kind=`(a1: var Ast1, k: Ast1Kind) = a1 = Ast1(kind1: k)
-    func `kind=`(a2: var Ast2, k: Ast2Kind) = a2 = Ast2(kind2: k)
-
-    func kind(a1: Ast1): Ast1Kind = a1.kind1
-    func kind(a2: Ast2): Ast2Kind = a2.kind2
-
-    func add(a1: var Ast1, sub: Ast1) = a1.third.add sub
-    func add(a2: var Ast2, sub: Ast2) = a2.third.add sub
-
-    func len(a1: Ast1): int = a1.third.len
-    func len(a2: Ast2): int = a2.third.len
-
-    iterator items(a1: Ast1): Ast1 =
-      for it in a1.third:
-        yield it
-
-    iterator items(a2: Ast2): Ast2 =
-      for it in a2.third:
-        yield it
-
     func convert(a1: Ast1): Ast2 =
       case a1:
         of First1(first: @value):
@@ -1798,28 +1798,50 @@ suite "More tests":
 
     discard val.convert()
 
-    when true:
-      Ast1().assertMatch:
+  test "Match tree with statement list":
+    Ast1().assertMatch:
+      First1()
+
+    Ast1().assertMatch:
+      First1(first: "")
+
+    Ast1(kind1: akThird1, third: @[Ast1(), Ast1()]).assertMatch:
+      Third1(asdf: 0):
+        First1()
         First1()
 
-    when true:
-      Ast1().assertMatch:
-        First1(first: "")
+    Ast1(kind1: akThird1, third: @[Ast1()]).assertMatch:
+      Third1(asdf: 0):
+        First1()
 
-    when true:
+    Ast1().assertMatch:
+      First1(first: "")
+
+
+  test "Raise error":
+    expect MatchError:
+      Ast1().assertMatch:
+        Third1()
+
+    expect MatchError:
+      Ast1().assertMatch:
+        First1(first: "zzzzzzzzzzz")
+
+    expect MatchError:
       Ast1(kind1: akThird1, third: @[Ast1(), Ast1()]).assertMatch:
         Third1(asdf: 0):
-          First1()
-          First1()
+          Second1()
+          Third1()
 
-    when true:
+    expect MatchError:
       Ast1(kind1: akThird1, third: @[Ast1()]).assertMatch:
         Third1(asdf: 0):
           First1()
+          First1()
 
-    when true:
-      Ast1().assertMatch:
-        First1(first: "")
+    expect MatchError:
+      Ast1(kind1: akFirst1).assertMatch:
+        Third1(first: "")
 
 
 import std/[deques, lists]
