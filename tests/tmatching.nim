@@ -164,7 +164,7 @@ suite "Matching":
               doAssert head is NimNode
               doAssert body is NimNode
 
-    when (NimMajor, NimMinor) > (1, 0):
+    when (NimMajor, NimMinor, NimPatch) >= (1, 2, 0):
       # https://github.com/nim-lang/fusion/pull/64/checks?check_run_id=1640671490#step:8:251
       main()  # Fails on 1.0.0 only.
 
@@ -880,7 +880,7 @@ suite "Matching":
 
 
   multitestSince "Tree builder custom type", (1, 4, 0):
-    when (NimMajor, NimMinor, NimPatch) > (1, 4, 2):
+    when (NimMajor, NimMinor, NimPatch) >= (1, 5, 1):
       discard makeTree(HtmlNode, Base())
       discard makeTree(HtmlNode, base())
       discard makeTree(HtmlNode, base([link()]))
