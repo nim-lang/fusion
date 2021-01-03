@@ -892,7 +892,7 @@ suite "Matching":
   #     makeTree(HtmlNode, body)
 
   #   let tmp1 = wrapper1:
-  #     base: link()
+  #     base: link()  # Repro on 1.4.0 only, not 1.4.2 or newer.
   #     base: link()  # https://github.com/nim-lang/fusion/pull/64/checks?check_run_id=1640367574#step:8:67
   #                   # https://github.com/nim-lang/fusion/pull/64/checks?check_run_id=1640605058#step:8:67
   #   doAssert tmp1 is seq[HtmlNode]
