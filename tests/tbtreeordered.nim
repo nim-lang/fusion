@@ -157,8 +157,8 @@ test "put":
   doAssert not t.hasKeyOrPut('j', 12)
   doAssert t.hasKeyOrPut('j', 34)
   doAssert t['j'] == 12
-  doAssert t.mgetOrput('k', 56) == 56
-  doAssert t.mgetOrput('k', 78) == 56
+  doAssert t.mgetOrPut('k', 56) == 56
+  doAssert t.mgetOrPut('k', 78) == 56
   doAssert t.len == 11
 
 test "remove":
