@@ -8,7 +8,7 @@ const
 
 
 iterator findNimSrcFiles*(dir: string): string =
-  proc follow(a: PathEntry): bool =
+  func follow(a: PathEntry): bool =
     a.path.lastPathPart notin blockList
 
   for entry in walkDirRecFilter(dir, follow = follow):
