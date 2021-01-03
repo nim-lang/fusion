@@ -11,6 +11,6 @@ srcDir        = "src"
 requires "nim >= 1.0.0"
 
 task docs, "":
-  # can customize, e.g.:
-  # exec "nim r src/fusion/docutils " & srcDir & " --outdir:htmldocs2 -d:foo"
-  exec "nim c -r src/fusion/docutils " & srcDir
+  exec "nim c -r src/fusion/docutils " & srcDir & " --outdir:htmldocs"
+  # JavaScript
+  exec "nim c -r src/fusion/docutils " & srcDir & " --outdir:htmldocs_js -d:js"
