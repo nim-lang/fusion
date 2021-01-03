@@ -69,6 +69,17 @@ func codeFmt(str: string): string {.inline.} =
 func codeFmt(node: NimNode): NimNode {.inline.} =
   node.strVal().codeFmt().newLit()
 
+func toPattStr(node: NimNode): NimNode =
+  var tmp = node.toStrLit().strVal()
+  if split(tmp, '\n').len > 1:
+    tmp = "\n" & tmp.split('\n').mapIt("  " & it).join("\n") & "\n\n"
+
+  else:
+    tmp = codeFmt(tmp) & ". "
+
+  newLit(tmp)
+
+
 func nodeStr(n: NimNode): string =
   ## Get nim node string value from any identifier or string literal node
   case n.kind:
@@ -589,8 +600,6 @@ func isNamedTuple(node: NimNode): bool =
 func makeVarSet(
   varn: NimNode, expr: NimNode, vtable: VarTable, doRaise: bool): NimNode =
   varn.assertKind({nnkIdent})
-  # {.noSideEffect.}:
-  #    echo vtable
   case vtable[varn.nodeStr()].varKind:
     of vkSequence:
       return quote do:
@@ -795,12 +804,6 @@ func parseKVTuple(n: NimNode): Match =
   if n.kind in {nnkCall, nnkObjConstr}:
     start = 1
     result.kindCall = some(n[0])
-    # echov "\e[31mKind call\e[39m:"
-    # echov n[0].idxTreeRepr()
-    # echov "\e[33mMain node\e[39m:"
-    # echov n.idxTreeRepr()
-    # raiseAssert("#[ IMPLEMENT ]#")
-
 
   for elem in n[start .. ^1]:
     case elem.kind:
@@ -1239,27 +1242,10 @@ func parseMatchExpr*(n: NimNode): Match =
             predBody: n[1]
           )
 
-        # elif n.kind == nnkStmtList:
-        #   echov "\e[31mParsing statement list\e[39m"
-        #   result = Match(
-        #     kind: kSeq, seqElems: parseSeqMatch(n), declNode: n)
-
         elif n.kind == nnkCall and
              n.len > 1 and
              n[1].kind == nnkStmtList:
 
-          # echov n.idxTreeRepr()
-          # var refix = newStmtList()
-          # refix.add n[0]
-          # for node in n[1][0..^1]:
-          #   refix.add node
-
-          # var refix = n[0]
-          # refix.copyLineInfo(n[0])
-
-          # echov refix.idxTreeRepr()
-
-          echov n.idxTreeRepr()
           if n[0].kind == nnkIdent:
             result = parseKVTuple(n)
 
@@ -1267,20 +1253,7 @@ func parseMatchExpr*(n: NimNode): Match =
             result = parseMatchExpr(n[0])
             result.seqMatches = some(parseMatchExpr(n[1]))
 
-          # echov parseKVTuple(n)
-          # echov parseKVTuple(n).kind
-          # echov result.kind
-          # echov result
-          # result.seqMatches = some(parseMatchExpr(n[1]))
-          # result = parseKVTuple(n)
-          # result = Match(
-          #   kind: kObject, seqElems: @[
-          #     SeqStructure(decl: n[0], kind: lkPos, patt: parseMatchExpr(refix)),
-          #     SeqStructure(decl: n[1], kind: lkPos, patt: parseMatchExpr(n[1]))
-          #   ], declNode: n)
-
         else:
-          # echov "Parsing KV tuple"
           result = parseKVTuple(n)
 
     elif (n.kind in {nnkCommand, nnkCall}) and n[0].eqIdent("opt"):
@@ -1439,10 +1412,7 @@ func makeVarTable(m: Match): tuple[table: VarTable,
             altMax: sub.altElems.len - 1
           )])
       of kSeq:
-        # echov path
-        # echov sub[]
         for elem in sub.seqElems:
-          # echov elem
           let parent = path & @[AccsElem(
             inStruct: kSeq, pos: newLit(0),
             isVariadic: elem.kind notin {lkPos, lkOpt})]
@@ -1833,17 +1803,7 @@ func makeSeqMatch(
       `getLen` notin {`minNode` .. `maxNode`}
 
   if doRaise and not debugWIP:
-    var pattStr =
-      block:
-        var tmp = seqm.declNode.toStrLit().strVal()
-        if split(tmp, '\n').len > 1:
-          tmp = "\n" & tmp.split('\n').mapIt("  " & it).join("\n") & "\n\n"
-
-        else:
-          tmp = codeFmt(tmp) & ". "
-
-        newLit(tmp)
-
+    var pattStr = seqm.declNode.toPattStr()
     let ln = seqm.declNode.lineIInfo()
     let lenObj = path.toAccs(originalMainExpr, false).toStrLit().codeFmt()
 
@@ -2123,8 +2083,8 @@ func makeMatchExpr(
 
   if doRaise:
     let msgLit = newLit(
-      "Pattern match failed: element does not match '" &
-        m.declNode.toStrLit().strVal() & "'")
+      "Pattern match failed: element does not match " &
+        m.declNode.toPattStr().strVal())
 
     result = quote do:
       `result` or ((block: raise MatchError(msg: `msgLit`) ; false))
@@ -2150,7 +2110,6 @@ func toNode(
 
   var exprNew = nnkStmtList.newTree()
   var hasOption: bool = false
-  var hasSequence: bool = false
   for name, spec in vtable:
     let vname = ident(name)
     var typeExpr = toAccs(spec.typePath, mainExpr, true)
@@ -2181,9 +2140,14 @@ func toNode(
           var `vname`: typeof(`typeExpr`)
 
       of vkRegular:
-        let wasSet = ident(vname.nodeStr() & "WasSet")
+        var wasSet = newEmptyNode()
+        if vtable[vname.nodeStr()].cnt > 1:
+          let varn = ident(vname.nodeStr() & "WasSet")
+          wasSet = quote do:
+            var `varn`: bool = false
+
         exprNew.add quote do:
-          var `wasSet`: bool = false
+          `wasSet`
           var `vname`: typeof(`typeExpr`)
 
 
@@ -2212,6 +2176,7 @@ macro match*(n: untyped): untyped =
 
         mixidents.add mixid
 
+
         matchcase.add nnkElifBranch.newTree(
           toNode(expr, vtable, ident("expr")).newPar().newPar(),
           elem[^1]
@@ -2239,6 +2204,7 @@ macro match*(n: untyped): untyped =
       `pos`
       let expr {.inject.} = `head`
       let pos {.inject.}: int = 0
+      discard pos
       `matchcase`
 
   # echo result.repr
@@ -2264,6 +2230,7 @@ macro assertMatch*(input, pattern: untyped): untyped =
   result = quote do:
     let `expr` = `input`
     let ok = `matched`
+    discard ok
 
   # echo result.repr
 

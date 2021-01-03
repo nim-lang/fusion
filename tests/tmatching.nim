@@ -421,14 +421,12 @@ suite "Matching":
       else:
         testfail()
 
-  func `[]`(o: Obj2, idx: int): Obj2 = o.eee[idx]
   func len(o: Obj2): int = o.eee.len
   iterator items(o: Obj2): Obj2 =
     for item in o.eee:
       yield item
 
   multitest "Object items":
-
     case Obj2(kind: enEE, eee: @[Obj2(), Obj2()]):
       of [_, _]:
         discard
@@ -728,6 +726,8 @@ suite "Matching":
       [@head, .._] := a
       return head
 
+    doAssert hello(@[1,2,3]) == 1
+
     proc g1[T](a: seq[T]): T =
       case a:
         of [@a]: discard
@@ -865,8 +865,6 @@ suite "Matching":
       subn*: seq[HtmlNode]
 
   func add(n: var HtmlNode, s: HtmlNode) = n.subn.add s
-  func `[]`(node: HtmlNode, idx: int): HtmlNode =
-    node.subn[idx]
 
   func len(n: HtmlNode): int = n.subn.len
   iterator items(node: HtmlNode): HtmlNode =
@@ -1766,14 +1764,9 @@ suite "More tests":
   func add(a2: var Ast2, sub: Ast2) = a2.third.add sub
 
   func len(a1: Ast1): int = a1.third.len
-  func len(a2: Ast2): int = a2.third.len
 
   iterator items(a1: Ast1): Ast1 =
     for it in a1.third:
-      yield it
-
-  iterator items(a2: Ast2): Ast2 =
-    for it in a2.third:
       yield it
 
   multitestSince "AST-AST conversion using pattern matching", (1, 2, 0):
@@ -1989,32 +1982,36 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 
       doAssert a is Option[int]
 
-    macro test1(inBody: untyped): untyped =
-      block:
+    macro test1(): untyped =
+      var inBody: NimNode
+      if false:
         Call[BracketExpr[@ident, opt @outType], @body] := inBody
-        doAssert ident is NimNode
-        doAssert outType is Option[NimNode]
-        doAssert body is NimNode
 
-      block:
+        static:
+          doAssert ident is NimNode
+          doAssert outType is Option[NimNode]
+          doAssert body is NimNode
+
+      if false:
         Command[@ident is Ident(), Bracket[@outType], @body] := inBody
-        doAssert ident is NimNode
-        doAssert outType is NimNode
-        doAssert body is NimNode
 
-      block:
+        static:
+          doAssert ident is NimNode
+          doAssert outType is NimNode
+          doAssert body is NimNode
+
+      if false:
         Call[BracketExpr[@ident, opt @outType], @body] |
         Command[@ident is Ident(), Bracket[@outType], @body] := inBody
 
-        doAssert ident is NimNode
-        doAssert outType is Option[NimNode]
-        doAssert body is NimNode
+        static:
+          doAssert ident is NimNode
+          doAssert outType is Option[NimNode]
+          doAssert body is NimNode
 
       block:
-        var a = quote do:
-          map[string]
+        var a = nnkBracketExpr.newTree(ident "map", ident "string")
 
-        a = a[0]
         a.assertMatch:
           BracketExpr:
             @head
@@ -2023,7 +2020,7 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
         doAssert head.strVal() == "map"
         doAssert typeParam.strVal() == "string"
 
-
+    test1()
 
   multitest "Flow macro":
     type
