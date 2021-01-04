@@ -3,15 +3,14 @@ on: [push, pull_request]
 
 jobs:
   build:
-    # if: !contains(format('{0} {1}', github.event.head_commit.message, github.event.pull_request.title), '[skip ci]')
     if: |
       !contains(format('{0} {1}', github.event.head_commit.message, github.event.pull_request.title), '[skip ci]')
 
     strategy:
       fail-fast: false
       matrix:
-        # branch: ["1.0.0", "1.2.0", "1.4.0", "devel"]
-        branch: ["1.0.0", "1.0.8", "1.2.0", "1.2.8", "1.4.0", "1.4.2", "devel"] # TODO: stable
+        # xxx update as needed with latest stable for each branch
+        branch: ["1.0.8", "1.2.8", "1.4.2", "devel"] # stable currentl at 1.4.2
         target:
           - os: linux
             cpu: amd64
