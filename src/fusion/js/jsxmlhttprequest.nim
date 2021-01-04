@@ -16,9 +16,6 @@ func newXMLHttpRequest*(): XMLHttpRequest {.importjs: "new XMLHttpRequest()".}
 func open*(this: XMLHttpRequest; metod, url: cstring; async = true; user = cstring.default; password = cstring.default) {.importjs: "#.$1(#, #, #, #, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
 
-func send*(this: XMLHttpRequest) {.importjs: "#.$1()".}
-  ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/send
-
 func send*(this: XMLHttpRequest; body: cstring | Node = cstring.default) {.importjs: "#.$1(#)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/send
 
@@ -36,7 +33,7 @@ func setRequestHeader*(this: XMLHttpRequest; key, value: cstring) {.importjs: "#
 
 func setRequestHeader*(this: XMLHttpRequest; keyValuePairs: openArray[tuple[key, val: cstring]]) {.importjs:
   "(() => { const rqst = #; #.forEach((item) => rqst.$1(item[0], item[1])) })()".}
-  ## Same as `setRequestHeader` but takes `openArray[array[2, cstring]]`.
+  ## Same as `setRequestHeader` but takes `openArray[tuple[key, val: cstring]]`.
 
 
 runnableExamples:
