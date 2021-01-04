@@ -27,7 +27,7 @@ func keys*(this: FormData): seq[cstring] {.importjs: "Array.from(#.$1())".}
 func values*(this: FormData): seq[cstring] {.importjs: "Array.from(#.$1())".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/values
 
-func entries*(this: FormData): seq[array[2, cstring]] {.importjs: "Array.from(#.$1())".}
+func pairs*(this: FormData): seq[tuple[key, val: cstring]] {.importjs: "Array.from(#.entries())".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/entries
 
 func set*(this: FormData; name, value, filename: cstring) {.importjs: "#.$1(#, #, #)".}
