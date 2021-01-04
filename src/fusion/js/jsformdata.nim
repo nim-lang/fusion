@@ -8,9 +8,11 @@ func newFormData*(): FormData {.importjs: "new FormData()".}
 
 func add*(this: FormData; name: cstring; value: SomeNumber | bool | cstring) {.importjs: "#.append(#, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/append
+  ## Duplicate keys are allowed and order is preserved.
 
 func add*(this: FormData; name: cstring; value: SomeNumber | bool | cstring, filename: cstring) {.importjs: "#.append(#, #, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/append
+  ## Duplicate keys are allowed and order is preserved.
 
 func delete*(this: FormData; name: cstring) {.importjs: "#.$1(#)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/delete
