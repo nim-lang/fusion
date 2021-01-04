@@ -6,22 +6,10 @@ type FormData* = ref object of JsRoot ## FormData API.
 
 func newFormData*(): FormData {.importjs: "new FormData()".}
 
-func add*(this: FormData; name, value: cstring) {.importjs: "#.append(#, #)".}
+func add*(this: FormData; name: cstring; value: SomeNumber | bool | cstring) {.importjs: "#.append(#, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/append
 
-func add*(this: FormData; name: cstring; value: bool) {.importjs: "#.append(#, #)".}
-  ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/append
-
-func add*(this: FormData; name: cstring; value: SomeNumber) {.importjs: "#.append(#, #)".}
-  ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/append
-
-func add*(this: FormData; name, value, filename: cstring) {.importjs: "#.append(#, #, #)".}
-  ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/append
-
-func add*(this: FormData; name: cstring; value: bool; filename: cstring) {.importjs: "#.append(#, #, #)".}
-  ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/append
-
-func add*(this: FormData; name: cstring; value: SomeNumber; filename: cstring) {.importjs: "#.append(#, #, #)".}
+func add*(this: FormData; name: cstring; value: SomeNumber | bool | cstring, filename: cstring) {.importjs: "#.append(#, #, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/FormData/append
 
 func delete*(this: FormData; name: cstring) {.importjs: "#.$1(#)".}
