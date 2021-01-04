@@ -51,7 +51,7 @@ runnableExamples:
   if defined(fusionJsFormdataTests):
     let data: FormData = newFormData()
     data["key0"] = "value0".cstring
-    data.add("key1", "value1")
+    data.add("key1".cstring, "value1".cstring)
     data.delete("key1")
     doAssert data.hasKey("key0")
     doAssert data["key0"] == "value0".cstring
