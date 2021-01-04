@@ -1,11 +1,8 @@
 import std/[strutils, sequtils, strformat, sugar,
-            macros, options, tables, json]
+            macros, options, tables, json, algorithm]
 
 import fusion/matching
 {.experimental: "caseStmtMacros".}
-{.push hint[XDeclaredButNotUsed]: off.}
-{.push hint[ConvFromXtoItselfNotNeeded]:off.}
-{.push hint[CondTrue]:off.}
 
 import unittest
 
@@ -63,7 +60,7 @@ suite "Matching":
          of eN12:
            f2: float
 
-    let val {.used.} = Obj1()
+    let val = Obj1()
 
   test "Pattern parser tests":
     macro main(): untyped =
@@ -164,9 +161,7 @@ suite "Matching":
               doAssert head is NimNode
               doAssert body is NimNode
 
-    when (NimMajor, NimMinor, NimPatch) >= (1, 2, 0):
-      # https://github.com/nim-lang/fusion/pull/64/checks?check_run_id=1640671490#step:8:251
-      main()  # Fails on 1.0.0 only.
+    main()
 
   test "Pattern parser broken brackets":
     block: JArray[@a, @b] := %*[1, 3]
@@ -880,44 +875,44 @@ suite "Matching":
 
 
   multitestSince "Tree builder custom type", (1, 4, 0):
-    when (NimMajor, NimMinor, NimPatch) >= (1, 5, 1):
-      discard makeTree(HtmlNode, Base())
-      discard makeTree(HtmlNode, base())
-      discard makeTree(HtmlNode, base([link()]))
-      discard makeTree(HtmlNode):
-        base:
-          link(text: "hello")
 
-      template wrapper1(body: untyped): untyped =
-        makeTree(HtmlNode):
-          body
+    discard makeTree(HtmlNode, Base())
+    discard makeTree(HtmlNode, base())
+    discard makeTree(HtmlNode, base([link()]))
+    discard makeTree(HtmlNode):
+      base:
+        link(text: "hello")
 
-      template wrapper2(body: untyped): untyped =
-        makeTree(HtmlNode, body)
+    template wrapper1(body: untyped): untyped =
+      makeTree(HtmlNode):
+        body
 
-      let tmp1 = wrapper1:
-        base: link()  # Repro on 1.4.0 only, not 1.4.2 or newer.
-        base: link()  # https://github.com/nim-lang/fusion/pull/64/checks?check_run_id=1640367574#step:8:67
-                      # https://github.com/nim-lang/fusion/pull/64/checks?check_run_id=1640605058#step:8:67
-      doAssert tmp1 is seq[HtmlNode]
+    template wrapper2(body: untyped): untyped =
+      makeTree(HtmlNode, body)
+
+    let tmp1 = wrapper1:
+      base: link()
+      base: link()
+
+    doAssert tmp1 is seq[HtmlNode]
 
 
-      let tmp3 = wrapper1:
-        base:
-          base: link()
-          base: link()
+    let tmp3 = wrapper1:
+      base:
+        base: link()
+        base: link()
 
-      doAssert tmp3 is HtmlNode
+    doAssert tmp3 is HtmlNode
 
-      let tmp2 = wrapper1:
-        base:
-          link()
+    let tmp2 = wrapper1:
+      base:
+        link()
 
-      doAssert tmp2 is HtmlNode
+    doAssert tmp2 is HtmlNode
 
-      discard wrapper2:
-        base:
-          link()
+    discard wrapper2:
+      base:
+        link()
 
 
   multitest "Tree construction sequence operators":
