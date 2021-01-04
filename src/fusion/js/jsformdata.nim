@@ -1,5 +1,5 @@
 ## - `FormData` for the JavaScript target: https://developer.mozilla.org/en-US/docs/Web/API/FormData
-when not defined(js) and not defined(nimdoc):
+when not defined(js):
   {.fatal: "Module jsformdata is designed to be used with the JavaScript backend.".}
 
 type FormData* = ref object of JsRoot ## FormData API.
