@@ -65,4 +65,3 @@ runnableExamples:
     doAssert data.hasKey("key0")
     doAssert data["key0"] == "value0".cstring
     data.clear()
-    data.keys().len == 0
