@@ -17,12 +17,9 @@ func open*(this: XMLHttpRequest; metod, url: cstring; async = true; user = cstri
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
 
 func send*(this: XMLHttpRequest) {.importjs: "#.$1()".}
-  ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
-
-func send*(this: XMLHttpRequest; body: cstring) {.importjs: "#.$1(#)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/send
 
-func send*(this: XMLHttpRequest; body: Node) {.importjs: "#.$1(#)".}
+func send*(this: XMLHttpRequest; body: cstring | Node = cstring.default) {.importjs: "#.$1(#)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/send
 
 func abort*(this: XMLHttpRequest) {.importjs: "#.$1()".}
@@ -37,7 +34,7 @@ func overrideMimeType*(this: XMLHttpRequest; mimeType: cstring) {.importjs: "#.$
 func setRequestHeader*(this: XMLHttpRequest; key, value: cstring) {.importjs: "#.$1(#, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/setRequestHeader
 
-func setRequestHeader*(this: XMLHttpRequest; keyValuePairs: openArray[array[2, cstring]]) {.importjs:
+func setRequestHeader*(this: XMLHttpRequest; keyValuePairs: openArray[tuple[key, val: cstring]]) {.importjs:
   "(() => { const rqst = #; #.forEach((item) => rqst.$1(item[0], item[1])) })()".}
   ## Same as `setRequestHeader` but takes `openArray[array[2, cstring]]`.
 
@@ -48,7 +45,7 @@ runnableExamples:
     let request: XMLHttpRequest = newXMLHttpRequest()
     request.open("GET".cstring, "http://localhost:8000/".cstring, false)
     request.setRequestHeader("mode".cstring, "no-cors".cstring)
-    request.setRequestHeader([["mode".cstring, "no-cors".cstring]])
+    request.setRequestHeader([(key: "mode".cstring, val: "no-cors".cstring)])
     request.overrideMimeType("text/plain".cstring)
     request.send()
     echo request.getAllResponseHeaders()
