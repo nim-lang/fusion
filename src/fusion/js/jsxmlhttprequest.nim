@@ -13,16 +13,7 @@ type XMLHttpRequest* = ref object of JsRoot  ## https://xhr.spec.whatwg.org
 func newXMLHttpRequest*(): XMLHttpRequest {.importjs: "new XMLHttpRequest()".}
   ## Constructor for `XMLHttpRequest`.
 
-func open*(this: XMLHttpRequest; metod, url: cstring) {.importjs: "#.$1(#, #)".}
-  ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
-
-func open*(this: XMLHttpRequest; metod, url: cstring; async: bool) {.importjs: "#.$1(#, #, #)".}
-  ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
-
-func open*(this: XMLHttpRequest; metod, url: cstring; async: bool; user: cstring) {.importjs: "#.$1(#, #, #, #)".}
-  ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
-
-func open*(this: XMLHttpRequest; metod, url: cstring; async: bool; user, password: cstring) {.importjs: "#.$1(#, #, #, #, #)".}
+func open*(this: XMLHttpRequest; metod, url: cstring; async = true; user = cstring.default; password = cstring.default) {.importjs: "#.$1(#, #, #, #, #)".}
   ## https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
 
 func send*(this: XMLHttpRequest) {.importjs: "#.$1()".}
