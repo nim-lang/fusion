@@ -259,6 +259,7 @@ suite "Matching":
           res = "rly?"
         elif true:
           res = "default fallback"
+
         else:
           raiseAssert("#[ not possible ! ]#")
 
@@ -1317,6 +1318,29 @@ suite "Matching":
 
     assertEq x, 12
     assertEq y, 13
+
+
+  test "Nested access paths":
+    case [[[[[[12]]]]]]:
+      of [@test]: discard
+      of [[@test]]: discard
+      of [[[[[@test]]]]]: discard
+
+    case (a: (b: (c: 12))):
+      of (a: @hello): discard
+      of (a: (b: @hello)): discard
+      of (a.b: @hello): discard
+      of (a.b.c: @hello): discard
+      of (a.b.c: 12): discard
+
+    (a: (b: (c: 12))) := (a: (b: (c: 12)))
+    (a.b.c: 12) := (a: (b: (c: 12)))
+    (a[0][0]: 12) := (a: (b: (c: 12)))
+
+    case (a: [2]):
+      of (a: @val): discard
+      of (a[0]: @val): discard
+      of (a[^1]: @val): discard
 
 
 

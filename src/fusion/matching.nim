@@ -755,7 +755,10 @@ func parseNestedKey(n: NimNode): Match =
 
 
 func parseKVTuple(n: NimNode): Match =
+  ## Parse key-value tuple for object access - object or tuple fields.
   if n[0].eqIdent("Some"):
+    # Special case for `Some(@var)` - expanded into `isSome` check and some
+    # additional cruft
     if not (n.len <= 2):
       error("Expected `Some(@varBind)`", n)
 
@@ -784,7 +787,7 @@ func parseKVTuple(n: NimNode): Match =
 
 
   result = Match(kind: kObject, declNode: n)
-  var start = 0
+  var start = 0 # Starting subnode for actual object fields
   if n.kind in {nnkCall, nnkObjConstr}:
     start = 1
     result.kindCall = some(n[0])
@@ -794,8 +797,19 @@ func parseKVTuple(n: NimNode): Match =
       of nnkExprColonExpr:
         var str: string
         case elem[0].kind:
-          of nnkIdentKinds, nnkDotExpr:
-            str = elem[0].firstDot().nodeStr()
+          of nnkIdentKinds, nnkDotExpr, nnkBracketExpr:
+            let first = elem[0].firstDot()
+            if first.kind == nnkIdent:
+              str = first.nodeStr()
+
+            else:
+              error(
+                "First field access element must be an identifier. " &
+                  "For accessing int-indexable objects use [] subscript " &
+                  "directly, like (" & first.repr & ")",
+                first
+              )
+
           else:
             error(
               "Malformed path access - expected either field name, " &
@@ -808,9 +822,17 @@ func parseKVTuple(n: NimNode): Match =
         result.fldElems.add((str, elem.parseNestedKey()))
 
       of nnkBracket, nnkStmtList:
+        # `Bracket` - Special case for object access - allow omission of
+        # parentesis, so you can write `ForStmt[@a, @b]` (which is very
+        # useful when working with AST types)
+        #
+        # `StmtList` - second special case for writing list patterns,
+        # allows to use treeRepr-like code.
         result.seqMatches = some(elem.parseMatchExpr())
 
       of nnkTableConstr:
+        # Special case for matching key-value pairs (tables and other
+        # objects implementing `contains` and `[]` operator)
         result.kvMatches = some(elem.parseMatchExpr())
 
       else:
