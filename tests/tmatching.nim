@@ -1475,6 +1475,40 @@ suite "Gara tests":
       else:
         fail()
 
+  test "Sequence subpatterns 2":
+    [12] := [12]
+    [[12]] := [[12]]
+    [[12], [13]] := [[12], [13]]
+    [0 .. 2 is 12] := [12, 12, 12]
+    # [0 is 12] := [12]
+    [^1 is 12] := [12]
+
+    expect MatchError:
+      [^1 is 12] := [13]
+
+    [^1 is (12, 12)] := [(12, 12)]
+
+    [0 is 12, ^1 is 13] := [12, 13]
+
+    expect MatchError:
+      [0 is 12, ^1 is 13] := [12, 14]
+
+
+    expect MatchError:
+      [0 is 2, ^1 is 13] := [12, 13]
+
+
+    expect MatchError:
+      # NOTE that's not how it supposed to be used, but it should work
+      # anyway.
+      [^1 is 13, 0 is 2] := [12, 13]
+
+    [^1 is 13, 0 is 2] := [2, 13]
+
+
+    # [^1 is 13, 0 is 2] := [12, 13]
+
+
   test "Variant":
     let a = Commit(kind: ctNormal, message: "e", diff: "z")
 

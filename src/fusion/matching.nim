@@ -852,6 +852,39 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
       ), decl: elem)
 
     elif
+      # `^1 is <patt>`
+      elem.kind == nnkInfix and elem[1].kind == nnkPrefix and
+      elem[0].eqIdent("is") and elem[1][0].eqIdent("^") and
+      elem[1][1].kind in nnkIntKinds
+      :
+
+      var res = SeqStructure(
+        kind: lkSlice, slice: elem[1], decl: elem,
+        patt: parseMatchExpr(elem[2]),
+      )
+
+      res.bindVar = res.patt.bindVar
+      res.patt.bindVar = none(NimNode)
+      result.add res
+
+
+    elif
+      # `1 is <patt>`
+      elem.kind == nnkInfix and
+      elem[1].kind in nnkIntKinds and
+      elem[0].eqIdent("is")
+      :
+
+      var res = SeqStructure(
+        kind: lkSlice, slice: elem[1], decl: elem,
+        patt: parseMatchExpr(elem[2]),
+      )
+
+      res.bindVar = res.patt.bindVar
+      res.patt.bindVar = none(NimNode)
+      result.add res
+
+    elif
       # `[0 .. 3 @head is Jstring()]`
       (elem.kind == nnkInfix and (elem[0].startsWith(".."))) or
       # `[(0 .. 3) @head is Jstring()]`
@@ -1572,6 +1605,7 @@ proc makeElemMatch(
                   msg: "Match failure for pattern '" & `pattStr` &
                     "'. Expected at least one elemen to match, but got none"
                 )
+
           of lkNone:
             failBreak = quote do:
               {.line: `ln`.}:
@@ -1579,6 +1613,16 @@ proc makeElemMatch(
                   msg: "Match failure for pattern '" & `pattStr` &
                     "'. Expected no elements to match, but index " &
                     $(`posid` - 1) & " matched."
+                )
+
+          of lkSlice:
+            let positions = elem.slice.toStrLit().codeFmt()
+            failBreak = quote do:
+              {.line: `ln`.}:
+                raise MatchError(
+                  msg: "Match failure for pattern '" & `pattStr` &
+                    "'. Elements for positions " & `positions` &
+                    " were expected to match no elements to match"
                 )
 
           else:
@@ -1599,19 +1643,34 @@ proc makeElemMatch(
               # failure for whole sequence pattern
               if `expr` and `varset`:
                 discard
+
               else:
                 `failBreak`
 
         of lkSlice:
           var rangeExpr = elem.slice
-          result.body.add quote do:
-            if `posid` in `rangeExpr`:
+          # echov rangeExpr.idxTreeRepr()
+          if rangeExpr.kind in {nnkPrefix} + nnkIntKinds:
+            result.body.add quote do:
               if `expr` and `varset`:
                 discard
+
               else:
                 `failBreak`
-            else:
+
               inc `counter`
+
+          else:
+            result.body.add quote do:
+              if `posid` in `rangeExpr`:
+                if `expr` and `varset`:
+                  discard
+
+                else:
+                  `failBreak`
+
+              else:
+                inc `counter`
 
         of lkUntil:
           result.body.add quote do:
@@ -1737,18 +1796,26 @@ func makeSeqMatch(
           break `successBlock`
 
     else:
-      let
+      var
+        elemMainExpr = elemId
         parent: Path = path & @[AccsElem(
           inStruct: kSeq, pos: posid,
           isVariadic: elem.kind notin {lkPos, lkOpt}
         )]
 
+      if elem.kind == lkSlice and
+         elem.slice.kind in (nnkIntKinds + {nnkPrefix}):
+        parent[^1].isVariadic = false
+        parent[^1].pos = elem.slice
+        elemMainExpr = nnkBracketExpr.newTree(mainExpr, elem.slice)
+
+      let
         expr: NimNode = elem.patt.makeMatchExpr(
           vtable,
           # Passing empty path and overriding `mainExpr` for elemen access
           # in order to make all nested matches use loop variable
           path = @[],
-          mainExpr = elemId,
+          mainExpr = elemMainExpr,
           # Expression for type path must be unchanged
           typePath = parent,
           doRaise = false,
