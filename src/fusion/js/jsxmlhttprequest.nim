@@ -2,7 +2,7 @@
 when not defined(js):
   {.fatal: "Module jsxmlhttprequest is designed to be used with the JavaScript backend.".}
 
-from dom import Node
+from std/dom import Node
 
 type XMLHttpRequest* = ref object of JsRoot  ## https://xhr.spec.whatwg.org
   responseXML*: Node
