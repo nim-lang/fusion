@@ -37,7 +37,7 @@ func setRequestHeader*(this: XMLHttpRequest; keyValuePairs: openArray[tuple[key,
 
 
 runnableExamples:
-  from dom import Node
+  from std/dom import Node
   if defined(fusionJsXmlhttprequestTests):
     let request: XMLHttpRequest = newXMLHttpRequest()
     request.open("GET".cstring, "http://localhost:8000/".cstring, false)
