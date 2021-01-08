@@ -1,6 +1,6 @@
 ## `Set` for the JavaScript target.
 ## * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
-when not defined(js) and not defined(nimdoc):
+when not defined(js):
   {.fatal: "Module jssets is designed to be used with the JavaScript backend.".}
 
 import std/jsffi

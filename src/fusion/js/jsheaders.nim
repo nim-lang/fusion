@@ -1,5 +1,5 @@
 ## - HTTP Headers for the JavaScript target: https://developer.mozilla.org/en-US/docs/Web/API/Headers
-when not defined(js) and not defined(nimdoc):
+when not defined(js):
   {.fatal: "Module jsheaders is designed to be used with the JavaScript backend.".}
 
 type Headers* = ref object of JsRoot ## HTTP Headers for the JavaScript target.
