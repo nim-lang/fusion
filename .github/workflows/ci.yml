@@ -9,8 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # xxx update as needed with latest stable for each branch
-        branch: ["1.0.8", "1.2.8", "1.4.2", "devel"] # stable currentl at 1.4.2
+        branch: [version-1-0, version-1-2, version-1-4, devel]
         target:
           - os: linux
             cpu: amd64
@@ -34,6 +33,12 @@ jobs:
             builder: windows-2019
     name: '${{ matrix.target.os }}-${{ matrix.target.cpu }} (${{ matrix.branch }})'
     runs-on: ${{ matrix.builder }}
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: fusion
+
     steps:
       - uses: actions/setup-node@v2
       - name: Checkout fusion
@@ -49,6 +54,7 @@ jobs:
 
       - name: Install dependencies (Linux i386)
         if: runner.os == 'Linux' && matrix.target.cpu == 'i386'
+        working-directory: ${{ github.workspace }}
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-fast update -qq
@@ -71,7 +77,7 @@ jobs:
 
           chmod 755 external/bin/gcc external/bin/g++
 
-          echo "${{ github.workspace }}/external/bin" >> "${GITHUB_PATH}"
+          echo "$PWD/external/bin" >> "${GITHUB_PATH}"
 
       # - name: Install dependencies (macOS)
       #   if: runner.os == 'macOS'
@@ -79,7 +85,7 @@ jobs:
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
-        shell: bash
+        working-directory: ${{ github.workspace }}
         run: |
           mkdir external
           if [[ '${{ matrix.target.cpu }}' == 'amd64' ]]; then
@@ -88,35 +94,24 @@ jobs:
             arch=32
           fi
           curl -L "https://nim-lang.org/download/mingw$arch-6.3.0.7z" -o "external/mingw$arch.7z"
-          curl -L "https://nim-lang.org/download/windeps.zip" -o external/windeps.zip
           7z x "external/mingw$arch.7z" -oexternal/
-          7z x external/windeps.zip -oexternal/dlls
 
-          echo "${{ github.workspace }}/external/mingw$arch/bin" >> "${GITHUB_PATH}"
-          echo "${{ github.workspace }}/external/dlls" >> "${GITHUB_PATH}"
-
-      - name: Setup environment
-        shell: bash
-        run: echo "${{ github.workspace }}/nim/bin" >> "${GITHUB_PATH}"
+          cygpath -aw "external/mingw$arch/bin" >> "${GITHUB_PATH}"
 
       - name: Setup Nim
-        uses: jiro4989/setup-nim-action@v1
+        uses: alaviss/setup-nim@0.1.1
         with:
-          nim-version: ${{ matrix.branch }}
-          no-color: true  # --noColor
-          yes: true       # --yes
+          path: nim
+          version: ${{ matrix.branch }}
+          architecture: ${{ matrix.target.cpu }}
 
-      - name: Run fusion tests
+      - name: Run tests
         shell: bash
-        run: |
-          cd fusion
-          nimble test
+        run: nimble test
 
-      - name: docs
+      - name: Build docs
         if: matrix.branch == 'devel'
-        run: |
-          cd fusion
-          nimble docs
+        run: nimble docs
 
       - name: Deploy docs
         # to view docs on your own fork: push a gh-pages branch on your fork,
