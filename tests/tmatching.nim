@@ -1,8 +1,11 @@
 import std/[strutils, sequtils, strformat, sugar,
-            macros, options, tables, json, algorithm]
+            macros, options, tables, json]
 
 import fusion/matching
 {.experimental: "caseStmtMacros".}
+{.push hint[XDeclaredButNotUsed]: off.}
+{.push hint[ConvFromXtoItselfNotNeeded]: off.}
+{.push hint[CondTrue]: off.}
 
 import unittest
 

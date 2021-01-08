@@ -35,6 +35,7 @@ jobs:
     name: '${{ matrix.target.os }}-${{ matrix.target.cpu }} (${{ matrix.branch }})'
     runs-on: ${{ matrix.builder }}
     steps:
+      - uses: actions/setup-node@v2
       - name: Checkout fusion
         uses: actions/checkout@v2
         with:
@@ -131,17 +132,3 @@ jobs:
           target_branch: gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cache choosenim
-        id: cache-choosenim
-        uses: actions/cache@v1
-        with:
-          path: ~/.choosenim
-          key: ${{ runner.os }}-choosenim-devel-latest
-
-      - name: Cache nimble
-        id: cache-nimble
-        uses: actions/cache@v1
-        with:
-          path: ~/.nimble
-          key: ${{ runner.os }}-nimble-devel-latest
