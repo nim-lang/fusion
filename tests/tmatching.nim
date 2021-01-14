@@ -2256,8 +2256,9 @@ ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin
 nobody:x:99:99:Nobody:/:/sbin/nologin
 nscd:x:28:28:NSCD Daemon:/:/sbin/nologin"""
 
+    # expandMacros:
     let res = flow data.split("\n"):
-      map:
+      map[seq[string]]:
         it.split(":")
       filter:
         let shell = it[^1]

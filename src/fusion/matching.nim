@@ -5,6 +5,10 @@ export options
 
 ## .. include:: matching.rst
 
+# - TODO :: use correct minimal sizes sequence matching -
+#   `[4 is @implementation]` should only match sequences
+#   of size `4` and more.
+
 const
   nnkStrKinds* = {
     nnkStrLit .. nnkTripleStrLit
@@ -2249,7 +2253,6 @@ macro match*(n: untyped): untyped =
 
         mixidents.add mixid
 
-
         matchcase.add nnkElifBranch.newTree(
           toNode(expr, vtable, ident("expr")).newPar().newPar(),
           elem[^1]
@@ -2271,11 +2274,14 @@ macro match*(n: untyped): untyped =
   if mixidents.len == 0:
     mixinList = newEmptyNode()
 
+  let ln = lineIInfo(n[0])
   result = quote do:
     block:
       # `mixinList`
       `pos`
-      let expr {.inject, used.} = `head`
+      {.line: `ln`.}:
+        let expr {.inject, used.} = `head`
+
       let pos {.inject, used.}: int = 0
       discard pos
       `matchcase`
