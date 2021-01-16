@@ -1223,6 +1223,13 @@ suite "Matching":
       (_(it < 12), 1) := (14, 1)
 
 
+  test "Positional matching":
+    [0 is 0] := @[0]
+
+    expect MatchError:
+      [1 is 0] := @[0]
+
+
   test "Compilation errors":
     # NOTE that don't know how to correctly test compilation errors,
     # /without/ actuall failing compilation, so I just set `when true`

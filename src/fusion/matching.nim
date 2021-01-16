@@ -1582,7 +1582,40 @@ proc makeElemMatch(
             `failBreak`
 
     else:
-      maxLen = 5000
+      if elem.kind == lkSlice:
+        case elem.slice.kind:
+          of nnkIntKinds:
+            maxLen = max(maxLen, elem.slice.intVal.int + 1)
+            minLen = max(minLen, elem.slice.intVal.int + 1)
+
+          of nnkInfix:
+            if elem.slice[1].kind in nnkIntKinds and
+               elem.slice[2].kind in nnkIntKinds:
+
+              let diff = if elem.slice[0].strVal == "..": +1 else: 0
+
+
+              maxLen = max([
+                maxLen,
+                elem.slice[1].intVal.int,
+                elem.slice[2].intVal.int + diff
+              ])
+
+              minLen = max(minLen, elem.slice[1].intVal.int)
+
+            else:
+              maxLen = 5000
+
+          else:
+            maxLen = 5000
+
+        # echov elem.kind
+        # echov maxLen
+        # echov minLen
+
+      else:
+        maxLen = 5000
+
       var varset = newEmptyNode()
 
       if elem.bindVar.getSome(bindv):
@@ -1667,6 +1700,7 @@ proc makeElemMatch(
           else:
             result.body.add quote do:
               if `posid` in `rangeExpr`:
+
                 if `expr` and `varset`:
                   discard
 
@@ -1874,9 +1908,12 @@ func makeSeqMatch(
   var setCheck: NimNode
   if maxLen >= 5000:
     setCheck = quote do:
+      ## Check required len
       `getLen` < `minNode`
+
   else:
     setCheck = quote do:
+      ## Check required len
       `getLen` notin {`minNode` .. `maxNode`}
 
   if doRaise and not debugWIP:
@@ -1972,6 +2009,7 @@ func makeSeqMatch(
     `matched`
 
   result = result.newPar().newPar()
+  # echov result.repr
 
 
 
