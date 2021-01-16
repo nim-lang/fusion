@@ -4,7 +4,7 @@ from tfusion/paths import buildDir
 const dir = buildDir/"tfilewalks"
 
 when defined(fusionTfilewalksTesting):
-  import std/[sugar,os,strutils,sequtils,algorithm]
+  import std/[sugar,os,sequtils,algorithm]
   from std/private/globs import nativeToUnixPath
   import fusion/filewalks
 
