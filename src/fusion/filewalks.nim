@@ -17,18 +17,18 @@ type
   PathEntry* = object
     kind*: PathComponent
     path*: string
-      ## absolute or relative path wrt walked dir
+      ## absolute or relative path with respect to walked dir
     depth*: int
-      ## depth wrt WalkOpt.dir (which is at depth 0)
+      ## depth with respect to WalkOpt.dir (which is at depth 0)
     epilogue*: bool
   WalkMode* = enum
     dfs ## depth first search
     bfs ## breadth first search
   FollowCallback* = proc(entry: PathEntry): bool
-  SortCmpCallback* = proc (x, y: PathEntrySub): int
+  SortCmpCallback* = proc(x, y: PathEntrySub): int
   WalkOpt* = object
     dir*: string ## root of walk
-    relative: bool ## when true, paths are are returned relative to `dir`, else they start with `dir`
+    relative: bool ## when true, paths are returned relative to `dir`. Otherwise they start with `dir`
     checkDir: bool ## if true, raises `OSError` when `dir` can't be listed. Deeper
       ## directories do not cause `OSError`, and currently no error reporting is done for those.
     walkMode: WalkMode ## controls how paths are returned
@@ -45,7 +45,7 @@ type
 
 macro ctor(obj: untyped, a: varargs[untyped]): untyped =
   ##[
-  generates an object constructor call from a list of fields
+  Generates an object constructor call from a list of fields.
   ]##
   # xxx expose in some `fusion/macros`
   runnableExamples:
@@ -104,7 +104,7 @@ iterator walkPathsOpt*(opt: WalkOpt): PathEntry =
           dirsLevel.setLen 0
         if opt.includeEpilogue:
           stack.addLast PathEntry(depth: current.depth, path: current.path, kind: current.kind, epilogue: true)
-        # checkDir is still needed here in first iteration because things could
+        # `checkDir` is still needed here in first iteration because things could
         # fail for reasons other than `not dirExists`.
         for k, p in walkDir(opt.dir / current.path, relative = true, checkDir = checkDir):
           if isSort:
@@ -122,5 +122,5 @@ iterator walkPathsOpt*(opt: WalkOpt): PathEntry =
             stack.addLast PathEntry(depth: current.depth + 1, path: current.path / ai.path, kind: ai.kind)
 
 template walkPaths*(args: varargs[untyped]): untyped =
-  ## convenience wrapper around `walkPathsOpt`
+  ## Convenience wrapper around `walkPathsOpt`.
   walkPathsOpt(initWalkOpt(args))
