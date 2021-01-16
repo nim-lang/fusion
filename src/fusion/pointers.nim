@@ -22,9 +22,9 @@ template `cast`*[T](a:T, T2: typedesc): untyped =
   runnableExamples:
     var a = [1'u8, 2, 3, 4]
     # the MCS chain reads left to right:
-    let x1 = a.cast(array[2, uint16])[0].cast(float32)
+    let x1 = a.cast(array[2, uint16])[0].cast(char)
     # instead of a zig-zag:
-    let x2 = cast[float32](cast[array[2, uint16]](a)[0])
+    let x2 = cast[char](cast[array[2, uint16]](a)[0])
     doAssert x1 == x2
   cast[T2](a)
 
