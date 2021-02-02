@@ -108,7 +108,7 @@ Checks
   into generated pattern match code. E.g. ``fld: in {2,3,4}`` will generate
   ``expr.fld in {2,3,4}``
 
-- ``(fld: is Patt())`` - check if ``expr.fld`` matches pattern ``Patt()``
+- ``(fld: Patt())`` - check if ``expr.fld`` matches pattern ``Patt()``
 
 - ``(fld: _.matchesPredicate())`` - if call to
   ``matchesPredicate(expr.fld)`` evaluates to true.
@@ -118,7 +118,7 @@ example
 
 - ``fld: in {1,2,3}`` - ``<expr>`` is ``in {1,2,3}``
 - ``[_]`` - ``<expr>`` is ``_``
-- ``fld: is Patt()`` - ``<expr>`` is ``is Patt()``
+- ``fld: Patt()`` - ``<expr>`` is ``Patt()``
 
 Examples
 --------

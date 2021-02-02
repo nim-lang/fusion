@@ -58,6 +58,7 @@ template varOfIteration*(arg: untyped): untyped =
         let tmp = tmp2[]
         tmp
     ))
+
   else:
     proc aux(): auto =
       for val in arg:
@@ -192,10 +193,18 @@ func parseEnumImpl(en: NimNode): seq[string] =
 func pref(name: string): string =
   discard name.parseUntil(result, {'A' .. 'Z', '0' .. '9'})
 
-func foldInfix(s: seq[NimNode],
-               inf: string, start: seq[NimNode] = @[]): NimNode =
-  ( start & s ).mapIt(it.newPar().newPar()).foldl(
-    nnkInfix.newTree(ident inf, a, b))
+func foldInfix(
+    s: seq[NimNode],
+    inf: string, start: seq[NimNode] = @[]): NimNode =
+
+  if inf == "or" and s.len > 0 and (
+    s[0].eqIdent("true") or s[0] == newLit(true)
+  ):
+    result = newLit(true)
+
+  else:
+    result = ( start & s ).mapIt(it.newPar().newPar()).foldl(
+      nnkInfix.newTree(ident inf, a, b))
 
 
 func commonPrefix(strs: seq[string]): string =
@@ -764,31 +773,25 @@ func parseKVTuple(n: NimNode): Match =
     # Special case for `Some(@var)` - expanded into `isSome` check and some
     # additional cruft
     if not (n.len <= 2):
-      error("Expected `Some(@varBind)`", n)
+      error("Expected `Some(<pattern>)`", n)
 
-    if not (n[1].kind == nnkPrefix and n[1][0].eqIdent("@")):
-      var comm: string
-      if n[1].kind in nnkStrKinds + nnkIdentKinds:
-        comm = " Should be written as " &
-          codeFmt("Some(@" & n[1].nodeStr() & ")")
+    # n[1].assertKind({nnkPrefix})
 
-      error(
-        "Some(@var) pattern expected, but found " &
-          n[1].toStrLit().nodeStr().codeFmt() & "." & comm
-        , n[1]
-      )
-
-    n[1].assertKind({nnkPrefix})
-    n[1][0].assertKind({nnkIdent})
-
-    return Match(kind: kObject, declNode: n, fldElems: @{
+    result = Match(kind: kObject, declNode: n, fldElems: @{
       "isSome": Match(kind: kItem, itemMatch: imkInfixEq, declNode: n[0],
-                      rhsNode: newLit(true), infix: "=="),
-      "get": Match(kind: kItem, itemMatch: imkInfixEq,
-                   declNode: n[1], isPlaceholder: true,
-                   bindVar: some(n[1][1])),
+                      rhsNode: newLit(true), infix: "==")
     })
 
+    if n.len > 1:
+      result.fldElems.add ("get", parseMatchExpr(n[1]))
+
+    return
+
+  elif n[0].eqIdent("None"):
+    return Match(kind: kObject, declNode: n, fldElems: @{
+      "isNone": Match(kind: kItem, itemMatch: imkInfixEq, declNode: n[0],
+                      rhsNode: newLit(true), infix: "==")
+    })
 
   result = Match(kind: kObject, declNode: n)
   var start = 0 # Starting subnode for actual object fields
@@ -2343,10 +2346,13 @@ macro assertMatch*(input, pattern: untyped): untyped =
 
     matched = toNode(mexpr, vtable, expr)
 
+
   result = quote do:
     let `expr` = `input`
     let ok = `matched`
     discard ok
+
+  echov result.repr
 
 macro matches*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and return `false` on

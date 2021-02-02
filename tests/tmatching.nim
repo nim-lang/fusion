@@ -1981,6 +1981,58 @@ suite "More tests":
       Ast1(kind1: akFirst1).assertMatch:
         Third1(first: "")
 
+  test "Pure enums":
+    type
+      Pure1 {.pure.} = enum
+        left
+        right
+
+      PureAst1 = object
+        kind: Pure1
+
+    left() := PureAst1(kind: Pure1.left)
+
+  test "Fully qualified, snake case":
+    type
+      Snake1 = enum
+        sn_left
+        sn_right
+
+      SnakeAst1 = object
+        kind: Snake1
+
+    sn_left() := SnakeAst1(kind: sn_left)
+    left() := SnakeAst1(kind: sn_left)
+
+  test "Option patterns":
+    block:
+      [any @x < 12] := @[1, 2, 3]
+      [any @y is < 12] := @[1, 2, 3]
+      [any @z is 12] := @[12]
+      [any @w is == 12] := @[12]
+
+    block:
+      Some(Some([any @x < 12])) := some(some(@[1, 2, 3]))
+      doAssert x is seq[int]
+      doAssert x == @[1, 2, 3]
+
+    block:
+      [any @elems is Some()] := [none(int), some(12)]
+      doAssert elems is seq[Option[int]]
+      doAssert elems.len == 1
+      doAssert elems[0].get() == 12
+
+    block:
+      [any is Some(@elem)] := [some(12)]
+      doAssert elem is seq[int]
+      doAssert elem.len == 1
+      doAssert elem[0] == 12
+
+    block:
+      Some(Some(@x)) := some(some(12))
+      doAssert x is int
+      doAssert x == 12
+
 
 import std/[deques, lists]
 
