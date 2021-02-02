@@ -1726,6 +1726,109 @@ suite "Gara tests":
       testfail()
 
 suite "More tests":
+  test "Nested custom unpacker":
+    type
+      UserType1 = object
+        fld1: float
+        fld2: string
+        case isDefault: bool
+          of true: fld3: float
+          of false: fld4: string
+
+      UserType2 = object
+        userFld: UserType1
+        fld4: float
+
+
+    proc `[]`(obj: UserType1, idx: static[FieldIndex]): any =
+      when idx == 0:
+        obj.fld1
+
+      elif idx == 1:
+        obj.fld2
+
+      elif idx == 2:
+        if obj.isDefault:
+          obj.fld3
+
+        else:
+          obj.fld4
+
+      else:
+        static:
+          error("Indvalid index for `UserType1` field " &
+            "- expected value in range[0..2], but got " & $idx
+          )
+
+    proc `[]`(obj: UserType2, idx: static[FieldIndex]): any =
+      when idx == 0:
+        obj.userFld
+
+      elif idx == 1:
+        obj.fld4
+
+      else:
+        static:
+          error("Indvalid index for `UserType2` field " &
+            "- expected value in range[0..1], but got " & $idx
+          )
+
+    block:
+      (@fld1, @fld2, _) := UserType1(fld1: 0.1, fld2: "hello")
+
+      doAssert fld1 == 0.1
+      doAssert fld2 == "hello"
+
+    block:
+      (fld1: @fld1, fld2: @fld2) := UserType1(fld1: 0.1, fld2: "hello")
+
+      doAssert fld1 == 0.1
+      doAssert fld2 == "hello"
+
+    block:
+      ((@fld1, @fld2, _), _) := UserType2(userFld: UserType1(fld1: 0.1, fld2: "hello"))
+
+      doAssert fld1 == 0.1
+      doAssert fld2 == "hello"
+
+
+  test "`is`":
+    (a: is 42) := (a: 42)
+    (a: 42) := (a: 42)
+    (a: == 42) := (a: 42)
+
+    # expandMacros:
+    (a: (@a, @b)) := (a: (1, 2))
+    (a: (1, 2)) := (a: (1, 2))
+    (a: == (1, 2)) := (a: (1, 2))
+
+
+  test "Nested case objects":
+    type
+      Kind2 = enum
+        kkFirst
+
+      Object4 = ref object
+        val: int
+        case kind: Kind2
+          of kkFirst:
+            nested: Object4
+
+    block:
+      assertMatch(
+        Object4(kind: kkFirst,
+                nested: Object4(
+                  kind: kkFirst,
+                  nested: Object4(
+                    kind: kkFirst,
+                    val: 10))),
+        First(
+          nested: First(
+            nested: First(
+              val: @capture))))
+
+      doAssert capture == 10
+
   test "Line scanner":
     iterator splitLines(str: string, sep: set[char]): seq[string] =
       for line in str.split(sep):
