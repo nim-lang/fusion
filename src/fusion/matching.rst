@@ -32,15 +32,15 @@ Quick reference
  Example                       Explanation
 ============================= =======================================================
  ``(fld: @val)``               Field ``fld`` into variable ``@val``
- ``Kind()``                    Object with ``.kind == Kind()`` [1]_
+ ``Kind()``                    Object with ``.kind == Kind()`` [1]
  ``of Derived()``              Match object of derived type
  ``(@val, _)``                 First element in tuple in ``@val``
  ``(@val, @val)``              Tuple with two equal elements
- ``{"key" : @val}``            Table with "key", capture into ``@val`` [2]_
- ``[_, _]``                    Sequence with ``len == 2`` [3]_
+ ``{"key" : @val}``            Table with "key", capture into ``@val`` [2]
+ ``[_, _]``                    Sequence with ``len == 2`` [3]
  ``[_, .._]``                  At least one element
  ``[_, all @val]``             All elements starting from index ``1``
- ``[until @val == "2", .._]``  Capture all elements *until* first ``"2"`` [4]_
+ ``[until @val == "2", .._]``  Capture all elements *until* first ``"2"`` [4]
  ``[until @val == 1, @val]``   All *including* first match
  ``[all @val == 12]``          All elements are ``== 12``, capture into ``@val``
  ``[some @val == 12]``         At least *one* is ``== 12``, capture all matching into ``@val``
@@ -202,6 +202,8 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
  ``[all @a == 6, .._]``            **Ok** ``a = []``        All leading ``6``
  ``[any @a(it > 100)]``            **Fail**                 No elements ``> 100``
  ``[none @a(it in {6 .. 10})]``    **Fail**                 There is an element ``== 6``
+ ``[0 .. 2 is < 10, .._]``         **Ok**                   First three elements ``< 10``
+ ``[0 .. 2 is < 10]``              **Fail**                 Missing trailing ``.._``
 ================================= ======================== ====================================
 
 ``until``

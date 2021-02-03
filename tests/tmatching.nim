@@ -1340,8 +1340,8 @@ suite "Matching":
           doAssert isNil(elem)
 
     var first: Base1 = First1()
-    doAssert matches(first, of First1(first: @tmp))
-    doAssert not matches(first, of Second1(second: @tmp))
+    doAssert matches(first, of First1(first: @tmp2))
+    doAssert not matches(first, of Second1(second: @tmp3))
 
   test "non-derived ref type":
     type RefType = ref object
@@ -1528,6 +1528,13 @@ suite "Gara tests":
         fail()
 
   test "Sequence subpatterns 2":
+    let inseq = @[1,2,3,4,5,6,5,6]
+
+    [0 .. 2 is < 10, .._] := inseq
+    doAssert not matches(inseq, [0 .. 2 is < 10])
+    [0 .. 2 @elems1 is < 10, .._] := inseq
+    doAssert elems1 == @[1, 2, 3]
+
     [12] := [12]
     [[12]] := [[12]]
     [[12], [13]] := [[12], [13]]
