@@ -372,21 +372,108 @@ Input AST
 - ``ForStmt([_, _, (len: in {1 .. 10})])`` between one to ten
   statements in the for loop body
 
-Ref object matching
--------------------
+Custom unpackers
+----------------
 
-Matching for ref objects is not really different from regular one - the
-only difference is that you need to use ``of`` operator explicitly. For
-example, if you want to do ``case`` match for different object kinds - and
+It is possible to unpack regular object using tuple matcher syntax - in
+this case overload for ``[]`` operator must be provided that accepts
+``static[FieldIndex]`` argument and returns a field.
 
 .. code:: nim
 
-    case Obj():
-      of of StmtList(subfield: @capture):
-        # do something with `capture`
+    type
+      Point = object
+        x: int
+        y: int
 
-You can use ``of`` as prefix operator - things like ``{12 : of
-SubRoot(fld1: @fld1)}``, or  ``[any of Derived()]``.
+    proc `[]`(p: Point, idx: static[FieldIndex]): auto =
+      when idx == 0:
+        p.x
+      elif idx == 1:
+        p.y
+      else:
+        static:
+          error("Cannot unpack `Point` into three-tuple")
+
+    let point = Point(x: 12, y: 13)
+
+    (@x, @y) := point
+
+    assertEq x, 12
+    assertEq y, 13
+
+Note ``auto`` return type for ``[]`` proc - it is necessary if different
+types of fields might be returned on tuple unpacking, but not mandatory.
+
+If different fields have varying types ``when`` **must** and ``static`` be
+used to allow for compile-time code selection.
+
+Ref object matching
+-------------------
+
+It is also possible to match derived ``ref`` objects with patterns using
+``of`` operator. It allows for runtime selection of different derived
+types.
+
+
+
+Note that ``of`` operator is necessary for distinguishing between multiple
+derived objects, or getting fields that are present only in derived types.
+In addition it performs ``isNil()`` check in the object, so it might be
+useful even in cases when you are not dealing with derived types.
+
+.. code:: nim
+
+    type
+      Base1 = ref object of RootObj
+        fld: int
+
+      First1 = ref object of Base1
+        first: float
+
+      Second1 = ref object of Base1
+        second: string
+
+    let elems: seq[Base1] = @[
+      Base1(fld: 123),
+      First1(fld: 456, first: 0.123),
+      Second1(fld: 678, second: "test"),
+      nil
+    ]
+
+    for elem in elems:
+      case elem:
+        of of First1(fld: @capture1, first: @first):
+          # Only capture `Frist1` elements
+          doAssert capture1 == 456
+          doAssert first == 0.123
+
+        of of Second1(fld: @capture2, second: @second):
+          # Capture `second` field in derived object
+          doAssert capture2 == 678
+          doAssert second == "test"
+
+        of of Base1(fld: @default):
+          # Match all *non-nil* base elements
+          doAssert default == 123
+
+        else:
+          doAssert isNil(elem)
+
+
+..
+   Matching for ref objects is not really different from regular one - the
+   only difference is that you need to use ``of`` operator explicitly. For
+   example, if you want to do ``case`` match for different object kinds - and
+
+   .. code:: nim
+
+       case Obj():
+         of of StmtList(subfield: @capture):
+           # do something with `capture`
+
+   You can use ``of`` as prefix operator - things like ``{12 : of
+   SubRoot(fld1: @fld1)}``, or  ``[any of Derived()]``.
 
 
 KV-pairs matching

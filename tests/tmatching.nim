@@ -1302,6 +1302,52 @@ suite "Matching":
 
       assertEq fld1, 33
 
+  test "Multiple kinds of derived objects":
+    type
+      Base1 = ref object of RootObj
+        fld: int
+
+      First1 = ref object of Base1
+        first: float
+
+      Second1 = ref object of Base1
+        second: string
+
+    let elems: seq[Base1] = @[
+      Base1(fld: 123),
+      First1(fld: 456, first: 0.123),
+      Second1(fld: 678, second: "test"),
+      nil
+    ]
+
+    for elem in elems:
+      case elem:
+        of of First1(fld: @capture1, first: @first):
+          # Only capture `Frist1` elements
+          doAssert capture1 == 456
+          doAssert first == 0.123
+
+        of of Second1(fld: @capture2, second: @second):
+          # Capture `second` field in derived object
+          doAssert capture2 == 678
+          doAssert second == "test"
+
+        of of Base1(fld: @default):
+          # Match all *non-nil* base elements
+          doAssert default == 123
+
+        else:
+          doAssert isNil(elem)
+
+    var first: Base1 = First1()
+    doAssert matches(first, of First1(first: @tmp))
+    doAssert not matches(first, of Second1(second: @tmp))
+
+  test "non-derived ref type":
+    type RefType = ref object
+
+    doAssert matches(RefType(), of RefType())
+
   multitest "Custom object unpackers":
     type
       Point = object

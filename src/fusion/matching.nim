@@ -2092,6 +2092,10 @@ func makeMatchExpr(
       var refCast: seq[AccsElem]
       if m.kindCall.getSome(kc):
         if m.isRefKind:
+          conds.add newCall(
+            "not",
+            newCall(ident "isNil", path.toAccs(mainExpr, false)))
+
           conds.add newCall(ident "of", path.toAccs(mainExpr, false), kc)
           refCast.add AccsElem(
             inStruct: kObject, fld: kc.repr)
