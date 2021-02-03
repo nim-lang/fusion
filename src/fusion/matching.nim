@@ -281,7 +281,6 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
 
   result = nnkInfix.newTree(ident "==", head, kind)
 
-
 template hasKind*(head, kindExpr: untyped): untyped =
   ## Determine if `head` has `kind` value. Either function/procedure
   ## `kind` or field with the same name is expected to be declared.
@@ -294,6 +293,9 @@ template hasKind*(head, kindExpr: untyped): untyped =
   ##   `nnk` prefix can be omitted.
   when compiles(head.kind):
     hasKindImpl(head.kind, kindExpr)
+
+  elif compiles(head is kindExpr):
+    true
 
   else:
     static: error "No `kind` defined for " & $typeof(head)

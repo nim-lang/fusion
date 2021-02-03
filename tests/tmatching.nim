@@ -1347,8 +1347,15 @@ suite "Matching":
     type
       RefType = ref object
       RegType = object
+        fld: float
 
     doAssert matches(RefType(), of RefType())
+
+    doAssert matches(RegType(fld: 0.123), RegType(fld: @capture))
+    doAssert matches(RegType(fld: 0.123), RegType(fld: 0.123))
+
+    let varn = RegType()
+    doAssert matches(varn, RegType())
 
     var zzz: RegType
     doAssert matches(addr zzz, of RegType())
