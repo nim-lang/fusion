@@ -417,12 +417,13 @@ It is also possible to match derived ``ref`` objects with patterns using
 ``of`` operator. It allows for runtime selection of different derived
 types.
 
-
-
 Note that ``of`` operator is necessary for distinguishing between multiple
 derived objects, or getting fields that are present only in derived types.
 In addition it performs ``isNil()`` check in the object, so it might be
-useful even in cases when you are not dealing with derived types.
+used in cases when you are not dealing with derived types.
+
+Due to ``isNil()`` check this pattern only makes sense when working with
+``ref`` objects.
 
 .. code:: nim
 

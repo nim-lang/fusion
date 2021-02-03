@@ -1344,9 +1344,17 @@ suite "Matching":
     doAssert not matches(first, of Second1(second: @tmp3))
 
   test "non-derived ref type":
-    type RefType = ref object
+    type
+      RefType = ref object
+      RegType = object
 
     doAssert matches(RefType(), of RefType())
+
+    var zzz: RegType
+    doAssert matches(addr zzz, of RegType())
+
+    var pt: ptr RegType = nil
+    doAssert not matches(pt, of RegType())
 
   multitest "Custom object unpackers":
     type
