@@ -270,10 +270,6 @@ suite "Matching":
            of {"hello": _}: "000"
            else: "discard"
 
-    assertEq 12, case @[12, 32]:
-           of [_, 32]: expr[0]
-           else: 999
-
     assertEq 1, case [(1, 3), (3, 4)]:
                   of [(1, _), _]: 1
                   else: 999
@@ -287,8 +283,10 @@ suite "Matching":
       case body:
         of Bracket([Bracket(len: in {1 .. 3})]):
           newLit("Nested bracket !")
+
         of Bracket(len: in {3 .. 6}):
-          newLit(expr.toStrLit().strVal() & " matched")
+          newLit(body.toStrLit().strVal() & " matched")
+
         else:
           newLit("not matched")
 

@@ -2234,9 +2234,17 @@ func toNode(
     typeExpr = quote do:
       ((let tmp = `typeExpr`; tmp))
 
+    var wasSet = newEmptyNode()
+    if vtable[name].cnt > 1:
+      let varn = ident(name & "WasSet")
+      wasSet = quote do:
+        var `varn`: bool = false
+
+    exprNew.add wasSet
+
+
     case spec.varKind:
       of vkSequence:
-
         block:
           let varExpr = toAccs(spec.typePath[0 .. ^2], mainExpr, false)
           exprNew.add quote do:
@@ -2258,16 +2266,8 @@ func toNode(
           var `vname`: typeof(`typeExpr`)
 
       of vkRegular:
-        var wasSet = newEmptyNode()
-        if vtable[vname.nodeStr()].cnt > 1:
-          let varn = ident(vname.nodeStr() & "WasSet")
-          wasSet = quote do:
-            var `varn`: bool = false
-
         exprNew.add quote do:
-          `wasSet`
           var `vname`: typeof(`typeExpr`)
-
 
   result = quote do:
     `exprNew`
@@ -2278,6 +2278,7 @@ macro expand*(body: typed): untyped = body
 macro match*(n: untyped): untyped =
   var matchcase = nnkIfStmt.newTree()
   var mixidents: seq[string]
+  let mainExpr = genSym(nskLet, "expr")
   for elem in n[1 .. ^1]:
     case elem.kind:
       of nnkOfBranch:
@@ -2288,14 +2289,12 @@ macro match*(n: untyped): untyped =
         let (expr, vtable, mixid) =
           toSeq(elem[0 .. ^2]).foldl(
             nnkInfix.newTree(ident "|", a, b)
-          ).parseMatchExpr().makeMatchExpr(
-            ident("expr"), false, n # .toStrLit().strVal()
-          )
+          ).parseMatchExpr().makeMatchExpr(mainExpr, false, n)
 
         mixidents.add mixid
 
         matchcase.add nnkElifBranch.newTree(
-          toNode(expr, vtable, ident("expr")).newPar().newPar(),
+          toNode(expr, vtable, mainExpr).newPar().newPar(),
           elem[^1]
         )
 
@@ -2316,18 +2315,17 @@ macro match*(n: untyped): untyped =
     mixinList = newEmptyNode()
 
   let ln = lineIInfo(n[0])
+  let posId = genSym(nskLet, "pos")
   result = quote do:
     block:
       # `mixinList`
       `pos`
       {.line: `ln`.}:
-        let expr {.inject, used.} = `head`
+        let `mainExpr` {.used.} = `head`
 
-      let pos {.inject, used.}: int = 0
-      discard pos
+      let `posId` {.used.}: int = 0
+      discard `posId`
       `matchcase`
-
-  # echo result.repr
 
 macro assertMatch*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and raise `MatchError` on
@@ -2351,8 +2349,6 @@ macro assertMatch*(input, pattern: untyped): untyped =
     let `expr` = `input`
     let ok = `matched`
     discard ok
-
-  echov result.repr
 
 macro matches*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and return `false` on
