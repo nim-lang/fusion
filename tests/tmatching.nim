@@ -3,8 +3,9 @@ import std/[strutils, sequtils, strformat, sugar,
 
 import fusion/matching
 {.experimental: "caseStmtMacros".}
-{.push hint[ConvFromXtoItselfNotNeeded]:off.}
-{.push hint[CondTrue]:off.}
+{.push hint[XDeclaredButNotUsed]: off.}
+{.push hint[ConvFromXtoItselfNotNeeded]: off.}
+{.push hint[CondTrue]: off.}
 
 import unittest
 

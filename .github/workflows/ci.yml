@@ -33,7 +33,14 @@ jobs:
             builder: windows-2019
     name: '${{ matrix.target.os }}-${{ matrix.target.cpu }} (${{ matrix.branch }})'
     runs-on: ${{ matrix.builder }}
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: fusion
+
     steps:
+      - uses: actions/setup-node@v2
       - name: Checkout fusion
         uses: actions/checkout@v2
         with:
@@ -47,6 +54,7 @@ jobs:
 
       - name: Install dependencies (Linux i386)
         if: runner.os == 'Linux' && matrix.target.cpu == 'i386'
+        working-directory: ${{ github.workspace }}
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-fast update -qq
@@ -69,7 +77,7 @@ jobs:
 
           chmod 755 external/bin/gcc external/bin/g++
 
-          echo "${{ github.workspace }}/external/bin" >> "${GITHUB_PATH}"
+          echo "$PWD/external/bin" >> "${GITHUB_PATH}"
 
       # - name: Install dependencies (macOS)
       #   if: runner.os == 'macOS'
@@ -77,7 +85,7 @@ jobs:
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
-        shell: bash
+        working-directory: ${{ github.workspace }}
         run: |
           mkdir external
           if [[ '${{ matrix.target.cpu }}' == 'amd64' ]]; then
@@ -86,110 +94,24 @@ jobs:
             arch=32
           fi
           curl -L "https://nim-lang.org/download/mingw$arch-6.3.0.7z" -o "external/mingw$arch.7z"
-          curl -L "https://nim-lang.org/download/windeps.zip" -o external/windeps.zip
           7z x "external/mingw$arch.7z" -oexternal/
-          7z x external/windeps.zip -oexternal/dlls
 
-          echo "${{ github.workspace }}/external/mingw$arch/bin" >> "${GITHUB_PATH}"
-          echo "${{ github.workspace }}/external/dlls" >> "${GITHUB_PATH}"
+          cygpath -aw "external/mingw$arch/bin" >> "${GITHUB_PATH}"
 
-      - name: Setup environment
-        shell: bash
-        run: echo "${{ github.workspace }}/nim/bin" >> "${GITHUB_PATH}"
-
-      - name: Get latest Nim commit hash
-        id: versions
-        shell: bash
-        run: |
-          getHash() {
-            git ls-remote "https://github.com/$1" "${2:-HEAD}" | cut -f 1
-          }
-          nimHash=$(getHash nim-lang/Nim '${{ matrix.branch }}')
-          csourcesHash=$(getHash nim-lang/csources)
-          echo "::set-output name=nim::$nimHash"
-          echo "::set-output name=csources::$csourcesHash"
-
-      - name: Restore prebuilt Nim from cache
-        id: nim-cache
-        uses: actions/cache@v1
+      - name: Setup Nim
+        uses: alaviss/setup-nim@0.1.1
         with:
           path: nim
-          key: 'nim-${{ matrix.target.os }}-${{ matrix.target.cpu }}-${{ steps.versions.outputs.nim }}'
+          version: ${{ matrix.branch }}
+          architecture: ${{ matrix.target.cpu }}
 
-      - name: Restore prebuilt csources from cache
-        if: steps.nim-cache.outputs.cache-hit != 'true'
-        id: csources-cache
-        uses: actions/cache@v1
-        with:
-          path: csources/bin
-          key: 'csources-${{ matrix.target.os }}-${{ matrix.target.cpu }}-${{ steps.versions.outputs.csources }}'
-
-      - name: Checkout Nim csources
-        if: >
-          steps.csources-cache.outputs.cache-hit != 'true' &&
-          steps.nim-cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v2
-        with:
-          repository: nim-lang/csources
-          path: csources
-          ref: ${{ steps.versions.outputs.csources }}
-
-      - name: Checkout Nim
-        if: steps.nim-cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v2
-        with:
-          repository: nim-lang/Nim
-          path: nim
-          ref: ${{ steps.versions.outputs.nim }}
-
-      - name: Build Nim and associated tools
-        if: steps.nim-cache.outputs.cache-hit != 'true'
+      - name: Run tests
         shell: bash
-        run: |
-          ncpu=
-          ext=
-          case '${{ runner.os }}' in
-          'Linux')
-            ncpu=$(nproc)
-            ;;
-          'macOS')
-            ncpu=$(sysctl -n hw.ncpu)
-            ;;
-          'Windows')
-            ncpu=$NUMBER_OF_PROCESSORS
-            ext=.exe
-            ;;
-          esac
-          [[ -z "$ncpu" || $ncpu -le 0 ]] && ncpu=1
+        run: nimble test
 
-          if [[ ! -e csources/bin/nim$ext ]]; then
-            make -C csources -j $ncpu CC=gcc ucpu='${{ matrix.target.cpu }}'
-          else
-            echo 'Using prebuilt csources'
-          fi
-          cp -v csources/bin/nim$ext nim/bin
-
-          cd nim
-          nim c koch
-          ./koch boot -d:release
-          ./koch tools -d:release
-          # clean up to save cache space
-          rm koch
-          rm -rf nimcache
-          rm -rf dist
-          rm -rf .git
-
-      - name: Run fusion tests
-        shell: bash
-        run: |
-          cd fusion
-          nimble test
-
-      - name: docs
+      - name: Build docs
         if: matrix.branch == 'devel'
-        run: |
-          cd fusion
-          nimble docs
+        run: nimble docs
 
       - name: Deploy docs
         # to view docs on your own fork: push a gh-pages branch on your fork,
