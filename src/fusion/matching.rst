@@ -374,6 +374,13 @@ Input AST
 - ``ForStmt([_, _, (len: in {1 .. 10})])`` between one to ten
   statements in the for loop body
 
+- Using object name for pattern matching ``ObjectName()`` does not produce
+  a hard error, but if ``.kind`` field does not need to be checked ``(fld:
+  <pattern>)`` will be sufficient.
+- To check ``.kind`` against multiple operators prefix ``in`` can be used -
+  ``(kind: in {nnkForStmt, nnkWhileStmt})``
+
+
 Custom unpackers
 ----------------
 
