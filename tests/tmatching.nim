@@ -2294,6 +2294,35 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
       else:
         fail()
 
+  test "Match proc declaration":
+    macro unpackProc(procDecl: untyped): untyped =
+      procDecl.assertMatch(
+        ProcDef[
+          # Match proc name in full form
+          @name is ( # And get standalone `Ident`
+            Postfix[_, @procIdent] | # Either in exported form
+            (@procIdent is Ident()) # Or regular proc definition
+          ),
+          _, # Skip term rewriting template
+          _, # Skip generic parameters
+          [ # Match arguments/return types
+            @returnType, # Get return type
+
+            # Match full `IdentDefs` for first argument, and extract it's name
+            # separately
+            @firstArg is IdentDefs[@firstArgName, _, _],
+
+            # Match all remaining arguments. Collect both `IdentDefs` into
+            # sequence, and extract each argument separately
+            all @trailArgs is IdentDefs[@trailArgsName, _, _]
+          ],
+          .._
+        ]
+      )
+
+    proc testProc1(arg1: int) {.unpackProc.} =
+      discard
+
   multitest "Flow macro":
     type
       FlowStageKind = enum
