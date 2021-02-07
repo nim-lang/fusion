@@ -2286,6 +2286,14 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 
     test1()
 
+  test "example from documentation":
+    case [(1, 3), (3, 4)]:
+      of [(1, @a), _]:
+        doASsert a == 3
+
+      else:
+        fail()
+
   multitest "Flow macro":
     type
       FlowStageKind = enum
