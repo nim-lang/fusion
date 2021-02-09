@@ -2333,6 +2333,9 @@ macro match*(n: untyped): untyped =
       discard `posId`
       `matchcase`
 
+macro `case`*(n: untyped): untyped = newCall("match", n)
+
+
 macro assertMatch*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and raise `MatchError` on
   ## failure. For DSL syntax details see start of the document.
