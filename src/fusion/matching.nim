@@ -1,5 +1,7 @@
-import sequtils, macros, tables, options, strformat, strutils,
-       parseutils, algorithm, hashes
+import std/[
+  sequtils, macros, tables, options, strformat, strutils,
+  parseutils, algorithm, hashes
+]
 
 export options
 
