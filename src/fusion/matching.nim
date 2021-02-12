@@ -446,9 +446,9 @@ type
     vkAlt
 
   AltSpec = object
-    altMax: int
-    altIdx: seq[int]
-    completed: bool
+    altMax: int16 ## Max alterantive index
+    altPositions: set[int16] ## Previous positions for index
+    completed: bool ## Completed index
 
   VarSpec* = object
     decl*: NimNode ## First time variable has been declared
@@ -1363,7 +1363,8 @@ func parseMatchExpr*(n: NimNode): Match =
 
 func isVariadic(p: Path): bool = p.anyIt(it.isVariadic)
 
-func isAlt(p: Path): bool = p.anyIt(it.inStruct == kAlt)
+func isAlt(p: Path): bool =
+  result = p.anyIt(it.inStruct == kAlt)
 
 iterator altPrefixes(p: Path): Path =
   var idx = p.len - 1
@@ -1386,15 +1387,14 @@ func classifyPath(path: Path): VarKind =
     vkRegular
 
 
+
 func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
   let vs = vsym.nodeStr()
   let class = path.classifyPath()
+
   if vs notin tbl:
-    tbl[vs] = VarSpec(
-      decl: vsym,
-      varKind: path.classifyPath(),
-      typePath: path
-    )
+    tbl[vs] = VarSpec(decl: vsym, varKind: class, typePath: path)
+
   else:
     var doUpdate =
       (class == vkSequence) or
@@ -1408,12 +1408,11 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
     for prefix in path.altPrefixes():
       let noalt = prefix[0 .. ^2]
       if noalt notin tbl[vs].prefixMap:
-        tbl[vs].prefixMap[noalt] = AltSpec(altMax: prefix[^1].altMax)
+        tbl[vs].prefixMap[noalt] = AltSpec(altMax: prefix[^1].altMax.int16)
 
       var spec = tbl[vs].prefixMap[noalt]
-      assert spec.altMax == prefix[^1].altMax
-      spec.altIdx.add prefix[^1].altIdx
-      if spec.altIdx.len == spec.altMax + 1:
+      spec.altPositions.incl prefix[^1].altIdx.int16
+      if spec.altPositions.len == spec.altMax + 1:
         spec.completed = true
 
       if spec.completed:
@@ -2244,6 +2243,7 @@ func toNode(
   var exprNew = nnkStmtList.newTree()
   var hasOption: bool = false
   for name, spec in vtable:
+    echov name & " -> " & $spec
     let vname = ident(name)
     var typeExpr = toAccs(spec.typePath, mainExpr, true)
     typeExpr = quote do:

@@ -1864,9 +1864,19 @@ suite "More tests":
   test "Composing array patterns":
     for patt in [@["a", "b", "d"], @["a", "XXX", "d"]]:
       case patt:
-        of ["a", "b"] | ["a", "b", @d]:
-          doAssert d is Option[string]
-          doAssert d.get() == "d"
+        of ["z", @alt1] | ["q", @alt1]:
+          static:
+            doAssert alt1 is string
+
+        of ["z", @alt2] | ["q", @alt3]:
+          static:
+            doAssert alt2 is Option[string]
+            doAssert alt3 is Option[string]
+
+
+        of ["a", "b"] | ["a", "b", @altTail]:
+          doAssert altTail is Option[string]
+          doAssert altTail.get() == "d"
 
         of ["a", "***", "d"] | ["a", _, "d"]:
           doAssert patt ==  @["a", "XXX", "d"]
