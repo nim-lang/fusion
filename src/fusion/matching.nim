@@ -5,11 +5,18 @@ import std/[
 
 export options
 
-## .. include:: matching.rst
+runnableExamples:
+  {.experimental: "caseStmtMacros".}
 
-# - TODO :: use correct minimal sizes sequence matching -
-#   `[4 is @implementation]` should only match sequences
-#   of size `4` and more.
+  case [(1, 3), (3, 4)]:
+    of [(1, @a), _]:
+      echo a
+
+    else:
+      echo "Match failed"
+
+
+## .. include:: matching.rst
 
 const
   nnkStrKinds* = {

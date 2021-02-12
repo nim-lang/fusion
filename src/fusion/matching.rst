@@ -9,20 +9,6 @@ This module implements pattern matching for objects, tuples,
 sequences, key-value pairs, case and derived objects. DSL can also be
 used to create object trees (AST).
 
-Use example
-===========
-
-
-.. code:: nim
-
-    {.experimental: "caseStmtMacros".}
-
-    case [(1, 3), (3, 4)]:
-      of [(1, @a), _]:
-        echo a
-
-      else:
-        echo "Match failed"
 
 
 Quick reference

@@ -1793,6 +1793,108 @@ suite "Gara tests":
       testfail()
 
 suite "More tests":
+  multitest "Matching boolean tables":
+    case (true, false, false):
+      of (true, false, false):
+        discard
+
+      of (false, true, true):
+        testFail("Impossible")
+
+      else:
+        testFail("Impossible")
+
+
+  test "Funcall results":
+    [@head, all @trail] := split("a|b|c|d|e", '|')
+    doAssert head == "a"
+    doAssert trail == @["b", "c", "d", "e"]
+
+    case split("1,2,3,4,5", ','):
+      of [@head == "1", until @skip == "5", .._]:
+        doAssert skip == @["2", "3", "4"]
+        doAssert head == "1"
+
+      else:
+        testFail("Pattern failed")
+
+
+  multitest "Enumparse":
+    type
+      Dir1 = enum
+        dirUp
+        dirDown
+
+    proc parseDirection(str: string): Dir1 =
+      case str:
+        of "up": dirUp
+        of "down": dirDown
+        else:
+          raiseAssert(
+            &"Incorrect direction string expected up/down, but found: {str}")
+
+
+    for cmd in ["quit", "look", "get test", "go up", "drop a b c d"]:
+      case cmd.split(" "):
+        of ["quit"]:
+          doAssert "quit" in cmd
+
+        of ["look"]:
+          doAssert "look" in cmd
+
+        of ["get", @objectName]:
+          doAssert "get" in cmd
+          doASsert objectName == "test"
+
+        of ["go", (parseDirection: @direction)]:
+          case direction:
+            of dirUp:
+              doAssert "go up" in cmd
+
+            else:
+              testFail("Wrong enum value parse")
+
+        of ["drop", all @args]:
+          doAssert "drop" in cmd
+          doAssert args == @["a", "b", "c", "d"]
+
+        else:
+          testFail("Unmatched command " & cmd)
+
+  test "Composing array patterns":
+    for patt in [@["a", "b", "d"], @["a", "XXX", "d"]]:
+      case patt:
+        of ["a", "b"] | ["a", "b", @d]:
+          doAssert d is Option[string]
+          doAssert d.get() == "d"
+
+        of ["a", "***", "d"] | ["a", _, "d"]:
+          doAssert patt ==  @["a", "XXX", "d"]
+
+        else:
+          testFail("Unmatched patter " & $patt)
+
+  test "Alternative subpattern capture":
+    case @["a", "b"]:
+      of ["a", @second is ("a"|"b"|"c")]:
+        doAssert second == "b"
+
+      else:
+        testFail()
+
+  test "Use external var in enum; explicit `case`":
+    let varname = 404
+    match case 404:
+      of 200:
+        testFail()
+
+      of varname:
+        doAssert true
+
+      else:
+        testFail()
+
+
   test "Nested custom unpacker":
     type
       UserType1 = object
