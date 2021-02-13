@@ -1946,7 +1946,7 @@ suite "More tests":
         fld4: float
 
 
-    proc `[]`(obj: UserType1, idx: static[FieldIndex]): any =
+    proc `[]`(obj: UserType1, idx: static[FieldIndex]): auto =
       when idx == 0:
         obj.fld1
 
@@ -1966,7 +1966,7 @@ suite "More tests":
             "- expected value in range[0..2], but got " & $idx
           )
 
-    proc `[]`(obj: UserType2, idx: static[FieldIndex]): any =
+    proc `[]`(obj: UserType2, idx: static[FieldIndex]): auto =
       when idx == 0:
         obj.userFld
 
