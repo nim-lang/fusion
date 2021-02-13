@@ -845,6 +845,33 @@ suite "Matching":
     for sn in node.subn:
       yield sn
 
+  multitest "Match assertions custom type; treeRepr syntax":
+    HtmlNode(kind: htmlBase).assertMatch:
+      Base()
+
+    HtmlNode(
+      kind: htmlLink, text: "text-1", subn: @[
+        HtmlNode(kind: htmlHead, text: "text-2")]
+    ).assertMatch:
+      Link(text: "text-1"):
+        Head(text: "text-2")
+
+
+    HtmlNode(
+      kind: htmlLink, subn: @[
+        HtmlNode(kind: htmlHead, text: "text-2"),
+        HtmlNode(kind: htmlHead, text: "text-3", subn: @[
+          HtmlNode(kind: htmlBase, text: "text-4"),
+          HtmlNode(kind: htmlBase, text: "text-5")
+        ])
+      ]
+    ).assertMatch:
+      Link:
+        Head(text: "text-2")
+        Head(text: "text-3"):
+          Base(text: "text-4")
+          Base()
+
 
   multitestSince "Tree builder custom type", (1, 4, 0):
 
