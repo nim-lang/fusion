@@ -507,6 +507,68 @@ Option matching
 ``(isSome: true, get: @x)`` and ``(isNone: true)`` respectively. This is
 made to allow better integration with optional types.  [9]_ .
 
+Tree matching
+=============
+
+For deeply nested AST structures it might be really inconvenient to write
+one-line expression with lots of ``ProcDef[@name is Ident() | Postfix[_,
+@name is Ident()]]`` and so on. But it is possible to use block syntax for
+patterns if necessary -
+
+.. code:: nim
+
+    ProcDef:
+      @name is Ident() | Postfix[_, @name is Ident()]
+      # Other pattern parts
+
+In case of ``ProcDef:`` pattern braces can be omitted because it is clear
+that we are trying to match a case object here.
+
+Tree matching syntax has a nice property of being extremely close
+(copy-pastable) from ``treeRepr`` for ``NimNode``. For a following proc declaration:
+
+.. code:: nim
+
+    proc testProc1(arg1: int) {.unpackProc.} =
+      discard
+
+We have an ast
+
+.. code:: text
+
+    ProcDef
+      Ident "testProc1"
+      Empty
+      Empty
+      FormalParams
+        Empty
+        IdentDefs
+          Ident "arg1"
+          Ident "int"
+          Empty
+      Empty
+      Empty
+      StmtList
+        DiscardStmt
+          Empty
+
+That can be matched using following pattern:
+
+.. code:: nim
+    procDecl.assertMatch:
+      ProcDef:
+        Ident(strVal: @name) | Postfix[_, Ident(strVal: @name)]
+        _ # Term rewriting template
+        _ # Generic params
+        FormalParams:
+          @returnType
+          all IdentDefs[@trailArgsName, _, _]
+
+        @pragmas
+        _ # Reserved
+        @implementation
+
+
 Tree construction
 =================
 

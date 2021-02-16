@@ -2239,6 +2239,14 @@ suite "More tests":
       doAssert x is int
       doAssert x == 12
 
+    block:
+      None() := none(int)
+
+
+    block:
+      Some(Some(None())) := some some none int
+
+
 
 import std/[deques, lists]
 
@@ -2435,29 +2443,48 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 
   test "Match proc declaration":
     macro unpackProc(procDecl: untyped): untyped =
-      procDecl.assertMatch(
-        ProcDef[
-          # Match proc name in full form
-          @name is ( # And get standalone `Ident`
-            Postfix[_, @procIdent] | # Either in exported form
-            (@procIdent is Ident()) # Or regular proc definition
-          ),
-          _, # Skip term rewriting template
-          _, # Skip generic parameters
-          [ # Match arguments/return types
-            @returnType, # Get return type
+      block:
+        procDecl.assertMatch(
+          ProcDef[
+            # Match proc name in full form
+            @name is ( # And get standalone `Ident`
+              Postfix[_, @procIdent] | # Either in exported form
+              (@procIdent is Ident()) # Or regular proc definition
+            ),
+            _, # Skip term rewriting template
+            _, # Skip generic parameters
+            [ # Match arguments/return types
+              @returnType, # Get return type
 
-            # Match full `IdentDefs` for first argument, and extract it's name
-            # separately
-            @firstArg is IdentDefs[@firstArgName, _, _],
+              # Match full `IdentDefs` for first argument, and extract it's
+              # name separately
+              @firstArg is IdentDefs[@firstArgName, _, _],
 
-            # Match all remaining arguments. Collect both `IdentDefs` into
-            # sequence, and extract each argument separately
-            all @trailArgs is IdentDefs[@trailArgsName, _, _]
-          ],
-          .._
-        ]
-      )
+              # Match all remaining arguments. Collect both `IdentDefs`
+              # into sequence, and extract each argument separately
+              all @trailArgs is IdentDefs[@trailArgsName, _, _]
+            ],
+            .._
+          ]
+        )
+
+      block:
+        procDecl.assertMatch:
+          ProcDef:
+            Ident(strVal: @name) | Postfix[_, Ident(strVal: @name)]
+            _ # Term rewriting template
+            _ # Generic params
+            FormalParams:
+              @returnType
+              all IdentDefs[@trailArgsName, _, _]
+
+            @pragmas
+            _ # Reserved
+            @implementation
+
+        doAssert name == "testProc1"
+
+
 
     proc testProc1(arg1: int) {.unpackProc.} =
       discard
