@@ -1919,19 +1919,6 @@ suite "More tests":
       else:
         testFail()
 
-  test "Use external var in enum; explicit `case`":
-    let varname = 404
-    match case 404:
-      of 200:
-        testFail()
-
-      of varname:
-        doAssert true
-
-      else:
-        testFail()
-
-
   test "Nested custom unpacker":
     type
       UserType1 = object
