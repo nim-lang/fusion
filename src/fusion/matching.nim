@@ -2109,7 +2109,7 @@ func toNode(
 
 macro expand*(body: typed): untyped = body
 
-macro match*(n: untyped): untyped =
+proc matchImpl(n: NimNode): NimNode =
   var matchcase = nnkIfStmt.newTree()
   var mixidents: seq[string]
   for elem in n[1 .. ^1]:
@@ -2157,7 +2157,10 @@ macro match*(n: untyped): untyped =
       let pos {.inject, used.}: int = 0
       `matchcase`
 
-  # echo result.repr
+when (NimMajor, NimMinor, NimPatch) >= (1,5,1):
+  macro `case`*(n: untyped): untyped = matchImpl(n)
+else:
+  macro match*(n: untyped): untyped = matchImpl(n)
 
 macro assertMatch*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and raise `MatchError` on
