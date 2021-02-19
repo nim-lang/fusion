@@ -44,27 +44,7 @@ template multitestSince(
       body
 
 
-template staticRepeat(body: untyped): untyped =
-  body
-  static:
-    body
-
 suite "Matching":
-  multitest "Has kind for anything":
-    type
-      En1 = enum
-        eN11
-        eN12
-
-      Obj1 = object
-        case kind: En1
-         of eN11:
-           f1: int
-         of eN12:
-           f2: float
-
-    let val = Obj1()
-
   test "Pattern parser tests":
     macro main(): untyped =
       template t(body: untyped): untyped =
@@ -280,6 +260,7 @@ suite "Matching":
           res = "rly?"
         elif true:
           res = "default fallback"
+
         else:
           raiseAssert("#[ not possible ! ]#")
 
@@ -289,10 +270,6 @@ suite "Matching":
            of {"999": _}: "nice"
            of {"hello": _}: "000"
            else: "discard"
-
-    assertEq 12, case @[12, 32]:
-           of [_, 32]: expr[0]
-           else: 999
 
     assertEq 1, case [(1, 3), (3, 4)]:
                   of [(1, _), _]: 1
@@ -307,8 +284,10 @@ suite "Matching":
       case body:
         of Bracket([Bracket(len: in {1 .. 3})]):
           newLit("Nested bracket !")
+
         of Bracket(len: in {3 .. 6}):
-          newLit(expr.toStrLit().strVal() & " matched")
+          newLit(body.toStrLit().strVal() & " matched")
+
         else:
           newLit("not matched")
 
@@ -424,14 +403,12 @@ suite "Matching":
       else:
         testfail()
 
-  func `[]`(o: Obj2, idx: int): Obj2 = o.eee[idx]
   func len(o: Obj2): int = o.eee.len
   iterator items(o: Obj2): Obj2 =
     for item in o.eee:
       yield item
 
   multitest "Object items":
-
     case Obj2(kind: enEE, eee: @[Obj2(), Obj2()]):
       of [_, _]:
         discard
@@ -581,7 +558,7 @@ suite "Matching":
     [{'a' .. 'z'}, {' ', '*'}] := "z "
 
     "hello".assertMatch([all @ident in {'a' .. 'z'}])
-    "hello:".assertMatch([prefix in {'a' .. 'z'}, opt {':', '-'}])
+    "hello:".assertMatch([pref in {'a' .. 'z'}, opt {':', '-'}])
 
   multitest "Match assertions":
     [1,2,3].assertMatch([all @res]); assertEq res, @[1,2,3]
@@ -731,6 +708,8 @@ suite "Matching":
       [@head, .._] := a
       return head
 
+    doAssert hello(@[1,2,3]) == 1
+
     proc g1[T](a: seq[T]): T =
       case a:
         of [@a]: discard
@@ -779,14 +758,6 @@ suite "Matching":
       exception()
 
   multitest "One-or-more":
-    template testCase(main, patt, body: untyped): untyped =
-      case main:
-        of patt:
-          body
-        else:
-          testfail()
-          raiseAssert("#[ IMPLEMENT ]#")
-
     case [1]:
       of [@a]: assertEq a, 1
       else: testfail()
@@ -868,13 +839,38 @@ suite "Matching":
       subn*: seq[HtmlNode]
 
   func add(n: var HtmlNode, s: HtmlNode) = n.subn.add s
-  func `[]`(node: HtmlNode, idx: int): HtmlNode =
-    node.subn[idx]
 
   func len(n: HtmlNode): int = n.subn.len
   iterator items(node: HtmlNode): HtmlNode =
     for sn in node.subn:
       yield sn
+
+  multitest "Match assertions custom type; treeRepr syntax":
+    HtmlNode(kind: htmlBase).assertMatch:
+      Base()
+
+    HtmlNode(
+      kind: htmlLink, text: "text-1", subn: @[
+        HtmlNode(kind: htmlHead, text: "text-2")]
+    ).assertMatch:
+      Link(text: "text-1"):
+        Head(text: "text-2")
+
+
+    HtmlNode(
+      kind: htmlLink, subn: @[
+        HtmlNode(kind: htmlHead, text: "text-2"),
+        HtmlNode(kind: htmlHead, text: "text-3", subn: @[
+          HtmlNode(kind: htmlBase, text: "text-4"),
+          HtmlNode(kind: htmlBase, text: "text-5")
+        ])
+      ]
+    ).assertMatch:
+      Link:
+        Head(text: "text-2")
+        Head(text: "text-3"):
+          Base(text: "text-4")
+          Base()
 
 
   multitestSince "Tree builder custom type", (1, 4, 0):
@@ -960,9 +956,10 @@ suite "Matching":
       result = newBlockStmt(result)
 
 
-    let res = @[12,3,3].withItCall do:
+    let res {.used.} = @[12,3,3].withItCall do:
       it = it.filterIt(it < 4)
       it.add 99
+
 
   multitest "Examples from documentation":
     block: [@a] := [1]; doAssert (a is int) and (a == 1)
@@ -1127,6 +1124,8 @@ suite "Matching":
           k2_val(lex: "Hello")
           k1_val(lex: "Nice")
 
+      doAssert tree.kind == k3_val
+
     block:
       (lex: @lex) := Gen[void, string](tKind: ptkToken, lex: "hello")
 
@@ -1250,6 +1249,13 @@ suite "Matching":
       (_(it < 12), 1) := (14, 1)
 
 
+  test "Positional matching":
+    [0 is 0] := @[0]
+
+    expect MatchError:
+      [1 is 0] := @[0]
+
+
   test "Compilation errors":
     # NOTE that don't know how to correctly test compilation errors,
     # /without/ actuall failing compilation, so I just set `when true`
@@ -1323,6 +1329,67 @@ suite "Matching":
 
       assertEq fld1, 33
 
+  test "Multiple kinds of derived objects":
+    type
+      Base1 = ref object of RootObj
+        fld: int
+
+      First1 = ref object of Base1
+        first: float
+
+      Second1 = ref object of Base1
+        second: string
+
+    let elems: seq[Base1] = @[
+      Base1(fld: 123),
+      First1(fld: 456, first: 0.123),
+      Second1(fld: 678, second: "test"),
+      nil
+    ]
+
+    for elem in elems:
+      case elem:
+        of of First1(fld: @capture1, first: @first):
+          # Only capture `Frist1` elements
+          doAssert capture1 == 456
+          doAssert first == 0.123
+
+        of of Second1(fld: @capture2, second: @second):
+          # Capture `second` field in derived object
+          doAssert capture2 == 678
+          doAssert second == "test"
+
+        of of Base1(fld: @default):
+          # Match all *non-nil* base elements
+          doAssert default == 123
+
+        else:
+          doAssert isNil(elem)
+
+    var first: Base1 = First1()
+    doAssert matches(first, of First1(first: @tmp2))
+    doAssert not matches(first, of Second1(second: @tmp3))
+
+  test "non-derived ref type":
+    type
+      RefType = ref object
+      RegType = object
+        fld: float
+
+    doAssert matches(RefType(), of RefType())
+
+    doAssert matches(RegType(fld: 0.123), RegType(fld: @capture))
+    doAssert matches(RegType(fld: 0.123), RegType(fld: 0.123))
+
+    let varn = RegType()
+    doAssert matches(varn, RegType())
+
+    var zzz: RegType
+    doAssert matches(addr zzz, of RegType())
+
+    var pt: ptr RegType = nil
+    doAssert not matches(pt, of RegType())
+
   multitest "Custom object unpackers":
     type
       Point = object
@@ -1345,6 +1412,29 @@ suite "Matching":
 
     assertEq x, 12
     assertEq y, 13
+
+
+  test "Nested access paths":
+    case [[[[[[12]]]]]]:
+      of [@test]: discard
+      of [[@test]]: discard
+      of [[[[[@test]]]]]: discard
+
+    case (a: (b: (c: 12))):
+      of (a: @hello): discard
+      of (a: (b: @hello)): discard
+      of (a.b: @hello): discard
+      of (a.b.c: @hello): discard
+      of (a.b.c: 12): discard
+
+    (a: (b: (c: 12))) := (a: (b: (c: 12)))
+    (a.b.c: 12) := (a: (b: (c: 12)))
+    (a[0][0]: 12) := (a: (b: (c: 12)))
+
+    case (a: [2]):
+      of (a: @val): discard
+      of (a[0]: @val): discard
+      of (a[^1]: @val): discard
 
 
 
@@ -1478,6 +1568,47 @@ suite "Gara tests":
         check(list == @[4, 4])
       else:
         fail()
+
+  test "Sequence subpatterns 2":
+    let inseq = @[1,2,3,4,5,6,5,6]
+
+    [0 .. 2 is < 10, .._] := inseq
+    doAssert not matches(inseq, [0 .. 2 is < 10])
+    [0 .. 2 @elems1 is < 10, .._] := inseq
+    doAssert elems1 == @[1, 2, 3]
+
+    [12] := [12]
+    [[12]] := [[12]]
+    [[12], [13]] := [[12], [13]]
+    [0 .. 2 is 12] := [12, 12, 12]
+    # [0 is 12] := [12]
+    [^1 is 12] := [12]
+
+    expect MatchError:
+      [^1 is 12] := [13]
+
+    [^1 is (12, 12)] := [(12, 12)]
+
+    [0 is 12, ^1 is 13] := [12, 13]
+
+    expect MatchError:
+      [0 is 12, ^1 is 13] := [12, 14]
+
+
+    expect MatchError:
+      [0 is 2, ^1 is 13] := [12, 13]
+
+
+    expect MatchError:
+      # NOTE that's not how it supposed to be used, but it should work
+      # anyway.
+      [^1 is 13, 0 is 2] := [12, 13]
+
+    [^1 is 13, 0 is 2] := [2, 13]
+
+
+    # [^1 is 13, 0 is 2] := [12, 13]
+
 
   test "Variant":
     let a = Commit(kind: ctNormal, message: "e", diff: "z")
@@ -1689,6 +1820,208 @@ suite "Gara tests":
       testfail()
 
 suite "More tests":
+  multitest "Matching boolean tables":
+    case (true, false, false):
+      of (true, false, false):
+        discard
+
+      of (false, true, true):
+        testFail("Impossible")
+
+      else:
+        testFail("Impossible")
+
+
+  test "Funcall results":
+    [@head, all @trail] := split("a|b|c|d|e", '|')
+    doAssert head == "a"
+    doAssert trail == @["b", "c", "d", "e"]
+
+    case split("1,2,3,4,5", ','):
+      of [@head == "1", until @skip == "5", .._]:
+        doAssert skip == @["2", "3", "4"]
+        doAssert head == "1"
+
+      else:
+        testFail("Pattern failed")
+
+
+  multitest "Enumparse":
+    type
+      Dir1 = enum
+        dirUp
+        dirDown
+
+    proc parseDirection(str: string): Dir1 =
+      case str:
+        of "up": dirUp
+        of "down": dirDown
+        else:
+          raiseAssert(
+            &"Incorrect direction string expected up/down, but found: {str}")
+
+
+    for cmd in ["quit", "look", "get test", "go up", "drop a b c d"]:
+      case cmd.split(" "):
+        of ["quit"]:
+          doAssert "quit" in cmd
+
+        of ["look"]:
+          doAssert "look" in cmd
+
+        of ["get", @objectName]:
+          doAssert "get" in cmd
+          doASsert objectName == "test"
+
+        of ["go", (parseDirection: @direction)]:
+          case direction:
+            of dirUp:
+              doAssert "go up" in cmd
+
+            else:
+              testFail("Wrong enum value parse")
+
+        of ["drop", all @args]:
+          doAssert "drop" in cmd
+          doAssert args == @["a", "b", "c", "d"]
+
+        else:
+          testFail("Unmatched command " & cmd)
+
+  test "Composing array patterns":
+    for patt in [@["a", "b", "d"], @["a", "XXX", "d"]]:
+      case patt:
+        of ["z", @alt1] | ["q", @alt1]:
+          static:
+            doAssert alt1 is string
+
+        of ["z", @alt2] | ["q", @alt3]:
+          static:
+            doAssert alt2 is Option[string]
+            doAssert alt3 is Option[string]
+
+
+        of ["a", "b"] | ["a", "b", @altTail]:
+          doAssert altTail is Option[string]
+          doAssert altTail.get() == "d"
+
+        of ["a", "***", "d"] | ["a", _, "d"]:
+          doAssert patt ==  @["a", "XXX", "d"]
+
+        else:
+          testFail("Unmatched patter " & $patt)
+
+  test "Alternative subpattern capture":
+    case @["a", "b"]:
+      of ["a", @second is ("a"|"b"|"c")]:
+        doAssert second == "b"
+
+      else:
+        testFail()
+
+  test "Nested custom unpacker":
+    type
+      UserType1 = object
+        fld1: float
+        fld2: string
+        case isDefault: bool
+          of true: fld3: float
+          of false: fld4: string
+
+      UserType2 = object
+        userFld: UserType1
+        fld4: float
+
+
+    proc `[]`(obj: UserType1, idx: static[FieldIndex]): auto =
+      when idx == 0:
+        obj.fld1
+
+      elif idx == 1:
+        obj.fld2
+
+      elif idx == 2:
+        if obj.isDefault:
+          obj.fld3
+
+        else:
+          obj.fld4
+
+      else:
+        static:
+          error("Indvalid index for `UserType1` field " &
+            "- expected value in range[0..2], but got " & $idx
+          )
+
+    proc `[]`(obj: UserType2, idx: static[FieldIndex]): auto =
+      when idx == 0:
+        obj.userFld
+
+      elif idx == 1:
+        obj.fld4
+
+      else:
+        static:
+          error("Indvalid index for `UserType2` field " &
+            "- expected value in range[0..1], but got " & $idx
+          )
+
+    block:
+      (@fld1, @fld2, _) := UserType1(fld1: 0.1, fld2: "hello")
+
+      doAssert fld1 == 0.1
+      doAssert fld2 == "hello"
+
+    block:
+      (fld1: @fld1, fld2: @fld2) := UserType1(fld1: 0.1, fld2: "hello")
+
+      doAssert fld1 == 0.1
+      doAssert fld2 == "hello"
+
+    block:
+      ((@fld1, @fld2, _), _) := UserType2(userFld: UserType1(fld1: 0.1, fld2: "hello"))
+
+      doAssert fld1 == 0.1
+      doAssert fld2 == "hello"
+
+
+  test "`is`":
+    (a: is 42) := (a: 42)
+    (a: 42) := (a: 42)
+    (a: == 42) := (a: 42)
+
+    # expandMacros:
+    (a: (@a, @b)) := (a: (1, 2))
+    (a: (1, 2)) := (a: (1, 2))
+    (a: == (1, 2)) := (a: (1, 2))
+
+
+  test "Nested case objects":
+    type
+      Kind2 = enum
+        kkFirst
+
+      Object4 = ref object
+        val: int
+        case kind: Kind2
+          of kkFirst:
+            nested: Object4
+
+    block:
+      assertMatch(
+        Object4(kind: kkFirst,
+                nested: Object4(
+                  kind: kkFirst,
+                  nested: Object4(
+                    kind: kkFirst,
+                    val: 10))),
+        First(
+          nested: First(
+            nested: First(
+              val: @capture))))
+
+      doAssert capture == 10
+
   test "Line scanner":
     iterator splitLines(str: string, sep: set[char]): seq[string] =
       for line in str.split(sep):
@@ -1729,45 +2062,52 @@ suite "More tests":
 
     assertEq vals, @["hello", "world"]
 
+  type
+    Ast1Kind = enum
+      akFirst1
+      akSecond1
+      akThird1
+
+    Ast1 = object
+      case kind1: Ast1Kind
+        of akFirst1:
+          first: string
+        of akSecond1:
+          second: int
+        of akThird1:
+          asdf: int
+          third: seq[Ast1]
+
+    Ast2Kind = enum
+      akFirst2
+      akSecond2
+      akThird2
+
+    Ast2 = object
+      case kind2: Ast2Kind
+        of akFirst2:
+          first: string
+        of akSecond2:
+          second: int
+        of akThird2:
+          third: seq[Ast2]
+
+  func `kind=`(a1: var Ast1, k: Ast1Kind) = a1 = Ast1(kind1: k)
+  func `kind=`(a2: var Ast2, k: Ast2Kind) = a2 = Ast2(kind2: k)
+
+  func kind(a1: Ast1): Ast1Kind = a1.kind1
+  func kind(a2: Ast2): Ast2Kind = a2.kind2
+
+  func add(a1: var Ast1, sub: Ast1) = a1.third.add sub
+  func add(a2: var Ast2, sub: Ast2) = a2.third.add sub
+
+  func len(a1: Ast1): int = a1.third.len
+
+  iterator items(a1: Ast1): Ast1 =
+    for it in a1.third:
+      yield it
+
   multitestSince "AST-AST conversion using pattern matching", (1, 2, 0):
-    type
-      Ast1Kind = enum
-        akFirst1
-        akSecond1
-        akThird1
-
-      Ast1 = object
-        case kind1: Ast1Kind
-          of akFirst1:
-            first: string
-          of akSecond1:
-            second: int
-          of akThird1:
-            third: seq[Ast1]
-
-      Ast2Kind = enum
-        akFirst2
-        akSecond2
-        akThird2
-
-      Ast2 = object
-        case kind2: Ast2Kind
-          of akFirst2:
-            first: string
-          of akSecond2:
-            second: int
-          of akThird2:
-            third: seq[Ast2]
-
-    func `kind=`(a1: var Ast1, k: Ast1Kind) = a1 = Ast1(kind1: k)
-    func `kind=`(a2: var Ast2, k: Ast2Kind) = a2 = Ast2(kind2: k)
-
-    func kind(a1: Ast1): Ast1Kind = a1.kind1
-    func kind(a2: Ast2): Ast2Kind = a2.kind2
-
-    func add(a1: var Ast1, sub: Ast1) = a1.third.add sub
-    func add(a2: var Ast2, sub: Ast2) = a2.third.add sub
-
     func convert(a1: Ast1): Ast2 =
       case a1:
         of First1(first: @value):
@@ -1789,6 +2129,112 @@ suite "More tests":
 
     discard val.convert()
 
+  test "Match tree with statement list":
+    Ast1().assertMatch:
+      First1()
+
+    Ast1().assertMatch:
+      First1(first: "")
+
+    Ast1(kind1: akThird1, third: @[Ast1(), Ast1()]).assertMatch:
+      Third1(asdf: 0):
+        First1()
+        First1()
+
+    Ast1(kind1: akThird1, third: @[Ast1()]).assertMatch:
+      Third1(asdf: 0):
+        First1()
+
+    Ast1().assertMatch:
+      First1(first: "")
+
+
+  test "Raise error":
+    expect MatchError:
+      Ast1().assertMatch:
+        Third1()
+
+    expect MatchError:
+      Ast1().assertMatch:
+        First1(first: "zzzzzzzzzzz")
+
+    expect MatchError:
+      Ast1(kind1: akThird1, third: @[Ast1(), Ast1()]).assertMatch:
+        Third1(asdf: 0):
+          Second1()
+          Third1()
+
+    expect MatchError:
+      Ast1(kind1: akThird1, third: @[Ast1()]).assertMatch:
+        Third1(asdf: 0):
+          First1()
+          First1()
+
+    expect MatchError:
+      Ast1(kind1: akFirst1).assertMatch:
+        Third1(first: "")
+
+  test "Pure enums":
+    type
+      Pure1 {.pure.} = enum
+        left
+        right
+
+      PureAst1 = object
+        kind: Pure1
+
+    left() := PureAst1(kind: Pure1.left)
+
+  test "Fully qualified, snake case":
+    type
+      Snake1 = enum
+        sn_left
+        sn_right
+
+      SnakeAst1 = object
+        kind: Snake1
+
+    sn_left() := SnakeAst1(kind: sn_left)
+    left() := SnakeAst1(kind: sn_left)
+
+  test "Option patterns":
+    block:
+      [any @x < 12] := @[1, 2, 3]
+      [any @y is < 12] := @[1, 2, 3]
+      [any @z is 12] := @[12]
+      [any @w is == 12] := @[12]
+
+    block:
+      Some(Some([any @x < 12])) := some(some(@[1, 2, 3]))
+      doAssert x is seq[int]
+      doAssert x == @[1, 2, 3]
+
+    block:
+      [any @elems is Some()] := [none(int), some(12)]
+      doAssert elems is seq[Option[int]]
+      doAssert elems.len == 1
+      doAssert elems[0].get() == 12
+
+    block:
+      [any is Some(@elem)] := [some(12)]
+      doAssert elem is seq[int]
+      doAssert elem.len == 1
+      doAssert elem[0] == 12
+
+    block:
+      Some(Some(@x)) := some(some(12))
+      doAssert x is int
+      doAssert x == 12
+
+    block:
+      None() := none(int)
+
+
+    block:
+      Some(Some(None())) := some some none int
+
+
+
 import std/[deques, lists]
 
 suite "stdlib container matches":
@@ -1804,6 +2250,101 @@ suite "stdlib container matches":
 
 
 suite "Article examples":
+  test "Object matching":
+    type
+      Obj = object
+        fld1: int8
+
+    func len(o: Obj): int = 0
+
+    case Obj():
+      of (fld1: < -10):
+        testFail()
+
+      of (len: > 10):
+        # can use results of function evaluation as fields - same idea as
+        # method call syntax in regular code.
+        testFail()
+
+      of (fld1: in {1 .. 10}):
+        testFail()
+
+      of (fld1: @capture):
+        doAssert capture == 0
+
+      else:
+        testFail()
+
+
+
+
+  test "Nested tuples unpacking":
+    (@a, (@b, _), _) := ("hello", ("world", 11), 0.2)
+
+  test "Simple string scanner":
+    "2019 school start".assertMatch([
+      # Capture all prefix integers
+      pref @year in {'0' .. '9'},
+      # Then skip all whitespaces
+      until notin {' '},
+      # And store remained of the string in `events` variable
+      all @event
+    ])
+
+    doAssert year == "2019".toSeq()
+    doAssert event == "school start".toSeq()
+
+  test "Tokenized string scanner":
+    func allIs(str: string, chars: set[char]): bool = str.allIt(it in chars)
+
+    "2019-10-11 school start".split({'-', ' '}).assertMatch([
+      pref @dateParts(it.allIs({'0' .. '9'})),
+      pref _(it.allIs({' '})),
+      all @text
+    ])
+
+    doAssert dateParts == @["2019", "10", "11"]
+    doAssert text == @["school", "start"]
+
+
+  test "Pattern matching lexer":
+    type
+      Lexer = object
+        buf: seq[string]
+        bufpos: int
+
+    var maxbuf: int = 0
+    iterator items(lex: Lexer): string =
+      for i in lex.bufpos .. lex.buf.high:
+        maxbuf = max(maxbuf, i)
+        yield lex.buf[i]
+
+    func len(lex: Lexer): int = lex.buf.len - lex.bufpos
+    func isAllnum(str: string): bool = str.allIt(it in {'0' .. '9'})
+
+    var lexer = Lexer(buf: @["2019", "10", "11", "hello", "world"])
+
+
+    if lexer.matches([
+      # `isAlnum` is converted to `[somePos].isAlnum == true`, and can be
+      # used to check for properties of particular sequence elements, even
+      # though there are no such fields in the element itself.
+      @year  is (isAllnum: true, len: 4),
+      @month is (isAllnum: true, len: 2),
+                # Capturing results of procs is also possible, though there
+                # is no particular guarantee wrt. to number of times proc
+                # could be executed, so some caution is necessary.
+                (isAllnum: true, len: 2, parseInt: @day),
+      .._
+    ]):
+      assertEq year, "2019"
+      assertEq month, "10"
+      assertEq day, 11
+      assertEq lexer.buf[maxbuf], "hello"
+
+    else:
+      testFail()
+
   test "Small parts":
     let txt = """
 root:x:0:0::/root:/bin/bash
@@ -1827,6 +2368,16 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
         of { "key" : (getStr: @val) }:
           doAssert val is string, $typeof(val)
 
+    block:
+      [(@first, @second), all @trail] := [(12, 3), (33, 4), (12, 33)]
+      doAssert first == 12
+      doAssert second == 3
+      doAssert trail == @[(33, 4), (12, 33)]
+
+    block:
+      if Some(@val) ?= some("hello"):
+        doAssert val is string
+
 
     block:
       let it: seq[string] = "A|B".split("|")
@@ -1839,32 +2390,36 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 
       doAssert a is Option[int]
 
-    macro test1(inBody: untyped): untyped =
-      block:
+    macro test1(): untyped =
+      var inBody: NimNode
+      if false:
         Call[BracketExpr[@ident, opt @outType], @body] := inBody
-        doAssert ident is NimNode
-        doAssert outType is Option[NimNode]
-        doAssert body is NimNode
 
-      block:
+        static:
+          doAssert ident is NimNode
+          doAssert outType is Option[NimNode]
+          doAssert body is NimNode
+
+      if false:
         Command[@ident is Ident(), Bracket[@outType], @body] := inBody
-        doAssert ident is NimNode
-        doAssert outType is NimNode
-        doAssert body is NimNode
 
-      block:
+        static:
+          doAssert ident is NimNode
+          doAssert outType is NimNode
+          doAssert body is NimNode
+
+      if false:
         Call[BracketExpr[@ident, opt @outType], @body] |
         Command[@ident is Ident(), Bracket[@outType], @body] := inBody
 
-        doAssert ident is NimNode
-        doAssert outType is Option[NimNode]
-        doAssert body is NimNode
+        static:
+          doAssert ident is NimNode
+          doAssert outType is Option[NimNode]
+          doAssert body is NimNode
 
       block:
-        var a = quote do:
-          map[string]
+        var a = nnkBracketExpr.newTree(ident "map", ident "string")
 
-        a = a[0]
         a.assertMatch:
           BracketExpr:
             @head
@@ -1873,7 +2428,63 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
         doAssert head.strVal() == "map"
         doAssert typeParam.strVal() == "string"
 
+    test1()
 
+  test "example from documentation":
+    case [(1, 3), (3, 4)]:
+      of [(1, @a), _]:
+        doASsert a == 3
+
+      else:
+        fail()
+
+  test "Match proc declaration":
+    macro unpackProc(procDecl: untyped): untyped =
+      block:
+        procDecl.assertMatch(
+          ProcDef[
+            # Match proc name in full form
+            @name is ( # And get standalone `Ident`
+              Postfix[_, @procIdent] | # Either in exported form
+              (@procIdent is Ident()) # Or regular proc definition
+            ),
+            _, # Skip term rewriting template
+            _, # Skip generic parameters
+            [ # Match arguments/return types
+              @returnType, # Get return type
+
+              # Match full `IdentDefs` for first argument, and extract it's
+              # name separately
+              @firstArg is IdentDefs[@firstArgName, _, _],
+
+              # Match all remaining arguments. Collect both `IdentDefs`
+              # into sequence, and extract each argument separately
+              all @trailArgs is IdentDefs[@trailArgsName, _, _]
+            ],
+            .._
+          ]
+        )
+
+      block:
+        procDecl.assertMatch:
+          ProcDef:
+            Ident(strVal: @name) | Postfix[_, Ident(strVal: @name)]
+            _ # Term rewriting template
+            _ # Generic params
+            FormalParams:
+              @returnType
+              all IdentDefs[@trailArgsName, _, _]
+
+            @pragmas
+            _ # Reserved
+            @implementation
+
+        doAssert name == "testProc1"
+
+
+
+    proc testProc1(arg1: int) {.unpackProc.} =
+      discard
 
   multitest "Flow macro":
     type
@@ -2074,8 +2685,9 @@ ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin
 nobody:x:99:99:Nobody:/:/sbin/nologin
 nscd:x:28:28:NSCD Daemon:/:/sbin/nologin"""
 
+    # expandMacros:
     let res = flow data.split("\n"):
-      map:
+      map[seq[string]]:
         it.split(":")
       filter:
         let shell = it[^1]

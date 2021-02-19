@@ -1,7 +1,20 @@
-import sequtils, macros, tables, options, strformat, strutils,
-       parseutils, algorithm, hashes
+import std/[
+  sequtils, macros, tables, options, strformat, strutils,
+  parseutils, algorithm, hashes
+]
 
 export options
+
+runnableExamples:
+  {.experimental: "caseStmtMacros".}
+
+  case [(1, 3), (3, 4)]:
+    of [(1, @a), _]:
+      echo a
+
+    else:
+      echo "Match failed"
+
 
 ## .. include:: matching.rst
 
@@ -29,6 +42,19 @@ const
     ## identifiers)
 
 
+const debugWIP = false
+
+template echov(arg: untyped): untyped {.used.} =
+  {.noSideEffect.}:
+    when debugWIP:
+      let val = $arg
+      if split(val).len > 1:
+        echo instantiationInfo().line, " \e[32m", astToStr(arg), "\e[39m "
+        echo val
+
+      else:
+        echo instantiationInfo().line, " \e[32m", astToStr(arg), "\e[39m ", val
+
 template varOfIteration*(arg: untyped): untyped =
   when compiles(
     for item in items(arg):
@@ -41,6 +67,7 @@ template varOfIteration*(arg: untyped): untyped =
         let tmp = tmp2[]
         tmp
     ))
+
   else:
     proc aux(): auto =
       for val in arg:
@@ -55,6 +82,17 @@ func codeFmt(str: string): string {.inline.} =
 
 func codeFmt(node: NimNode): NimNode {.inline.} =
   node.strVal().codeFmt().newLit()
+
+func toPattStr(node: NimNode): NimNode =
+  var tmp = node.toStrLit().strVal()
+  if split(tmp, '\n').len > 1:
+    tmp = "\n" & tmp.split('\n').mapIt("  " & it).join("\n") & "\n\n"
+
+  else:
+    tmp = codeFmt(tmp) & ". "
+
+  newLit(tmp)
+
 
 func nodeStr(n: NimNode): string =
   ## Get nim node string value from any identifier or string literal node
@@ -114,24 +152,8 @@ func splitDots(n: NimNode): seq[NimNode] =
     else:
       @[n]
 
-func getVar(n: NimNode): NimNode =
-  if n.kind == nnkPragmaExpr:
-    n[1][0][1]
-  elif n.kind == nnkPrefix:
-    n[1]
-  else:
-    raiseAssert(&"Cannot get variable from node kind {n.kind}")
-
 func firstDot(n: NimNode): NimNode {.inline.} =
   splitDots(n)[0]
-
-func dropFirstDot(n: NimNode): NimNode =
-  let drop = splitDots(n)
-  if drop.len == 1:
-    drop[0]
-  else:
-    drop[1..^1].foldl(nnkDotExpr.newTree(a, b))
-
 
 template assertKind(node: NimNode, kindSet: set[NimNodeKind]): untyped =
   if node.kind notin kindSet:
@@ -180,10 +202,18 @@ func parseEnumImpl(en: NimNode): seq[string] =
 func pref(name: string): string =
   discard name.parseUntil(result, {'A' .. 'Z', '0' .. '9'})
 
-func foldInfix(s: seq[NimNode],
-               inf: string, start: seq[NimNode] = @[]): NimNode =
-  ( start & s ).mapIt(it.newPar().newPar()).foldl(
-    nnkInfix.newTree(ident inf, a, b))
+func foldInfix(
+    s: seq[NimNode],
+    inf: string, start: seq[NimNode] = @[]): NimNode =
+
+  if inf == "or" and s.len > 0 and (
+    s[0].eqIdent("true") or s[0] == newLit(true)
+  ):
+    result = newLit(true)
+
+  else:
+    result = ( start & s ).mapIt(it.newPar().newPar()).foldl(
+      nnkInfix.newTree(ident inf, a, b))
 
 
 func commonPrefix(strs: seq[string]): string =
@@ -260,7 +290,6 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
 
   result = nnkInfix.newTree(ident "==", head, kind)
 
-
 template hasKind*(head, kindExpr: untyped): untyped =
   ## Determine if `head` has `kind` value. Either function/procedure
   ## `kind` or field with the same name is expected to be declared.
@@ -273,6 +302,10 @@ template hasKind*(head, kindExpr: untyped): untyped =
   ##   `nnk` prefix can be omitted.
   when compiles(head.kind):
     hasKindImpl(head.kind, kindExpr)
+
+  elif compiles(head is kindExpr):
+    true
+
   else:
     static: error "No `kind` defined for " & $typeof(head)
 
@@ -413,9 +446,9 @@ type
     vkAlt
 
   AltSpec = object
-    altMax: int
-    altIdx: seq[int]
-    completed: bool
+    altMax: int16 ## Max alterantive index
+    altPositions: set[int16] ## Previous positions for index
+    completed: bool ## Completed index
 
   VarSpec* = object
     decl*: NimNode ## First time variable has been declared
@@ -575,8 +608,6 @@ func isNamedTuple(node: NimNode): bool =
 func makeVarSet(
   varn: NimNode, expr: NimNode, vtable: VarTable, doRaise: bool): NimNode =
   varn.assertKind({nnkIdent})
-  # {.noSideEffect.}:
-  #    echo vtable
   case vtable[varn.nodeStr()].varKind:
     of vkSequence:
       return quote do:
@@ -598,7 +629,7 @@ func makeVarSet(
       let varStr = varn.toStrLit()
       let ln = lineIInfo(vtable[varn.nodeStr()].decl)
       let matchError =
-        if doRaise:
+        if doRaise and not debugWIP:
           quote do:
             when compiles($(`varn`)):
               {.line: `ln`.}:
@@ -748,36 +779,33 @@ func parseNestedKey(n: NimNode): Match =
 
 
 func parseKVTuple(n: NimNode): Match =
+  ## Parse key-value tuple for object access - object or tuple fields.
   if n[0].eqIdent("Some"):
+    # Special case for `Some(@var)` - expanded into `isSome` check and some
+    # additional cruft
     if not (n.len <= 2):
-      error("Expected `Some(@varBind)`", n)
+      error("Expected `Some(<pattern>)`", n)
 
-    if not (n[1].kind == nnkPrefix and n[1][0].eqIdent("@")):
-      var comm: string
-      if n[1].kind in nnkStrKinds + nnkIdentKinds:
-        comm = " Should be written as " &
-          codeFmt("Some(@" & n[1].nodeStr() & ")")
+    # n[1].assertKind({nnkPrefix})
 
-      error(
-        "Some(@var) pattern expected, but found " &
-          n[1].toStrLit().nodeStr().codeFmt() & "." & comm
-        , n[1]
-      )
-
-    n[1].assertKind({nnkPrefix})
-    n[1][0].assertKind({nnkIdent})
-
-    return Match(kind: kObject, declNode: n, fldElems: @{
+    result = Match(kind: kObject, declNode: n, fldElems: @{
       "isSome": Match(kind: kItem, itemMatch: imkInfixEq, declNode: n[0],
-                      rhsNode: newLit(true), infix: "=="),
-      "get": Match(kind: kItem, itemMatch: imkInfixEq,
-                   declNode: n[1], isPlaceholder: true,
-                   bindVar: some(n[1][1])),
+                      rhsNode: newLit(true), infix: "==")
     })
 
+    if n.len > 1:
+      result.fldElems.add ("get", parseMatchExpr(n[1]))
+
+    return
+
+  elif n[0].eqIdent("None"):
+    return Match(kind: kObject, declNode: n, fldElems: @{
+      "isNone": Match(kind: kItem, itemMatch: imkInfixEq, declNode: n[0],
+                      rhsNode: newLit(true), infix: "==")
+    })
 
   result = Match(kind: kObject, declNode: n)
-  var start = 0
+  var start = 0 # Starting subnode for actual object fields
   if n.kind in {nnkCall, nnkObjConstr}:
     start = 1
     result.kindCall = some(n[0])
@@ -787,8 +815,19 @@ func parseKVTuple(n: NimNode): Match =
       of nnkExprColonExpr:
         var str: string
         case elem[0].kind:
-          of nnkIdentKinds, nnkDotExpr:
-            str = elem[0].firstDot().nodeStr()
+          of nnkIdentKinds, nnkDotExpr, nnkBracketExpr:
+            let first = elem[0].firstDot()
+            if first.kind == nnkIdent:
+              str = first.nodeStr()
+
+            else:
+              error(
+                "First field access element must be an identifier. " &
+                  "For accessing int-indexable objects use [] subscript " &
+                  "directly, like (" & first.repr & ")",
+                first
+              )
+
           else:
             error(
               "Malformed path access - expected either field name, " &
@@ -799,10 +838,21 @@ func parseKVTuple(n: NimNode): Match =
             )
 
         result.fldElems.add((str, elem.parseNestedKey()))
+
       of nnkBracket, nnkStmtList:
+        # `Bracket` - Special case for object access - allow omission of
+        # parentesis, so you can write `ForStmt[@a, @b]` (which is very
+        # useful when working with AST types)
+        #
+        # `StmtList` - second special case for writing list patterns,
+        # allows to use treeRepr-like code.
         result.seqMatches = some(elem.parseMatchExpr())
+
       of nnkTableConstr:
+        # Special case for matching key-value pairs (tables and other
+        # objects implementing `contains` and `[]` operator)
         result.kvMatches = some(elem.parseMatchExpr())
+
       else:
         elem.assertKind({nnkExprColonExpr})
 
@@ -818,6 +868,40 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
       result.add SeqStructure(kind: lkTrail, patt: Match(
         declNode: elem,
       ), decl: elem)
+
+    elif
+      # `^1 is <patt>`
+      elem.kind == nnkInfix and elem[1].kind == nnkPrefix and
+      elem[0].eqIdent("is") and elem[1][0].eqIdent("^") and
+      elem[1][1].kind in nnkIntKinds
+      :
+
+      var res = SeqStructure(
+        kind: lkSlice, slice: elem[1], decl: elem,
+        patt: parseMatchExpr(elem[2]),
+      )
+
+      res.bindVar = res.patt.bindVar
+      res.patt.bindVar = none(NimNode)
+      result.add res
+
+
+    elif
+      # `1 is <patt>`
+      elem.kind == nnkInfix and
+      elem[1].kind in nnkIntKinds and
+      elem[0].eqIdent("is")
+      :
+
+      var res = SeqStructure(
+        kind: lkSlice, slice: elem[1], decl: elem,
+        patt: parseMatchExpr(elem[2]),
+      )
+
+      res.bindVar = res.patt.bindVar
+      res.patt.bindVar = none(NimNode)
+      result.add res
+
     elif
       # `[0 .. 3 @head is Jstring()]`
       (elem.kind == nnkInfix and (elem[0].startsWith(".."))) or
@@ -907,10 +991,16 @@ func parseSeqMatch(n: NimNode): seq[SeqStructure] =
         opKind = toKwd(elem[0])
         elem = elem[1]
       elif elem.kind in {nnkInfix} and
-           elem[1].kind in {nnkIdent} and
-           elem[1].nodeStr() in seqKwds:
-        opKind = toKwd(elem[1])
-        elem = nnkInfix.newTree(elem[0], ident "_", elem[2])
+           elem[1].kind in {nnkIdent}:
+
+        if elem[1].nodeStr() in seqKwds:
+          opKind = toKwd(elem[1])
+          elem = nnkInfix.newTree(elem[0], ident "_", elem[2])
+
+        else:
+          if not elem[1].eqIdent("_"):
+            error("Invalid node match keyword - " &
+              elem[1].repr.codeFmt() & "",elem[1])
 
       var
         match = parseMatchExpr(elem)
@@ -1031,12 +1121,14 @@ func fixBrokenPar(inNode: NimNode): NimNode =
 
   result = aux(inNode)
 
-macro dumpIdxTree(n: untyped) =
+macro dumpIdxTree(n: untyped) {.used.} =
   echo n.idxTreeRepr()
 
 func parseMatchExpr*(n: NimNode): Match =
   ## Parse match expression from nim node
 
+  # echov "Parse match expression"
+  # echov n.idxTreeRepr()
   case n.kind:
     of nnkIdent, nnkSym, nnkIntKinds, nnkStrKinds, nnkFloatKinds:
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
@@ -1146,15 +1238,18 @@ func parseMatchExpr*(n: NimNode): Match =
 
     elif n.kind in {nnkObjConstr, nnkCall, nnkCommand} and
          not n[0].eqIdent("opt"):
+      # echov n.idxTreeRepr()
       if n.isBrokenBracket():
         # Broken bracket expression that was written as `A [1]` and
-        #subsequently parsed into
+        # subsequently parsed into
         # `(Command (Ident "A") (Bracket (IntLit 1)))`
         # when actually it was ment to be used as `A[1]`
         # `(BracketExpr (Ident "A") (IntLit 1))`
         result = parseMatchExpr(n.fixBrokenBracket())
+
       elif n.isBrokenPar():
         result = parseMatchExpr(n.fixBrokenPar())
+
       else:
         if n[0].kind == nnkPrefix:
           n[0][1].assertKind({nnkIdent}) # `@capture(<some-expression>)`
@@ -1165,6 +1260,7 @@ func parseMatchExpr*(n: NimNode): Match =
             declNode: n,
             predBody: n[1]
           )
+
         elif n[0].kind == nnkDotExpr:
           var body = n
           var bindVar: Option[NimNode]
@@ -1175,6 +1271,7 @@ func parseMatchExpr*(n: NimNode): Match =
             # Store name of the bound variable and then replace `_` with
             # `it` to make `it.call("arguments")`
             body[0][0] = ident("it")
+
           else: # `_.call("Arguments")`
             # `(DotExpr (Ident "_") (Ident "<function-name>"))`
             n[0][1].assertKind({nnkIdent, nnkOpenSymChoice})
@@ -1189,6 +1286,7 @@ func parseMatchExpr*(n: NimNode): Match =
             declNode: n,
             predBody: body,
             bindVar: bindVar
+
           )
         elif n.kind == nnkCall and n[0].eqIdent("_"):
           # `_(some < expression)`. NOTE - this is probably a
@@ -1200,6 +1298,18 @@ func parseMatchExpr*(n: NimNode): Match =
             declNode: n[1],
             predBody: n[1]
           )
+
+        elif n.kind == nnkCall and
+             n.len > 1 and
+             n[1].kind == nnkStmtList:
+
+          if n[0].kind == nnkIdent:
+            result = parseKVTuple(n)
+
+          else:
+            result = parseMatchExpr(n[0])
+            result.seqMatches = some(parseMatchExpr(n[1]))
+
         else:
           result = parseKVTuple(n)
 
@@ -1253,7 +1363,8 @@ func parseMatchExpr*(n: NimNode): Match =
 
 func isVariadic(p: Path): bool = p.anyIt(it.isVariadic)
 
-func isAlt(p: Path): bool = p.anyIt(it.inStruct == kAlt)
+func isAlt(p: Path): bool =
+  result = p.anyIt(it.inStruct == kAlt)
 
 iterator altPrefixes(p: Path): Path =
   var idx = p.len - 1
@@ -1276,15 +1387,14 @@ func classifyPath(path: Path): VarKind =
     vkRegular
 
 
+
 func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
   let vs = vsym.nodeStr()
   let class = path.classifyPath()
+
   if vs notin tbl:
-    tbl[vs] = VarSpec(
-      decl: vsym,
-      varKind: path.classifyPath(),
-      typePath: path
-    )
+    tbl[vs] = VarSpec(decl: vsym, varKind: class, typePath: path)
+
   else:
     var doUpdate =
       (class == vkSequence) or
@@ -1298,12 +1408,11 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
     for prefix in path.altPrefixes():
       let noalt = prefix[0 .. ^2]
       if noalt notin tbl[vs].prefixMap:
-        tbl[vs].prefixMap[noalt] = AltSpec(altMax: prefix[^1].altMax)
+        tbl[vs].prefixMap[noalt] = AltSpec(altMax: prefix[^1].altMax.int16)
 
       var spec = tbl[vs].prefixMap[noalt]
-      assert spec.altMax == prefix[^1].altMax
-      spec.altIdx.add prefix[^1].altIdx
-      if spec.altIdx.len == spec.altMax + 1:
+      spec.altPositions.incl prefix[^1].altIdx.int16
+      if spec.altPositions.len == spec.altMax + 1:
         spec.completed = true
 
       if spec.completed:
@@ -1359,10 +1468,7 @@ func makeVarTable(m: Match): tuple[table: VarTable,
             altMax: sub.altElems.len - 1
           )])
       of kSeq:
-        # echov path
-        # echov sub[]
         for elem in sub.seqElems:
-          # echov elem
           let parent = path & @[AccsElem(
             inStruct: kSeq, pos: newLit(0),
             isVariadic: elem.kind notin {lkPos, lkOpt})]
@@ -1446,7 +1552,7 @@ proc makeElemMatch(
       inc minLen
       inc maxLen
       let ln = elem.decl.lineIInfo()
-      if doRaise:
+      if doRaise and not debugWIP:
         var str = newNimNode(nnkRStrLit)
         str.strVal = "Match failure for pattern '" & pattStr.strVal() &
             "'. Item at index "
@@ -1476,20 +1582,53 @@ proc makeElemMatch(
           inc `counter`
           inc `posid`
           continue
-          # newCall(ident "inc", counter)
       else:
         result.body.add quote do:
           if `expr`:
-            # lk pos matched - advance to next step
+            # debugecho "Match ok"
             inc `counter`
             inc `posid`
             continue
 
           else:
+            # debugecho "Fail break"
             `failBreak`
 
     else:
-      maxLen = 5000
+      if elem.kind == lkSlice:
+        case elem.slice.kind:
+          of nnkIntKinds:
+            maxLen = max(maxLen, elem.slice.intVal.int + 1)
+            minLen = max(minLen, elem.slice.intVal.int + 1)
+
+          of nnkInfix:
+            if elem.slice[1].kind in nnkIntKinds and
+               elem.slice[2].kind in nnkIntKinds:
+
+              let diff = if elem.slice[0].strVal == "..": +1 else: 0
+
+
+              maxLen = max([
+                maxLen,
+                elem.slice[1].intVal.int,
+                elem.slice[2].intVal.int + diff
+              ])
+
+              minLen = max(minLen, elem.slice[1].intVal.int)
+
+            else:
+              maxLen = 5000
+
+          else:
+            maxLen = 5000
+
+        # echov elem.kind
+        # echov maxLen
+        # echov minLen
+
+      else:
+        maxLen = 5000
+
       var varset = newEmptyNode()
 
       if elem.bindVar.getSome(bindv):
@@ -1498,7 +1637,7 @@ proc makeElemMatch(
         # vtable.addvar(bindv, parent) # XXXX
 
       let ln = elem.decl.lineIInfo()
-      if doRaise:
+      if doRaise and not debugWIP:
         case elem.kind:
           of lkAll:
             failBreak = quote do:
@@ -1516,6 +1655,7 @@ proc makeElemMatch(
                   msg: "Match failure for pattern '" & `pattStr` &
                     "'. Expected at least one elemen to match, but got none"
                 )
+
           of lkNone:
             failBreak = quote do:
               {.line: `ln`.}:
@@ -1523,6 +1663,16 @@ proc makeElemMatch(
                   msg: "Match failure for pattern '" & `pattStr` &
                     "'. Expected no elements to match, but index " &
                     $(`posid` - 1) & " matched."
+                )
+
+          of lkSlice:
+            let positions = elem.slice.toStrLit().codeFmt()
+            failBreak = quote do:
+              {.line: `ln`.}:
+                raise MatchError(
+                  msg: "Match failure for pattern '" & `pattStr` &
+                    "'. Elements for positions " & `positions` &
+                    " were expected to match no elements to match"
                 )
 
           else:
@@ -1543,19 +1693,35 @@ proc makeElemMatch(
               # failure for whole sequence pattern
               if `expr` and `varset`:
                 discard
+
               else:
                 `failBreak`
 
         of lkSlice:
           var rangeExpr = elem.slice
-          result.body.add quote do:
-            if `posid` in `rangeExpr`:
+          # echov rangeExpr.idxTreeRepr()
+          if rangeExpr.kind in {nnkPrefix} + nnkIntKinds:
+            result.body.add quote do:
               if `expr` and `varset`:
                 discard
+
               else:
                 `failBreak`
-            else:
+
               inc `counter`
+
+          else:
+            result.body.add quote do:
+              if `posid` in `rangeExpr`:
+
+                if `expr` and `varset`:
+                  discard
+
+                else:
+                  `failBreak`
+
+              else:
+                inc `counter`
 
         of lkUntil:
           result.body.add quote do:
@@ -1622,34 +1788,9 @@ proc makeElemMatch(
               else:
                 `failBreak`
 
-
-          # when false:
-          #   let allOk = genSym(nskVar, "allOk")
-          #   var check: NimNode
-
-          #   if expr.kind in {nnkSym, nnkIdent} and expr.eqIdent("true"):
-          #     check = quote do:
-          #       `varset`
-          #   else:
-          #     check = quote do:
-          #       if `expr`:
-          #         `allOk` = false
-          #       else:
-          #         discard `varset`
-
-          #   result.body.add quote do:
-          #     block:
-          #       var `allOk`: bool = true
-          #       while `posid` < `getLen` and `allOk`:
-          #         `check`
-          #         inc `posid`
-
-          #       if not `allOk`:
-          #         `failBreak`
-
         of lkTrail, lkPos:
-          # ???
           discard
+
 
 
 
@@ -1694,23 +1835,38 @@ func makeSeqMatch(
   # Default valudes for `opt` matches
   var defaults = newStmtList()
 
+  let successBlock = ident("successBlock")
+
   # Find necessary element size (fail-fast on `len` mismatch)
   for idx, elem in seqm.seqElems:
+    let idLit = newLit(idx)
     if elem.kind == lkTrail:
       maxLen = 5000
+      loopBody.add quote do:
+        if `counter` == `idLit`:
+          break `successBlock`
+
     else:
-      let
+      var
+        elemMainExpr = elemId
         parent: Path = path & @[AccsElem(
           inStruct: kSeq, pos: posid,
           isVariadic: elem.kind notin {lkPos, lkOpt}
         )]
 
+      if elem.kind == lkSlice and
+         elem.slice.kind in (nnkIntKinds + {nnkPrefix}):
+        parent[^1].isVariadic = false
+        parent[^1].pos = elem.slice
+        elemMainExpr = nnkBracketExpr.newTree(mainExpr, elem.slice)
+
+      let
         expr: NimNode = elem.patt.makeMatchExpr(
           vtable,
           # Passing empty path and overriding `mainExpr` for elemen access
           # in order to make all nested matches use loop variable
           path = @[],
-          mainExpr = elemId,
+          mainExpr = elemMainExpr,
           # Expression for type path must be unchanged
           typePath = parent,
           doRaise = false,
@@ -1736,7 +1892,6 @@ func makeSeqMatch(
         posid     = posid,
         vtable    = vtable,
         parent    = parent,
-        # mainExpr  = mainExpr,
         expr      = expr,
         getLen    = getLen,
         idx       = idx,
@@ -1746,22 +1901,9 @@ func makeSeqMatch(
 
       defaults.add defsets
 
-      let idLit = newLit(idx)
       loopBody.add quote do:
         if `counter` == `idLit`:
-          # debugecho "counter:", `counter`
-          # debugecho "posid:", `posid`
-          # debugecho `elemId`.repr
-
           `body`
-
-      # debugecho body.repr
-      # nnkIfStmt.newTree(
-      #   nnkElifBranch.newTree(
-      #     nnkInfix.newTree(ident "==", counter, newLit(idx)),
-      #     body
-      #   )
-      # )
 
       for (varname, init) in state:
         statevars.add nnkVarSection.newTree(
@@ -1769,8 +1911,6 @@ func makeSeqMatch(
 
 
   result.add loopBody
-  # debugecho "\e[41m*=========\e[49m  ----  \e[41m=========*\e[49m"
-  # debugecho result.repr
 
 
   let
@@ -1781,13 +1921,16 @@ func makeSeqMatch(
   var setCheck: NimNode
   if maxLen >= 5000:
     setCheck = quote do:
+      ## Check required len
       `getLen` < `minNode`
+
   else:
     setCheck = quote do:
+      ## Check required len
       `getLen` notin {`minNode` .. `maxNode`}
 
-  if doRaise:
-    let pattStr = seqm.declNode.toStrLit().codeFmt()
+  if doRaise and not debugWIP:
+    var pattStr = seqm.declNode.toPattStr()
     let ln = seqm.declNode.lineIInfo()
     let lenObj = path.toAccs(originalMainExpr, false).toStrLit().codeFmt()
 
@@ -1795,8 +1938,8 @@ func makeSeqMatch(
       failBreak = quote do:
         {.line: `ln`.}:
           raise MatchError(
-            msg: "Match failure for pattern '" & `pattStr` &
-              "'. Expected at least " & $(`minNode`) &
+            msg: "Match failure for pattern " & `pattStr` &
+              "Expected at least " & $(`minNode`) &
               " elements, but " & (`lenObj`) &
               " has .len of " & $(`getLen`) & "."
           )
@@ -1805,8 +1948,8 @@ func makeSeqMatch(
       failBreak = quote do:
         {.line: `ln`.}:
           raise MatchError(
-            msg: "Match failure for pattern '" & `pattStr` &
-              "'. Expected length in range '" & $(`minNode`) & " .. " &
+            msg: "Match failure for pattern " & `pattStr` &
+              "Expected length in range '" & $(`minNode`) & " .. " &
               $(`maxNode`) & "', but `" & (`lenObj`) &
               "` has .len of " & $(`getLen`) & "."
           )
@@ -1820,11 +1963,38 @@ func makeSeqMatch(
       inc `posid`
 
 
+  var str = seqm.declNode.toStrLit().strVal()
+  if split(str, '\n').len > 1:
+    str = "\n" & str
+
+  let patternLiteral = newLit(str).codeFmt()
+
+  let compileCheck =
+    if debugWIP:
+      newStmtList()
+
+    else:
+      quote do:
+        when not compiles(((discard `tmpExpr`.len()))):
+          static:
+            error " no `len` defined for " & $typeof(`tmpExpr`) &
+              " - needed to find number of elements for pattern " &
+              `patternLiteral`
+
+        when not compiles(((
+          for item in items(`tmpExpr`):
+            discard
+        ))):
+          static:
+            error " no `items` defined for " & $typeof(`tmpExpr`) &
+              " - iteration is require for pattern " &
+              `patternLiteral`
+
+
+
   result = quote do:
     `comment`
-    when not compiles(((discard `tmpExpr`.len()))):
-      static:
-        error " no `len` defined for " & $typeof(`tmpExpr`)
+    `compileCheck`
     var `matched` = false
     # Main expression of match
 
@@ -1841,7 +2011,9 @@ func makeSeqMatch(
       # State variable initalization
       `statevars`
 
-      `result`
+      # Block for early successfuly return from iteration
+      block `successBlock`:
+        `result`
 
       `defaults`
 
@@ -1850,6 +2022,7 @@ func makeSeqMatch(
     `matched`
 
   result = result.newPar().newPar()
+  # echov result.repr
 
 
 
@@ -1911,16 +2084,6 @@ func makeMatchExpr(
             else:
               false
 
-      if doRaise:
-        let msgLit = newLit(
-          "Pattern match failed: element does not match '" &
-            m.declNode.toStrLit().strVal() & "'")
-
-        result = quote do:
-          `result` or ((block: raise MatchError(msg: `msgLit`) ; false))
-
-
-
     of kSeq:
       return makeSeqMatch(
         m, vtable, path, mainExpr, doRaise, originalMainExpr)
@@ -1932,13 +2095,17 @@ func makeMatchExpr(
         conds.add it.makeMatchExpr(
           vtable, path, path, mainExpr, doRaise, originalMainExpr)
 
-      return conds.foldInfix("and")
+      result = conds.foldInfix("and")
 
     of kObject:
       var conds: seq[NimNode]
       var refCast: seq[AccsElem]
       if m.kindCall.getSome(kc):
         if m.isRefKind:
+          conds.add newCall(
+            "not",
+            newCall(ident "isNil", path.toAccs(mainExpr, false)))
+
           conds.add newCall(ident "of", path.toAccs(mainExpr, false), kc)
           refCast.add AccsElem(
             inStruct: kObject, fld: kc.repr)
@@ -1959,7 +2126,7 @@ func makeMatchExpr(
         conds.add kv.makeMatchExpr(
           vtable, path, path, mainExpr, doRaise, originalMainExpr)
 
-      return conds.foldInfix("and")
+      result = conds.foldInfix("and")
 
     of kPairs:
       var conds: seq[NimNode]
@@ -1995,7 +2162,7 @@ func makeMatchExpr(
             let varsetOk = makeVarSet(varn, valGet, vtable, doRaise)
             if pair.patt.fallback.getSome(fallback):
               let varsetFail = makeVarSet(
-                varn, pair.patt.fallback.get(), vtable, doRaise)
+                varn, fallback, vtable, doRaise)
 
               conds.add quote do:
                 block:
@@ -2010,7 +2177,7 @@ func makeMatchExpr(
                 else:
                   true
 
-      return conds.foldInfix("and")
+      result = conds.foldInfix("and")
 
     of kAlt:
       var conds: seq[NimNode]
@@ -2027,6 +2194,7 @@ func makeMatchExpr(
       let res = conds.foldInfix("or")
       if not doRaise:
         return res
+
       else:
         let pattStr = m.declNode.toStrLit()
         return quote do:
@@ -2042,8 +2210,16 @@ func makeMatchExpr(
         if elem.kind == kItem:
           testSet.add elem.rhsNode
 
-      return quote do:
+      result = quote do:
         `setPath` in `testSet`
+
+  if doRaise:
+    let msgLit = newLit(
+      "Pattern match failed: element does not match " &
+        m.declNode.toPattStr().strVal())
+
+    result = quote do:
+      `result` or ((block: raise MatchError(msg: `msgLit`) ; false))
 
 
 func makeMatchExpr*(
@@ -2066,16 +2242,24 @@ func toNode(
 
   var exprNew = nnkStmtList.newTree()
   var hasOption: bool = false
-  var hasSequence: bool = false
   for name, spec in vtable:
+    echov name & " -> " & $spec
     let vname = ident(name)
     var typeExpr = toAccs(spec.typePath, mainExpr, true)
     typeExpr = quote do:
       ((let tmp = `typeExpr`; tmp))
 
+    var wasSet = newEmptyNode()
+    if vtable[name].cnt > 1:
+      let varn = ident(name & "WasSet")
+      wasSet = quote do:
+        var `varn`: bool = false
+
+    exprNew.add wasSet
+
+
     case spec.varKind:
       of vkSequence:
-
         block:
           let varExpr = toAccs(spec.typePath[0 .. ^2], mainExpr, false)
           exprNew.add quote do:
@@ -2097,11 +2281,8 @@ func toNode(
           var `vname`: typeof(`typeExpr`)
 
       of vkRegular:
-        let wasSet = ident(vname.nodeStr() & "WasSet")
         exprNew.add quote do:
-          var `wasSet`: bool = false
           var `vname`: typeof(`typeExpr`)
-
 
   result = quote do:
     `exprNew`
@@ -2112,6 +2293,7 @@ macro expand*(body: typed): untyped = body
 proc matchImpl(n: NimNode): NimNode =
   var matchcase = nnkIfStmt.newTree()
   var mixidents: seq[string]
+  let mainExpr = genSym(nskLet, "expr")
   for elem in n[1 .. ^1]:
     case elem.kind:
       of nnkOfBranch:
@@ -2122,14 +2304,12 @@ proc matchImpl(n: NimNode): NimNode =
         let (expr, vtable, mixid) =
           toSeq(elem[0 .. ^2]).foldl(
             nnkInfix.newTree(ident "|", a, b)
-          ).parseMatchExpr().makeMatchExpr(
-            ident("expr"), false, n # .toStrLit().strVal()
-          )
+          ).parseMatchExpr().makeMatchExpr(mainExpr, false, n)
 
         mixidents.add mixid
 
         matchcase.add nnkElifBranch.newTree(
-          toNode(expr, vtable, ident("expr")).newPar().newPar(),
+          toNode(expr, vtable, mainExpr).newPar().newPar(),
           elem[^1]
         )
 
@@ -2149,12 +2329,17 @@ proc matchImpl(n: NimNode): NimNode =
   if mixidents.len == 0:
     mixinList = newEmptyNode()
 
+  let ln = lineIInfo(n[0])
+  let posId = genSym(nskLet, "pos")
   result = quote do:
     block:
       # `mixinList`
       `pos`
-      let expr {.inject.} = `head`
-      let pos {.inject, used.}: int = 0
+      {.line: `ln`.}:
+        let `mainExpr` {.used.} = `head`
+
+      let `posId` {.used.}: int = 0
+      discard `posId`
       `matchcase`
 
 when (NimMajor, NimMinor, NimPatch) >= (1,5,1):
@@ -2179,12 +2364,11 @@ macro assertMatch*(input, pattern: untyped): untyped =
 
     matched = toNode(mexpr, vtable, expr)
 
-  let patt = newLit(pattern.repr)
+
   result = quote do:
     let `expr` = `input`
     let ok = `matched`
-
-  # echo result.repr
+    discard ok
 
 macro matches*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and return `false` on

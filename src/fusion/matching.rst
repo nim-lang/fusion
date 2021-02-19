@@ -9,15 +9,7 @@ This module implements pattern matching for objects, tuples,
 sequences, key-value pairs, case and derived objects. DSL can also be
 used to create object trees (AST).
 
-Use example
-===========
 
-
-.. code:: nim
-
-    case [(1, 3), (3, 4)]:
-      of [(1, _), _]: 1
-      else: 999
 
 Quick reference
 ===============
@@ -26,15 +18,15 @@ Quick reference
  Example                       Explanation
 ============================= =======================================================
  ``(fld: @val)``               Field ``fld`` into variable ``@val``
- ``Kind()``                    Object with ``.kind == Kind()`` [1]_
+ ``Kind()``                    Object with ``.kind == Kind()`` [1]
  ``of Derived()``              Match object of derived type
  ``(@val, _)``                 First element in tuple in ``@val``
  ``(@val, @val)``              Tuple with two equal elements
- ``{"key" : @val}``            Table with "key", capture into ``@val`` [2]_
- ``[_, _]``                    Sequence with ``len == 2`` [3]_
+ ``{"key" : @val}``            Table with "key", capture into ``@val`` [2]
+ ``[_, _]``                    Sequence with ``len == 2`` [3]
  ``[_, .._]``                  At least one element
  ``[_, all @val]``             All elements starting from index ``1``
- ``[until @val == "2", .._]``  Capture all elements *until* first ``"2"`` [4]_
+ ``[until @val == "2", .._]``  Capture all elements *until* first ``"2"`` [4]
  ``[until @val == 1, @val]``   All *including* first match
  ``[all @val == 12]``          All elements are ``== 12``, capture into ``@val``
  ``[some @val == 12]``         At least *one* is ``== 12``, capture all matching into ``@val``
@@ -44,7 +36,7 @@ Quick reference
   ``StrLit`` will work (prefix ``nnk`` can be omitted)
 - [2] Or any object with ``contains`` and ``[]`` defined (for necessary types)
 - [3] Or any object with ``len`` proc or field
-- [4] Note that sequence must mathc *fully* and it is necessary to have
+- [4] Note that sequence must match *fully* and it is necessary to have
   ``.._`` at the end in order to accept sequences of arbitrary length.
 
 Supported match elements
@@ -66,12 +58,12 @@ Supported match elements
 Element access
 ==============
 
-To determine whether or not particular object matches pattern *access
+To determine whether particular object matches pattern *access
 path* is generated - sequence of fields and ``[]`` operators that you
 would normally write by hand, like ``fld.subfield["value"].len``. Due to
 support for `method call syntax
 <https://nim-lang.org/docs/manual.html#procedures-method-call-syntax>`_
-there is no difference between field acccess and proc call, so things
+there is no difference between field access and proc call, so things
 like `(len: < 12)` also work as expected.
 
 ``(fld: "3")`` Match field ``fld`` against ``"3"``. Generated access
@@ -102,7 +94,7 @@ Checks
   into generated pattern match code. E.g. ``fld: in {2,3,4}`` will generate
   ``expr.fld in {2,3,4}``
 
-- ``(fld: is Patt())`` - check if ``expr.fld`` matches pattern ``Patt()``
+- ``(fld: Patt())`` - check if ``expr.fld`` matches pattern ``Patt()``
 
 - ``(fld: _.matchesPredicate())`` - if call to
   ``matchesPredicate(expr.fld)`` evaluates to true.
@@ -112,7 +104,7 @@ example
 
 - ``fld: in {1,2,3}`` - ``<expr>`` is ``in {1,2,3}``
 - ``[_]`` - ``<expr>`` is ``_``
-- ``fld: is Patt()`` - ``<expr>`` is ``is Patt()``
+- ``fld: Patt()`` - ``<expr>`` is ``Patt()``
 
 Examples
 --------
@@ -196,6 +188,8 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
  ``[all @a == 6, .._]``            **Ok** ``a = []``        All leading ``6``
  ``[any @a(it > 100)]``            **Fail**                 No elements ``> 100``
  ``[none @a(it in {6 .. 10})]``    **Fail**                 There is an element ``== 6``
+ ``[0 .. 2 is < 10, .._]``         **Ok**                   First three elements ``< 10``
+ ``[0 .. 2 is < 10]``              **Fail**                 Missing trailing ``.._``
 ================================= ======================== ====================================
 
 ``until``
@@ -244,7 +238,8 @@ subpatterns or have trailing ``.._`` in pattern.
                ``[1,2,_]``    **Ok**
 ============= ============== ==============
 
-More use examples
+Use examples
+~~~~~~~~~~~~
 
 - capture all elements in sequence: ``[all @elems]``
 - get all elements until (not including "d"): ``[until @a is "d"]``
@@ -259,38 +254,24 @@ More use examples
   _]), .._])``
 
 
-How different sequence matching keywords map to regular for-loops?
+In addition to working with nested subpatterns it is possible to use
+pattern matching as simple text scanner, similar to strscans. Main
+difference is that it allows to work on arbitrary sequences, meaning it is
+possible, for example, to operate on tokens, or as in this example on
+strings (for the sake of simplicity).
 
 .. code:: nim
 
-    # all
-    var allOk = false
-    while position < len:
-      if matchExpr(): inc position
-      else: allOk = false; break
+    func allIs(str: string, chars: set[char]): bool = str.allIt(it in chars)
 
-    if not allOk: # Fail match
+    "2019-10-11 school start".split({'-', ' '}).assertMatch([
+      pref @dateParts(it.allIs({'0' .. '9'})),
+      pref _(it.allIs({' '})),
+      all @text
+    ])
 
-.. code:: nim
-
-    # any
-    var foundOk = false
-    while position < len:
-      if matchExpr(): foundOk = true
-      inc position
-
-    if not foundOk: # Fail match
-
-
-.. code:: nim
-
-    # until
-    var foundOk = false
-    while position < len:
-      if not matchExpr(): break
-      else: inc position
-
-    # Continue with next matches
+    doAssert dateParts == @["2019", "10", "11"]
+    doAssert text == @["school", "start"]
 
 Tuple matching
 --------------
@@ -306,8 +287,55 @@ Input tuple: ``(1, 2, "fa")``
  ``(1, 1 | 2, _)``            **Ok**
 ============================ ========== ============
 
-Case object matching
---------------------
+There are not a lot of features implemented for tuple matching, though it
+should be noted that `:=` operator can be quite handy when it comes to
+unpacking nested tuples -
+
+.. code:: nim
+
+    (@a, (@b, _), _) := ("hello", ("world", 11), 0.2)
+
+Object matching
+---------------
+
+For matching object fields you can use ``(fld: value)`` -
+
+.. code:: nim
+
+    type
+      Obj = object
+        fld1: int8
+
+    func len(o: Obj): int = 0
+
+    case Obj():
+      of (fld1: < -10):
+        discard
+
+      of (len: > 10):
+        # can use results of function evaluation as fields - same idea as
+        # method call syntax in regular code.
+        discard
+
+      of (fld1: in {1 .. 10}):
+        discard
+
+      of (fld1: @capture):
+        doAssert capture == 0
+
+Variant object matching
+-----------------------
+
+Matching on ``.kind`` field is a very common operation and has special
+syntax sugar - ``ForStmt()`` is functionally equivalent to ``(kind:
+nnkForStmt)``, but much more concise.
+
+`nnk` pefix can be omitted - in general if your enum field name folows
+`nep1` naming `conventions
+<https://nim-lang.org/docs/nep1.html#introduction-naming-conventions>`_
+(each enum name starts with underscore prefix (common for all enum
+elements), followed PascalCase enum name.
+
 
 Input AST
 
@@ -332,21 +360,116 @@ Input AST
 - ``ForStmt([_, _, (len: in {1 .. 10})])`` between one to ten
   statements in the for loop body
 
-Ref object matching
--------------------
+- Using object name for pattern matching ``ObjectName()`` does not produce
+  a hard error, but if ``.kind`` field does not need to be checked ``(fld:
+  <pattern>)`` will be sufficient.
+- To check ``.kind`` against multiple operators prefix ``in`` can be used -
+  ``(kind: in {nnkForStmt, nnkWhileStmt})``
 
-Matching for ref objects is not really different from regular one - the
-only difference is that you need to use ``of`` operator explicitly. For
-example, if you want to do ``case`` match for different object kinds - and
+
+Custom unpackers
+----------------
+
+It is possible to unpack regular object using tuple matcher syntax - in
+this case overload for ``[]`` operator must be provided that accepts
+``static[FieldIndex]`` argument and returns a field.
 
 .. code:: nim
 
-    case Obj():
-      of of StmtList(subfield: @capture):
-        # do something with `capture`
+    type
+      Point = object
+        x: int
+        y: int
 
-You can use ``of`` as prefix operator - things like ``{12 : of
-SubRoot(fld1: @fld1)}``, or  ``[any of Derived()]``.
+    proc `[]`(p: Point, idx: static[FieldIndex]): auto =
+      when idx == 0:
+        p.x
+      elif idx == 1:
+        p.y
+      else:
+        static:
+          error("Cannot unpack `Point` into three-tuple")
+
+    let point = Point(x: 12, y: 13)
+
+    (@x, @y) := point
+
+    assertEq x, 12
+    assertEq y, 13
+
+Note ``auto`` return type for ``[]`` proc - it is necessary if different
+types of fields might be returned on tuple unpacking, but not mandatory.
+
+If different fields have varying types ``when`` **must** and ``static`` be
+used to allow for compile-time code selection.
+
+Ref object matching
+-------------------
+
+It is also possible to match derived ``ref`` objects with patterns using
+``of`` operator. It allows for runtime selection of different derived
+types.
+
+Note that ``of`` operator is necessary for distinguishing between multiple
+derived objects, or getting fields that are present only in derived types.
+In addition it performs ``isNil()`` check in the object, so it might be
+used in cases when you are not dealing with derived types.
+
+Due to ``isNil()`` check this pattern only makes sense when working with
+``ref`` objects.
+
+.. code:: nim
+
+    type
+      Base1 = ref object of RootObj
+        fld: int
+
+      First1 = ref object of Base1
+        first: float
+
+      Second1 = ref object of Base1
+        second: string
+
+    let elems: seq[Base1] = @[
+      Base1(fld: 123),
+      First1(fld: 456, first: 0.123),
+      Second1(fld: 678, second: "test"),
+      nil
+    ]
+
+    for elem in elems:
+      case elem:
+        of of First1(fld: @capture1, first: @first):
+          # Only capture `Frist1` elements
+          doAssert capture1 == 456
+          doAssert first == 0.123
+
+        of of Second1(fld: @capture2, second: @second):
+          # Capture `second` field in derived object
+          doAssert capture2 == 678
+          doAssert second == "test"
+
+        of of Base1(fld: @default):
+          # Match all *non-nil* base elements
+          doAssert default == 123
+
+        else:
+          doAssert isNil(elem)
+
+
+..
+   Matching for ref objects is not really different from regular one - the
+   only difference is that you need to use ``of`` operator explicitly. For
+   example, if you want to do ``case`` match for different object kinds - and
+
+   .. code:: nim
+
+       case Obj():
+         of of StmtList(subfield: @capture):
+           # do something with `capture`
+
+   You can use ``of`` as prefix operator - things like ``{12 : of
+   SubRoot(fld1: @fld1)}``, or  ``[any of Derived()]``.
 
 
 KV-pairs matching
@@ -383,6 +506,68 @@ Option matching
 ``Some(@x)`` and ``None()`` is a special case that will be rewritten into
 ``(isSome: true, get: @x)`` and ``(isNone: true)`` respectively. This is
 made to allow better integration with optional types.  [9]_ .
+
+Tree matching
+=============
+
+For deeply nested AST structures it might be really inconvenient to write
+one-line expression with lots of ``ProcDef[@name is Ident() | Postfix[_,
+@name is Ident()]]`` and so on. But it is possible to use block syntax for
+patterns if necessary -
+
+.. code:: nim
+
+    ProcDef:
+      @name is Ident() | Postfix[_, @name is Ident()]
+      # Other pattern parts
+
+In case of ``ProcDef:`` pattern braces can be omitted because it is clear
+that we are trying to match a case object here.
+
+Tree matching syntax has a nice property of being extremely close
+(copy-pastable) from ``treeRepr`` for ``NimNode``. For a following proc declaration:
+
+.. code:: nim
+
+    proc testProc1(arg1: int) {.unpackProc.} =
+      discard
+
+We have an ast
+
+.. code:: text
+
+    ProcDef
+      Ident "testProc1"
+      Empty
+      Empty
+      FormalParams
+        Empty
+        IdentDefs
+          Ident "arg1"
+          Ident "int"
+          Empty
+      Empty
+      Empty
+      StmtList
+        DiscardStmt
+          Empty
+
+That can be matched using following pattern:
+
+.. code:: nim
+    procDecl.assertMatch:
+      ProcDef:
+        Ident(strVal: @name) | Postfix[_, Ident(strVal: @name)]
+        _ # Term rewriting template
+        _ # Generic params
+        FormalParams:
+          @returnType
+          all IdentDefs[@trailArgsName, _, _]
+
+        @pragmas
+        _ # Reserved
+        @implementation
+
 
 Tree construction
 =================
