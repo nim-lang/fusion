@@ -1,0 +1,2 @@
+findNimSrcFiles	src/fusion/docutils.html#findNimSrcFiles.i,string	docutils: findNimSrcFiles(dir: string): string	
+genCodeImportAll	src/fusion/docutils.html#genCodeImportAll,string	docutils: genCodeImportAll(dir: string): string	

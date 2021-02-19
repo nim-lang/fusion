@@ -1,0 +1,2 @@
+buildAst	src/fusion/astdsl.html#buildAst.m,untyped,untyped	astdsl: buildAst(node, children: untyped): NimNode	
+buildAst	src/fusion/astdsl.html#buildAst.m,untyped	astdsl: buildAst(children: untyped): NimNode	

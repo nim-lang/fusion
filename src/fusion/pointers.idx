@@ -1,0 +1,1 @@
+toUncheckedArray	src/fusion/pointers.html#toUncheckedArray,ptr.T	pointers: toUncheckedArray[T](a: ptr T): ptr UncheckedArray[T]	

@@ -1,0 +1,2 @@
+duplicate	src/fusion/ioutils.html#duplicate,FileHandle	ioutils: duplicate(oldfd: FileHandle): FileHandle	
+duplicateTo	src/fusion/ioutils.html#duplicateTo,FileHandle,FileHandle	ioutils: duplicateTo(oldfd: FileHandle; newfd: FileHandle)	

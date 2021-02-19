@@ -1,0 +1,2 @@
+Pool	src/fusion/pools.html#Pool	pools: Pool	
+newNode	src/fusion/pools.html#newNode,Pool[T]	pools: newNode[T](p: var Pool[T]): ptr T	

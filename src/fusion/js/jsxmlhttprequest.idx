@@ -1,0 +1,9 @@
+XMLHttpRequest	src/fusion/js/jsxmlhttprequest.html#XMLHttpRequest	jsxmlhttprequest: XMLHttpRequest	
+newXMLHttpRequest	src/fusion/js/jsxmlhttprequest.html#newXMLHttpRequest	jsxmlhttprequest: newXMLHttpRequest(): XMLHttpRequest	
+open	src/fusion/js/jsxmlhttprequest.html#open,XMLHttpRequest,cstring,cstring	jsxmlhttprequest: open(this: XMLHttpRequest; metod, url: cstring; async = true;\n     user = cstring.default; password = cstring.default)	
+send	src/fusion/js/jsxmlhttprequest.html#send,XMLHttpRequest	jsxmlhttprequest: send(this: XMLHttpRequest; body: cstring | Node = cstring.default)	
+abort	src/fusion/js/jsxmlhttprequest.html#abort,XMLHttpRequest	jsxmlhttprequest: abort(this: XMLHttpRequest)	
+getAllResponseHeaders	src/fusion/js/jsxmlhttprequest.html#getAllResponseHeaders,XMLHttpRequest	jsxmlhttprequest: getAllResponseHeaders(this: XMLHttpRequest): cstring	
+overrideMimeType	src/fusion/js/jsxmlhttprequest.html#overrideMimeType,XMLHttpRequest,cstring	jsxmlhttprequest: overrideMimeType(this: XMLHttpRequest; mimeType: cstring)	
+setRequestHeader	src/fusion/js/jsxmlhttprequest.html#setRequestHeader,XMLHttpRequest,cstring,cstring	jsxmlhttprequest: setRequestHeader(this: XMLHttpRequest; key, value: cstring)	
+setRequestHeader	src/fusion/js/jsxmlhttprequest.html#setRequestHeader,XMLHttpRequest,openArray[tuple[cstring,cstring]]	jsxmlhttprequest: setRequestHeader(this: XMLHttpRequest;\n                 keyValuePairs: openArray[tuple[key, val: cstring]])	

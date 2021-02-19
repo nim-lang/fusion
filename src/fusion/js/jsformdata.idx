@@ -1,0 +1,14 @@
+FormData	src/fusion/js/jsformdata.html#FormData	jsformdata: FormData	
+newFormData	src/fusion/js/jsformdata.html#newFormData	jsformdata: newFormData(): FormData	
+add	src/fusion/js/jsformdata.html#add,FormData,cstring,	jsformdata: add(this: FormData; name: cstring; value: SomeNumber | bool | cstring)	
+add	src/fusion/js/jsformdata.html#add,FormData,cstring,,cstring	jsformdata: add(this: FormData; name: cstring; value: SomeNumber | bool | cstring;\n    filename: cstring)	
+delete	src/fusion/js/jsformdata.html#delete,FormData,cstring	jsformdata: delete(this: FormData; name: cstring)	
+getAll	src/fusion/js/jsformdata.html#getAll,FormData,cstring	jsformdata: getAll(this: FormData; name: cstring): seq[cstring]	
+hasKey	src/fusion/js/jsformdata.html#hasKey,FormData,cstring	jsformdata: hasKey(this: FormData; name: cstring): bool	
+keys	src/fusion/js/jsformdata.html#keys,FormData	jsformdata: keys(this: FormData): seq[cstring]	
+values	src/fusion/js/jsformdata.html#values,FormData	jsformdata: values(this: FormData): seq[cstring]	
+pairs	src/fusion/js/jsformdata.html#pairs,FormData	jsformdata: pairs(this: FormData): seq[tuple[key, val: cstring]]	
+put	src/fusion/js/jsformdata.html#put,FormData,cstring,cstring,cstring	jsformdata: put(this: FormData; name, value, filename: cstring)	
+`[]=`	src/fusion/js/jsformdata.html#[]=,FormData,cstring,cstring	jsformdata: `[]=`(this: FormData; name, value: cstring)	
+`[]`	src/fusion/js/jsformdata.html#[],FormData,cstring	jsformdata: `[]`(this: FormData; name: cstring): cstring	
+clear	src/fusion/js/jsformdata.html#clear,FormData	jsformdata: clear(this: FormData)	

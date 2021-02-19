@@ -1,0 +1,3 @@
+toFilePermissions	src/fusion/filepermissions.html#toFilePermissions,Natural	filepermissions: toFilePermissions(perm: Natural): set[FilePermission]	
+fromFilePermissions	src/fusion/filepermissions.html#fromFilePermissions,set[FilePermission]	filepermissions: fromFilePermissions(perm: set[FilePermission]): uint	
+chmod	src/fusion/filepermissions.html#chmod,string,Natural	filepermissions: chmod(path: string; permissions: Natural)	

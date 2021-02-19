@@ -1,0 +1,49 @@
+XmlNode	src/fusion/htmlparser/xmltree.html#XmlNode	xmltree: XmlNode	
+xnText	src/fusion/htmlparser/xmltree.html#xnText	XmlNodeKind.xnText	
+xnVerbatimText	src/fusion/htmlparser/xmltree.html#xnVerbatimText	XmlNodeKind.xnVerbatimText	
+xnElement	src/fusion/htmlparser/xmltree.html#xnElement	XmlNodeKind.xnElement	
+xnCData	src/fusion/htmlparser/xmltree.html#xnCData	XmlNodeKind.xnCData	
+xnEntity	src/fusion/htmlparser/xmltree.html#xnEntity	XmlNodeKind.xnEntity	
+xnComment	src/fusion/htmlparser/xmltree.html#xnComment	XmlNodeKind.xnComment	
+XmlNodeKind	src/fusion/htmlparser/xmltree.html#XmlNodeKind	xmltree: XmlNodeKind	
+XmlAttributes	src/fusion/htmlparser/xmltree.html#XmlAttributes	xmltree: XmlAttributes	
+xmlHeader	src/fusion/htmlparser/xmltree.html#xmlHeader	xmltree: xmlHeader	
+newElement	src/fusion/htmlparser/xmltree.html#newElement,string	xmltree: newElement(tag: string): XmlNode	
+newText	src/fusion/htmlparser/xmltree.html#newText,string	xmltree: newText(text: string): XmlNode	
+newVerbatimText	src/fusion/htmlparser/xmltree.html#newVerbatimText,string	xmltree: newVerbatimText(text: string): XmlNode	
+newComment	src/fusion/htmlparser/xmltree.html#newComment,string	xmltree: newComment(comment: string): XmlNode	
+newCData	src/fusion/htmlparser/xmltree.html#newCData,string	xmltree: newCData(cdata: string): XmlNode	
+newEntity	src/fusion/htmlparser/xmltree.html#newEntity,string	xmltree: newEntity(entity: string): XmlNode	
+newXmlTree	src/fusion/htmlparser/xmltree.html#newXmlTree,string,openArray[XmlNode],XmlAttributes	xmltree: newXmlTree(tag: string; children: openArray[XmlNode];\n           attributes: XmlAttributes = nil): XmlNode	
+text	src/fusion/htmlparser/xmltree.html#text,XmlNode	xmltree: text(n: XmlNode): string	
+text=	src/fusion/htmlparser/xmltree.html#text=,XmlNode,string	xmltree: text=(n: XmlNode; text: string)	
+tag	src/fusion/htmlparser/xmltree.html#tag,XmlNode	xmltree: tag(n: XmlNode): string	
+tag=	src/fusion/htmlparser/xmltree.html#tag=,XmlNode,string	xmltree: tag=(n: XmlNode; tag: string)	
+rawText	src/fusion/htmlparser/xmltree.html#rawText,XmlNode	xmltree: rawText(n: XmlNode): string	
+rawTag	src/fusion/htmlparser/xmltree.html#rawTag,XmlNode	xmltree: rawTag(n: XmlNode): string	
+innerText	src/fusion/htmlparser/xmltree.html#innerText,XmlNode	xmltree: innerText(n: XmlNode): string	
+add	src/fusion/htmlparser/xmltree.html#add,XmlNode,XmlNode	xmltree: add(father, son: XmlNode)	
+insert	src/fusion/htmlparser/xmltree.html#insert,XmlNode,XmlNode,int	xmltree: insert(father, son: XmlNode; index: int)	
+delete	src/fusion/htmlparser/xmltree.html#delete,XmlNode,Natural	xmltree: delete(n: XmlNode; i: Natural)	
+len	src/fusion/htmlparser/xmltree.html#len,XmlNode	xmltree: len(n: XmlNode): int	
+kind	src/fusion/htmlparser/xmltree.html#kind,XmlNode	xmltree: kind(n: XmlNode): XmlNodeKind	
+`[]`	src/fusion/htmlparser/xmltree.html#[],XmlNode,int	xmltree: `[]`(n: XmlNode; i: int): XmlNode	
+`[]`	src/fusion/htmlparser/xmltree.html#[],XmlNode,int_2	xmltree: `[]`(n: var XmlNode; i: int): var XmlNode	
+clear	src/fusion/htmlparser/xmltree.html#clear,XmlNode	xmltree: clear(n: var XmlNode)	
+items	src/fusion/htmlparser/xmltree.html#items.i,XmlNode	xmltree: items(n: XmlNode): XmlNode	
+mitems	src/fusion/htmlparser/xmltree.html#mitems.i,XmlNode	xmltree: mitems(n: var XmlNode): var XmlNode	
+toXmlAttributes	src/fusion/htmlparser/xmltree.html#toXmlAttributes,varargs[tuple[string,string]]	xmltree: toXmlAttributes(keyValuePairs: varargs[tuple[key, val: string]]): XmlAttributes	
+attrs	src/fusion/htmlparser/xmltree.html#attrs,XmlNode	xmltree: attrs(n: XmlNode): XmlAttributes	
+attrs=	src/fusion/htmlparser/xmltree.html#attrs=,XmlNode,XmlAttributes	xmltree: attrs=(n: XmlNode; attr: XmlAttributes)	
+attrsLen	src/fusion/htmlparser/xmltree.html#attrsLen,XmlNode	xmltree: attrsLen(n: XmlNode): int	
+attr	src/fusion/htmlparser/xmltree.html#attr,XmlNode,string	xmltree: attr(n: XmlNode; name: string): string	
+clientData	src/fusion/htmlparser/xmltree.html#clientData,XmlNode	xmltree: clientData(n: XmlNode): int	
+clientData=	src/fusion/htmlparser/xmltree.html#clientData=,XmlNode,int	xmltree: clientData=(n: XmlNode; data: int)	
+addEscaped	src/fusion/htmlparser/xmltree.html#addEscaped,string,string	xmltree: addEscaped(result: var string; s: string)	
+escape	src/fusion/htmlparser/xmltree.html#escape,string	xmltree: escape(s: string): string	
+add	src/fusion/htmlparser/xmltree.html#add,string,XmlNode,int,int	xmltree: add(result: var string; n: XmlNode; indent = 0; indWidth = 2; addNewLines = true)	
+`$`	src/fusion/htmlparser/xmltree.html#$,XmlNode	xmltree: `$`(n: XmlNode): string	
+child	src/fusion/htmlparser/xmltree.html#child,XmlNode,string	xmltree: child(n: XmlNode; name: string): XmlNode	
+findAll	src/fusion/htmlparser/xmltree.html#findAll,XmlNode,string,seq[XmlNode]	xmltree: findAll(n: XmlNode; tag: string; result: var seq[XmlNode];\n        caseInsensitive = false)	
+findAll	src/fusion/htmlparser/xmltree.html#findAll,XmlNode,string	xmltree: findAll(n: XmlNode; tag: string; caseInsensitive = false): seq[XmlNode]	
+`&lt;&gt;`	src/fusion/htmlparser/xmltree.html#<>.m,untyped	xmltree: `&lt;&gt;`(x: untyped): untyped	

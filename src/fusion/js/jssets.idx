@@ -1,0 +1,10 @@
+JsSet	src/fusion/js/jssets.html#JsSet	jssets: JsSet	
+newJsSet	src/fusion/js/jssets.html#newJsSet	jssets: newJsSet(): JsSet	
+newJsSet	src/fusion/js/jssets.html#newJsSet,openArray[JsObject]	jssets: newJsSet(items: openArray[JsObject]): JsSet	
+add	src/fusion/js/jssets.html#add,JsSet,JsObject	jssets: add(this: JsSet; value: JsObject)	
+delete	src/fusion/js/jssets.html#delete,JsSet,JsObject	jssets: delete(this: JsSet; value: JsObject)	
+clear	src/fusion/js/jssets.html#clear,JsSet	jssets: clear(this: JsSet)	
+contains	src/fusion/js/jssets.html#contains,JsSet,JsObject	jssets: contains(this: JsSet; value: JsObject): bool	
+toString	src/fusion/js/jssets.html#toString,JsSet	jssets: toString(this: JsSet): seq[cstring]	
+len	src/fusion/js/jssets.html#len,JsSet	jssets: len(this: JsSet): int	
+`$`	src/fusion/js/jssets.html#$,JsSet	jssets: `$`(this: JsSet): string	

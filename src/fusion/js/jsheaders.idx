@@ -1,0 +1,11 @@
+Headers	src/fusion/js/jsheaders.html#Headers	jsheaders: Headers	
+newHeaders	src/fusion/js/jsheaders.html#newHeaders	jsheaders: newHeaders(): Headers	
+add	src/fusion/js/jsheaders.html#add,Headers,cstring,cstring	jsheaders: add(this: Headers; key: cstring; value: cstring)	
+delete	src/fusion/js/jsheaders.html#delete,Headers,cstring	jsheaders: delete(this: Headers; key: cstring)	
+hasKey	src/fusion/js/jsheaders.html#hasKey,Headers,cstring	jsheaders: hasKey(this: Headers; key: cstring): bool	
+keys	src/fusion/js/jsheaders.html#keys,Headers	jsheaders: keys(this: Headers): seq[cstring]	
+values	src/fusion/js/jsheaders.html#values,Headers	jsheaders: values(this: Headers): seq[cstring]	
+entries	src/fusion/js/jsheaders.html#entries,Headers	jsheaders: entries(this: Headers): seq[array[2, cstring]]	
+`[]`	src/fusion/js/jsheaders.html#[],Headers,cstring	jsheaders: `[]`(this: Headers; key: cstring): cstring	
+`[]=`	src/fusion/js/jsheaders.html#[]=,Headers,cstring,cstring	jsheaders: `[]=`(this: Headers; key: cstring; value: cstring)	
+clear	src/fusion/js/jsheaders.html#clear,Headers	jsheaders: clear(this: Headers)	

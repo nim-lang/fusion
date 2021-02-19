@@ -1,0 +1,80 @@
+Quick reference	src/fusion/matching.html#quick-reference	 Quick reference	
+Supported match elements	src/fusion/matching.html#supported-match-elements	 Supported match elements	
+Element access	src/fusion/matching.html#element-access	 Element access	
+Checks	src/fusion/matching.html#checks	 Checks	
+Examples	src/fusion/matching.html#checks-examples	  Examples	
+Variable binding	src/fusion/matching.html#variable-binding	 Variable binding	
+Bind order	src/fusion/matching.html#variable-binding-bind-order	  Bind order	
+Bind variable type	src/fusion/matching.html#variable-binding-bind-variable-type	  Bind variable type	
+Matching different things	src/fusion/matching.html#matching-different-things	 Matching different things	
+Sequence matching	src/fusion/matching.html#matching-different-things-sequence-matching	  Sequence matching	
+Use examples	src/fusion/matching.html#sequence-matching-use-examples	   Use examples	
+Tuple matching	src/fusion/matching.html#matching-different-things-tuple-matching	  Tuple matching	
+Object matching	src/fusion/matching.html#matching-different-things-object-matching	  Object matching	
+Variant object matching	src/fusion/matching.html#matching-different-things-variant-object-matching	  Variant object matching	
+Custom unpackers	src/fusion/matching.html#matching-different-things-custom-unpackers	  Custom unpackers	
+Ref object matching	src/fusion/matching.html#matching-different-things-ref-object-matching	  Ref object matching	
+KV-pairs matching	src/fusion/matching.html#matching-different-things-kvminuspairs-matching	  KV-pairs matching	
+Option matching	src/fusion/matching.html#matching-different-things-option-matching	  Option matching	
+Tree matching	src/fusion/matching.html#tree-matching	 Tree matching	
+Tree construction	src/fusion/matching.html#tree-construction	 Tree construction	
+nnkStrKinds	src/fusion/matching.html#nnkStrKinds	matching: nnkStrKinds	
+nnkIntKinds	src/fusion/matching.html#nnkIntKinds	matching: nnkIntKinds	
+nnkFloatKinds	src/fusion/matching.html#nnkFloatKinds	matching: nnkFloatKinds	
+nnkIdentKinds	src/fusion/matching.html#nnkIdentKinds	matching: nnkIdentKinds	
+nnkTokenKinds	src/fusion/matching.html#nnkTokenKinds	matching: nnkTokenKinds	
+varOfIteration	src/fusion/matching.html#varOfIteration.t,untyped	matching: varOfIteration(arg: untyped): untyped	
+findItFirstOpt	src/fusion/matching.html#findItFirstOpt.t,typed,untyped	matching: findItFirstOpt(s: typed; op: untyped): untyped	
+addPrefix	src/fusion/matching.html#addPrefix,string,string	matching: addPrefix(str, pref: string): string	
+getKindNames	src/fusion/matching.html#getKindNames,NimNode	matching: getKindNames(head: NimNode): (string, seq[string])	
+hasKindImpl	src/fusion/matching.html#hasKindImpl.m,typed,untyped	matching: hasKindImpl(head: typed; kind: untyped): untyped	
+hasKind	src/fusion/matching.html#hasKind.t,untyped,untyped	matching: hasKind(head, kindExpr: untyped): untyped	
+FieldIndex	src/fusion/matching.html#FieldIndex	matching: FieldIndex	
+`==`	src/fusion/matching.html#==,FieldIndex,SomeInteger	matching: `==`(idx: FieldIndex; i: SomeInteger): bool	
+`[]`	src/fusion/matching.html#[].t,,static[FieldIndex]	matching: `[]`(t: tuple; idx: static[FieldIndex]): untyped	
+kItem	src/fusion/matching.html#kItem	MatchKind.kItem	
+kSeq	src/fusion/matching.html#kSeq	MatchKind.kSeq	
+kTuple	src/fusion/matching.html#kTuple	MatchKind.kTuple	
+kPairs	src/fusion/matching.html#kPairs	MatchKind.kPairs	
+kObject	src/fusion/matching.html#kObject	MatchKind.kObject	
+kSet	src/fusion/matching.html#kSet	MatchKind.kSet	
+kAlt	src/fusion/matching.html#kAlt	MatchKind.kAlt	
+MatchKind	src/fusion/matching.html#MatchKind	matching: MatchKind	
+lkAny	src/fusion/matching.html#lkAny	SeqKeyword.lkAny	
+lkAll	src/fusion/matching.html#lkAll	SeqKeyword.lkAll	
+lkNone	src/fusion/matching.html#lkNone	SeqKeyword.lkNone	
+lkOpt	src/fusion/matching.html#lkOpt	SeqKeyword.lkOpt	
+lkUntil	src/fusion/matching.html#lkUntil	SeqKeyword.lkUntil	
+lkPref	src/fusion/matching.html#lkPref	SeqKeyword.lkPref	
+lkPos	src/fusion/matching.html#lkPos	SeqKeyword.lkPos	
+lkSlice	src/fusion/matching.html#lkSlice	SeqKeyword.lkSlice	
+lkTrail	src/fusion/matching.html#lkTrail	SeqKeyword.lkTrail	
+SeqKeyword	src/fusion/matching.html#SeqKeyword	matching: SeqKeyword	
+SeqStructure	src/fusion/matching.html#SeqStructure	matching: SeqStructure	
+imkInfixEq	src/fusion/matching.html#imkInfixEq	ItemMatchKind.imkInfixEq	
+imkSubpatt	src/fusion/matching.html#imkSubpatt	ItemMatchKind.imkSubpatt	
+imkPredicate	src/fusion/matching.html#imkPredicate	ItemMatchKind.imkPredicate	
+ItemMatchKind	src/fusion/matching.html#ItemMatchKind	matching: ItemMatchKind	
+KVPair	src/fusion/matching.html#KVPair	matching: KVPair	
+MatchError	src/fusion/matching.html#MatchError	matching: MatchError	
+Match	src/fusion/matching.html#Match	matching: Match	
+vkRegular	src/fusion/matching.html#vkRegular	VarKind.vkRegular	
+vkSequence	src/fusion/matching.html#vkSequence	VarKind.vkSequence	
+vkOption	src/fusion/matching.html#vkOption	VarKind.vkOption	
+vkSet	src/fusion/matching.html#vkSet	VarKind.vkSet	
+vkAlt	src/fusion/matching.html#vkAlt	VarKind.vkAlt	
+VarKind	src/fusion/matching.html#VarKind	matching: VarKind	
+VarSpec	src/fusion/matching.html#VarSpec	matching: VarSpec	
+toAccs	src/fusion/matching.html#toAccs,Path,NimNode,bool	matching: toAccs(path: Path; name: NimNode; pathForType: bool): NimNode	
+parseMatchExpr	src/fusion/matching.html#parseMatchExpr,NimNode	matching: parseMatchExpr(n: NimNode): Match	
+makeMatchExpr	src/fusion/matching.html#makeMatchExpr,Match,NimNode,bool,NimNode	matching: makeMatchExpr(m: Match; mainExpr: NimNode; doRaise: bool;\n              originalMainExpr: NimNode): tuple[expr: NimNode, vtable: VarTable,\n    mixident: seq[string]]	
+expand	src/fusion/matching.html#expand.m,typed	matching: expand(body: typed): untyped	
+`case`	src/fusion/matching.html#case.m,untyped	matching: `case`(n: untyped): untyped	
+assertMatch	src/fusion/matching.html#assertMatch.m,untyped,untyped	matching: assertMatch(input, pattern: untyped): untyped	
+matches	src/fusion/matching.html#matches.m,untyped,untyped	matching: matches(input, pattern: untyped): untyped	
+kind=	src/fusion/matching.html#kind=,NimNode,NimNodeKind	matching: kind=(node: var NimNode; kind: NimNodeKind)	
+str	src/fusion/matching.html#str,NimNode	matching: str(node: NimNode): string	
+str=	src/fusion/matching.html#str=,NimNode,string	matching: str=(node: var NimNode; val: string)	
+makeTree	src/fusion/matching.html#makeTree.t,typed,untyped	matching: makeTree(T: typed; patt: untyped): untyped	
+`:=`	src/fusion/matching.html#:=.t,untyped,untyped	matching: `:=`(lhs, rhs: untyped): untyped	
+`?=`	src/fusion/matching.html#?=.t,untyped,untyped	matching: `?=`(lhs, rhs: untyped): untyped	

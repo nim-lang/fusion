@@ -1,0 +1,64 @@
+XML	parsexml.html#xml_1	Module parsexml	
+HTML	parsexml.html#html_1	Module parsexml	
+Example 1: Retrieve HTML title	src/fusion/htmlparser/parsexml.html#example-1colon-retrieve-html-title	 Example 1: Retrieve HTML title	
+Example program to show the parsexml module	src/fusion/htmlparser/parsexml.html#example-program-to-show-the-parsexml-module	 Example program to show the parsexml module	
+This program reads an HTML file and writes its title to stdout.	src/fusion/htmlparser/parsexml.html#this-program-reads-an-html-file-and-writes-its-title-to-stdoutdot	 This program reads an HTML file and writes its title to stdout.	
+Errors and whitespace are ignored.	src/fusion/htmlparser/parsexml.html#errors-and-whitespace-are-ignoreddot	 Errors and whitespace are ignored.	
+Example 2: Retrieve all HTML links	src/fusion/htmlparser/parsexml.html#example-2colon-retrieve-all-html-links	 Example 2: Retrieve all HTML links	
+Example program to show the new parsexml module	src/fusion/htmlparser/parsexml.html#example-program-to-show-the-new-parsexml-module	 Example program to show the new parsexml module	
+This program reads an HTML file and writes all its used links to stdout.	src/fusion/htmlparser/parsexml.html#this-program-reads-an-html-file-and-writes-all-its-used-links-to-stdoutdot	 This program reads an HTML file and writes all its used links to stdout.	
+Errors and whitespace are ignored.	src/fusion/htmlparser/parsexml.html#errors-and-whitespace-are-ignoreddot	 Errors and whitespace are ignored.	
+little trick: define our own comparator that ignores case	src/fusion/htmlparser/parsexml.html#little-trickcolon-define-our-own-comparator-that-ignores-case	 little trick: define our own comparator that ignores case	
+the &lt;a href = &quot;xyz&quot;&gt; tag we are interested in always has an attribute,	src/fusion/htmlparser/parsexml.html#the-lta-href-eq-xyz-gt-tag-we-are-interested-in-always-has-an-attribute	 the &lt;a href = &quot;xyz&quot;&gt; tag we are interested in always has an attribute,	
+thus we search for xmlElementOpen and not for xmlElementStart	src/fusion/htmlparser/parsexml.html#thus-we-search-for-xmlelementopen-and-not-for-xmlelementstart	 thus we search for <tt class="docutils literal"><span class="pre">xmlElementOpen</span></tt> and not for <tt class="docutils literal"><span class="pre">xmlElementStart</span></tt>	
+xmlError	src/fusion/htmlparser/parsexml.html#xmlError	XmlEventKind.xmlError	
+xmlEof	src/fusion/htmlparser/parsexml.html#xmlEof	XmlEventKind.xmlEof	
+xmlCharData	src/fusion/htmlparser/parsexml.html#xmlCharData	XmlEventKind.xmlCharData	
+xmlWhitespace	src/fusion/htmlparser/parsexml.html#xmlWhitespace	XmlEventKind.xmlWhitespace	
+xmlComment	src/fusion/htmlparser/parsexml.html#xmlComment	XmlEventKind.xmlComment	
+xmlPI	src/fusion/htmlparser/parsexml.html#xmlPI	XmlEventKind.xmlPI	
+xmlElementStart	src/fusion/htmlparser/parsexml.html#xmlElementStart	XmlEventKind.xmlElementStart	
+xmlElementEnd	src/fusion/htmlparser/parsexml.html#xmlElementEnd	XmlEventKind.xmlElementEnd	
+xmlElementOpen	src/fusion/htmlparser/parsexml.html#xmlElementOpen	XmlEventKind.xmlElementOpen	
+xmlAttribute	src/fusion/htmlparser/parsexml.html#xmlAttribute	XmlEventKind.xmlAttribute	
+xmlElementClose	src/fusion/htmlparser/parsexml.html#xmlElementClose	XmlEventKind.xmlElementClose	
+xmlCData	src/fusion/htmlparser/parsexml.html#xmlCData	XmlEventKind.xmlCData	
+xmlEntity	src/fusion/htmlparser/parsexml.html#xmlEntity	XmlEventKind.xmlEntity	
+xmlSpecial	src/fusion/htmlparser/parsexml.html#xmlSpecial	XmlEventKind.xmlSpecial	
+XmlEventKind	src/fusion/htmlparser/parsexml.html#XmlEventKind	parsexml: XmlEventKind	
+errNone	src/fusion/htmlparser/parsexml.html#errNone	XmlErrorKind.errNone	
+errEndOfCDataExpected	src/fusion/htmlparser/parsexml.html#errEndOfCDataExpected	XmlErrorKind.errEndOfCDataExpected	
+errNameExpected	src/fusion/htmlparser/parsexml.html#errNameExpected	XmlErrorKind.errNameExpected	
+errSemicolonExpected	src/fusion/htmlparser/parsexml.html#errSemicolonExpected	XmlErrorKind.errSemicolonExpected	
+errQmGtExpected	src/fusion/htmlparser/parsexml.html#errQmGtExpected	XmlErrorKind.errQmGtExpected	
+errGtExpected	src/fusion/htmlparser/parsexml.html#errGtExpected	XmlErrorKind.errGtExpected	
+errEqExpected	src/fusion/htmlparser/parsexml.html#errEqExpected	XmlErrorKind.errEqExpected	
+errQuoteExpected	src/fusion/htmlparser/parsexml.html#errQuoteExpected	XmlErrorKind.errQuoteExpected	
+errEndOfCommentExpected	src/fusion/htmlparser/parsexml.html#errEndOfCommentExpected	XmlErrorKind.errEndOfCommentExpected	
+errAttributeValueExpected	src/fusion/htmlparser/parsexml.html#errAttributeValueExpected	XmlErrorKind.errAttributeValueExpected	
+XmlErrorKind	src/fusion/htmlparser/parsexml.html#XmlErrorKind	parsexml: XmlErrorKind	
+reportWhitespace	src/fusion/htmlparser/parsexml.html#reportWhitespace	XmlParseOption.reportWhitespace	
+reportComments	src/fusion/htmlparser/parsexml.html#reportComments	XmlParseOption.reportComments	
+allowUnquotedAttribs	src/fusion/htmlparser/parsexml.html#allowUnquotedAttribs	XmlParseOption.allowUnquotedAttribs	
+allowEmptyAttribs	src/fusion/htmlparser/parsexml.html#allowEmptyAttribs	XmlParseOption.allowEmptyAttribs	
+XmlParseOption	src/fusion/htmlparser/parsexml.html#XmlParseOption	parsexml: XmlParseOption	
+XmlParser	src/fusion/htmlparser/parsexml.html#XmlParser	parsexml: XmlParser	
+open	src/fusion/htmlparser/parsexml.html#open,XmlParser,Stream,string,set[XmlParseOption]	parsexml: open(my: var XmlParser; input: Stream; filename: string;\n     options: set[XmlParseOption] = {})	
+close	src/fusion/htmlparser/parsexml.html#close,XmlParser	parsexml: close(my: var XmlParser)	
+kind	src/fusion/htmlparser/parsexml.html#kind,XmlParser	parsexml: kind(my: XmlParser): XmlEventKind	
+charData	src/fusion/htmlparser/parsexml.html#charData.t,XmlParser	parsexml: charData(my: XmlParser): string	
+elementName	src/fusion/htmlparser/parsexml.html#elementName.t,XmlParser	parsexml: elementName(my: XmlParser): string	
+entityName	src/fusion/htmlparser/parsexml.html#entityName.t,XmlParser	parsexml: entityName(my: XmlParser): string	
+attrKey	src/fusion/htmlparser/parsexml.html#attrKey.t,XmlParser	parsexml: attrKey(my: XmlParser): string	
+attrValue	src/fusion/htmlparser/parsexml.html#attrValue.t,XmlParser	parsexml: attrValue(my: XmlParser): string	
+piName	src/fusion/htmlparser/parsexml.html#piName.t,XmlParser	parsexml: piName(my: XmlParser): string	
+piRest	src/fusion/htmlparser/parsexml.html#piRest.t,XmlParser	parsexml: piRest(my: XmlParser): string	
+rawData	src/fusion/htmlparser/parsexml.html#rawData,XmlParser	parsexml: rawData(my: var XmlParser): string	
+rawData2	src/fusion/htmlparser/parsexml.html#rawData2,XmlParser	parsexml: rawData2(my: var XmlParser): string	
+getColumn	src/fusion/htmlparser/parsexml.html#getColumn,XmlParser	parsexml: getColumn(my: XmlParser): int	
+getLine	src/fusion/htmlparser/parsexml.html#getLine,XmlParser	parsexml: getLine(my: XmlParser): int	
+getFilename	src/fusion/htmlparser/parsexml.html#getFilename,XmlParser	parsexml: getFilename(my: XmlParser): string	
+errorMsg	src/fusion/htmlparser/parsexml.html#errorMsg,XmlParser	parsexml: errorMsg(my: XmlParser): string	
+errorMsgExpected	src/fusion/htmlparser/parsexml.html#errorMsgExpected,XmlParser,string	parsexml: errorMsgExpected(my: XmlParser; tag: string): string	
+errorMsg	src/fusion/htmlparser/parsexml.html#errorMsg,XmlParser,string	parsexml: errorMsg(my: XmlParser; msg: string): string	
+next	src/fusion/htmlparser/parsexml.html#next,XmlParser	parsexml: next(my: var XmlParser)	

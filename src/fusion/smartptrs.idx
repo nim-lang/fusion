@@ -1,0 +1,22 @@
+UniquePtr	src/fusion/smartptrs.html#UniquePtr	smartptrs: UniquePtr	
+`=destroy`	src/fusion/smartptrs.html#=destroy,UniquePtr[T]	smartptrs: `=destroy`[T](p: var UniquePtr[T])	
+`=`	src/fusion/smartptrs.html#=,UniquePtr[T],UniquePtr[T]	smartptrs: `=`[T](dest: var UniquePtr[T]; src: UniquePtr[T])	
+newUniquePtr	src/fusion/smartptrs.html#newUniquePtr,sinkT	smartptrs: newUniquePtr[T](val: sink T): UniquePtr[T]	
+convertUniquePtrToObj	src/fusion/smartptrs.html#convertUniquePtrToObj.c,UniquePtr[T]	smartptrs: convertUniquePtrToObj[T](p: UniquePtr[T]): var T	
+isNil	src/fusion/smartptrs.html#isNil,UniquePtr[T]	smartptrs: isNil[T](p: UniquePtr[T]): bool	
+`[]`	src/fusion/smartptrs.html#[],UniquePtr[T]	smartptrs: `[]`[T](p: UniquePtr[T]): var T	
+`$`	src/fusion/smartptrs.html#$,UniquePtr[T]	smartptrs: `$`[T](p: UniquePtr[T]): string	
+SharedPtr	src/fusion/smartptrs.html#SharedPtr	smartptrs: SharedPtr	
+`=destroy`	src/fusion/smartptrs.html#=destroy,SharedPtr[T]	smartptrs: `=destroy`[T](p: var SharedPtr[T])	
+`=`	src/fusion/smartptrs.html#=,SharedPtr[T],SharedPtr[T]	smartptrs: `=`[T](dest: var SharedPtr[T]; src: SharedPtr[T])	
+newSharedPtr	src/fusion/smartptrs.html#newSharedPtr,sinkT	smartptrs: newSharedPtr[T](val: sink T): SharedPtr[T]	
+convertSharedPtrToObj	src/fusion/smartptrs.html#convertSharedPtrToObj.c,SharedPtr[T]	smartptrs: convertSharedPtrToObj[T](p: SharedPtr[T]): var T	
+isNil	src/fusion/smartptrs.html#isNil,SharedPtr[T]	smartptrs: isNil[T](p: SharedPtr[T]): bool	
+`[]`	src/fusion/smartptrs.html#[],SharedPtr[T]	smartptrs: `[]`[T](p: SharedPtr[T]): var T	
+`$`	src/fusion/smartptrs.html#$,SharedPtr[T]	smartptrs: `$`[T](p: SharedPtr[T]): string	
+ConstPtr	src/fusion/smartptrs.html#ConstPtr	smartptrs: ConstPtr	
+newConstPtr	src/fusion/smartptrs.html#newConstPtr,sinkT	smartptrs: newConstPtr[T](val: sink T): ConstPtr[T]	
+convertConstPtrToObj	src/fusion/smartptrs.html#convertConstPtrToObj.c,ConstPtr[T]	smartptrs: convertConstPtrToObj[T](p: ConstPtr[T]): lent T	
+isNil	src/fusion/smartptrs.html#isNil,ConstPtr[T]	smartptrs: isNil[T](p: ConstPtr[T]): bool	
+`[]`	src/fusion/smartptrs.html#[],ConstPtr[T]	smartptrs: `[]`[T](p: ConstPtr[T]): lent T	
+`$`	src/fusion/smartptrs.html#$,ConstPtr[T]	smartptrs: `$`[T](p: ConstPtr[T]): string	

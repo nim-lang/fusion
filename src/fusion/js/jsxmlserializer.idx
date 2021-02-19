@@ -1,0 +1,3 @@
+XMLSerializer	src/fusion/js/jsxmlserializer.html#XMLSerializer	jsxmlserializer: XMLSerializer	
+newXMLSerializer	src/fusion/js/jsxmlserializer.html#newXMLSerializer	jsxmlserializer: newXMLSerializer(): XMLSerializer	
+serializeToString	src/fusion/js/jsxmlserializer.html#serializeToString,XMLSerializer,Node	jsxmlserializer: serializeToString(this: XMLSerializer; node: Node): cstring	

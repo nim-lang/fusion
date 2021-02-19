@@ -1,0 +1,140 @@
+Example: Transforming hyperlinks	src/fusion/htmlparser.html#examplecolon-transforming-hyperlinks	 Example: Transforming hyperlinks	
+tagUnknown	src/fusion/htmlparser.html#tagUnknown	HtmlTag.tagUnknown	
+tagA	src/fusion/htmlparser.html#tagA	HtmlTag.tagA	
+tagAbbr	src/fusion/htmlparser.html#tagAbbr	HtmlTag.tagAbbr	
+tagAcronym	src/fusion/htmlparser.html#tagAcronym	HtmlTag.tagAcronym	
+tagAddress	src/fusion/htmlparser.html#tagAddress	HtmlTag.tagAddress	
+tagApplet	src/fusion/htmlparser.html#tagApplet	HtmlTag.tagApplet	
+tagArea	src/fusion/htmlparser.html#tagArea	HtmlTag.tagArea	
+tagArticle	src/fusion/htmlparser.html#tagArticle	HtmlTag.tagArticle	
+tagAside	src/fusion/htmlparser.html#tagAside	HtmlTag.tagAside	
+tagAudio	src/fusion/htmlparser.html#tagAudio	HtmlTag.tagAudio	
+tagB	src/fusion/htmlparser.html#tagB	HtmlTag.tagB	
+tagBase	src/fusion/htmlparser.html#tagBase	HtmlTag.tagBase	
+tagBdi	src/fusion/htmlparser.html#tagBdi	HtmlTag.tagBdi	
+tagBdo	src/fusion/htmlparser.html#tagBdo	HtmlTag.tagBdo	
+tagBasefont	src/fusion/htmlparser.html#tagBasefont	HtmlTag.tagBasefont	
+tagBig	src/fusion/htmlparser.html#tagBig	HtmlTag.tagBig	
+tagBlockquote	src/fusion/htmlparser.html#tagBlockquote	HtmlTag.tagBlockquote	
+tagBody	src/fusion/htmlparser.html#tagBody	HtmlTag.tagBody	
+tagBr	src/fusion/htmlparser.html#tagBr	HtmlTag.tagBr	
+tagButton	src/fusion/htmlparser.html#tagButton	HtmlTag.tagButton	
+tagCanvas	src/fusion/htmlparser.html#tagCanvas	HtmlTag.tagCanvas	
+tagCaption	src/fusion/htmlparser.html#tagCaption	HtmlTag.tagCaption	
+tagCenter	src/fusion/htmlparser.html#tagCenter	HtmlTag.tagCenter	
+tagCite	src/fusion/htmlparser.html#tagCite	HtmlTag.tagCite	
+tagCode	src/fusion/htmlparser.html#tagCode	HtmlTag.tagCode	
+tagCol	src/fusion/htmlparser.html#tagCol	HtmlTag.tagCol	
+tagColgroup	src/fusion/htmlparser.html#tagColgroup	HtmlTag.tagColgroup	
+tagCommand	src/fusion/htmlparser.html#tagCommand	HtmlTag.tagCommand	
+tagDatalist	src/fusion/htmlparser.html#tagDatalist	HtmlTag.tagDatalist	
+tagDd	src/fusion/htmlparser.html#tagDd	HtmlTag.tagDd	
+tagDel	src/fusion/htmlparser.html#tagDel	HtmlTag.tagDel	
+tagDetails	src/fusion/htmlparser.html#tagDetails	HtmlTag.tagDetails	
+tagDfn	src/fusion/htmlparser.html#tagDfn	HtmlTag.tagDfn	
+tagDialog	src/fusion/htmlparser.html#tagDialog	HtmlTag.tagDialog	
+tagDiv	src/fusion/htmlparser.html#tagDiv	HtmlTag.tagDiv	
+tagDir	src/fusion/htmlparser.html#tagDir	HtmlTag.tagDir	
+tagDl	src/fusion/htmlparser.html#tagDl	HtmlTag.tagDl	
+tagDt	src/fusion/htmlparser.html#tagDt	HtmlTag.tagDt	
+tagEm	src/fusion/htmlparser.html#tagEm	HtmlTag.tagEm	
+tagEmbed	src/fusion/htmlparser.html#tagEmbed	HtmlTag.tagEmbed	
+tagFieldset	src/fusion/htmlparser.html#tagFieldset	HtmlTag.tagFieldset	
+tagFigcaption	src/fusion/htmlparser.html#tagFigcaption	HtmlTag.tagFigcaption	
+tagFigure	src/fusion/htmlparser.html#tagFigure	HtmlTag.tagFigure	
+tagFont	src/fusion/htmlparser.html#tagFont	HtmlTag.tagFont	
+tagFooter	src/fusion/htmlparser.html#tagFooter	HtmlTag.tagFooter	
+tagForm	src/fusion/htmlparser.html#tagForm	HtmlTag.tagForm	
+tagFrame	src/fusion/htmlparser.html#tagFrame	HtmlTag.tagFrame	
+tagFrameset	src/fusion/htmlparser.html#tagFrameset	HtmlTag.tagFrameset	
+tagH1	src/fusion/htmlparser.html#tagH1	HtmlTag.tagH1	
+tagH2	src/fusion/htmlparser.html#tagH2	HtmlTag.tagH2	
+tagH3	src/fusion/htmlparser.html#tagH3	HtmlTag.tagH3	
+tagH4	src/fusion/htmlparser.html#tagH4	HtmlTag.tagH4	
+tagH5	src/fusion/htmlparser.html#tagH5	HtmlTag.tagH5	
+tagH6	src/fusion/htmlparser.html#tagH6	HtmlTag.tagH6	
+tagHead	src/fusion/htmlparser.html#tagHead	HtmlTag.tagHead	
+tagHeader	src/fusion/htmlparser.html#tagHeader	HtmlTag.tagHeader	
+tagHgroup	src/fusion/htmlparser.html#tagHgroup	HtmlTag.tagHgroup	
+tagHtml	src/fusion/htmlparser.html#tagHtml	HtmlTag.tagHtml	
+tagHr	src/fusion/htmlparser.html#tagHr	HtmlTag.tagHr	
+tagI	src/fusion/htmlparser.html#tagI	HtmlTag.tagI	
+tagIframe	src/fusion/htmlparser.html#tagIframe	HtmlTag.tagIframe	
+tagImg	src/fusion/htmlparser.html#tagImg	HtmlTag.tagImg	
+tagInput	src/fusion/htmlparser.html#tagInput	HtmlTag.tagInput	
+tagIns	src/fusion/htmlparser.html#tagIns	HtmlTag.tagIns	
+tagIsindex	src/fusion/htmlparser.html#tagIsindex	HtmlTag.tagIsindex	
+tagKbd	src/fusion/htmlparser.html#tagKbd	HtmlTag.tagKbd	
+tagKeygen	src/fusion/htmlparser.html#tagKeygen	HtmlTag.tagKeygen	
+tagLabel	src/fusion/htmlparser.html#tagLabel	HtmlTag.tagLabel	
+tagLegend	src/fusion/htmlparser.html#tagLegend	HtmlTag.tagLegend	
+tagLi	src/fusion/htmlparser.html#tagLi	HtmlTag.tagLi	
+tagLink	src/fusion/htmlparser.html#tagLink	HtmlTag.tagLink	
+tagMap	src/fusion/htmlparser.html#tagMap	HtmlTag.tagMap	
+tagMark	src/fusion/htmlparser.html#tagMark	HtmlTag.tagMark	
+tagMenu	src/fusion/htmlparser.html#tagMenu	HtmlTag.tagMenu	
+tagMeta	src/fusion/htmlparser.html#tagMeta	HtmlTag.tagMeta	
+tagMeter	src/fusion/htmlparser.html#tagMeter	HtmlTag.tagMeter	
+tagNav	src/fusion/htmlparser.html#tagNav	HtmlTag.tagNav	
+tagNobr	src/fusion/htmlparser.html#tagNobr	HtmlTag.tagNobr	
+tagNoframes	src/fusion/htmlparser.html#tagNoframes	HtmlTag.tagNoframes	
+tagNoscript	src/fusion/htmlparser.html#tagNoscript	HtmlTag.tagNoscript	
+tagObject	src/fusion/htmlparser.html#tagObject	HtmlTag.tagObject	
+tagOl	src/fusion/htmlparser.html#tagOl	HtmlTag.tagOl	
+tagOptgroup	src/fusion/htmlparser.html#tagOptgroup	HtmlTag.tagOptgroup	
+tagOption	src/fusion/htmlparser.html#tagOption	HtmlTag.tagOption	
+tagOutput	src/fusion/htmlparser.html#tagOutput	HtmlTag.tagOutput	
+tagP	src/fusion/htmlparser.html#tagP	HtmlTag.tagP	
+tagParam	src/fusion/htmlparser.html#tagParam	HtmlTag.tagParam	
+tagPre	src/fusion/htmlparser.html#tagPre	HtmlTag.tagPre	
+tagProgress	src/fusion/htmlparser.html#tagProgress	HtmlTag.tagProgress	
+tagQ	src/fusion/htmlparser.html#tagQ	HtmlTag.tagQ	
+tagRp	src/fusion/htmlparser.html#tagRp	HtmlTag.tagRp	
+tagRt	src/fusion/htmlparser.html#tagRt	HtmlTag.tagRt	
+tagRuby	src/fusion/htmlparser.html#tagRuby	HtmlTag.tagRuby	
+tagS	src/fusion/htmlparser.html#tagS	HtmlTag.tagS	
+tagSamp	src/fusion/htmlparser.html#tagSamp	HtmlTag.tagSamp	
+tagScript	src/fusion/htmlparser.html#tagScript	HtmlTag.tagScript	
+tagSection	src/fusion/htmlparser.html#tagSection	HtmlTag.tagSection	
+tagSelect	src/fusion/htmlparser.html#tagSelect	HtmlTag.tagSelect	
+tagSmall	src/fusion/htmlparser.html#tagSmall	HtmlTag.tagSmall	
+tagSource	src/fusion/htmlparser.html#tagSource	HtmlTag.tagSource	
+tagSpan	src/fusion/htmlparser.html#tagSpan	HtmlTag.tagSpan	
+tagStrike	src/fusion/htmlparser.html#tagStrike	HtmlTag.tagStrike	
+tagStrong	src/fusion/htmlparser.html#tagStrong	HtmlTag.tagStrong	
+tagStyle	src/fusion/htmlparser.html#tagStyle	HtmlTag.tagStyle	
+tagSub	src/fusion/htmlparser.html#tagSub	HtmlTag.tagSub	
+tagSummary	src/fusion/htmlparser.html#tagSummary	HtmlTag.tagSummary	
+tagSup	src/fusion/htmlparser.html#tagSup	HtmlTag.tagSup	
+tagTable	src/fusion/htmlparser.html#tagTable	HtmlTag.tagTable	
+tagTbody	src/fusion/htmlparser.html#tagTbody	HtmlTag.tagTbody	
+tagTd	src/fusion/htmlparser.html#tagTd	HtmlTag.tagTd	
+tagTextarea	src/fusion/htmlparser.html#tagTextarea	HtmlTag.tagTextarea	
+tagTfoot	src/fusion/htmlparser.html#tagTfoot	HtmlTag.tagTfoot	
+tagTh	src/fusion/htmlparser.html#tagTh	HtmlTag.tagTh	
+tagThead	src/fusion/htmlparser.html#tagThead	HtmlTag.tagThead	
+tagTime	src/fusion/htmlparser.html#tagTime	HtmlTag.tagTime	
+tagTitle	src/fusion/htmlparser.html#tagTitle	HtmlTag.tagTitle	
+tagTr	src/fusion/htmlparser.html#tagTr	HtmlTag.tagTr	
+tagTrack	src/fusion/htmlparser.html#tagTrack	HtmlTag.tagTrack	
+tagTt	src/fusion/htmlparser.html#tagTt	HtmlTag.tagTt	
+tagU	src/fusion/htmlparser.html#tagU	HtmlTag.tagU	
+tagUl	src/fusion/htmlparser.html#tagUl	HtmlTag.tagUl	
+tagVar	src/fusion/htmlparser.html#tagVar	HtmlTag.tagVar	
+tagVideo	src/fusion/htmlparser.html#tagVideo	HtmlTag.tagVideo	
+tagWbr	src/fusion/htmlparser.html#tagWbr	HtmlTag.tagWbr	
+HtmlTag	src/fusion/htmlparser.html#HtmlTag	htmlparser: HtmlTag	
+tagToStr	src/fusion/htmlparser.html#tagToStr	htmlparser: tagToStr	
+InlineTags	src/fusion/htmlparser.html#InlineTags	htmlparser: InlineTags	
+BlockTags	src/fusion/htmlparser.html#BlockTags	htmlparser: BlockTags	
+SingleTags	src/fusion/htmlparser.html#SingleTags	htmlparser: SingleTags	
+htmlTag	src/fusion/htmlparser.html#htmlTag,XmlNode	htmlparser: htmlTag(n: XmlNode): HtmlTag	
+htmlTag	src/fusion/htmlparser.html#htmlTag,string	htmlparser: htmlTag(s: string): HtmlTag	
+runeToEntity	src/fusion/htmlparser.html#runeToEntity,Rune	htmlparser: runeToEntity(rune: Rune): string	
+entityToRune	src/fusion/htmlparser.html#entityToRune,string	htmlparser: entityToRune(entity: string): Rune	
+entityToUtf8	src/fusion/htmlparser.html#entityToUtf8,string	htmlparser: entityToUtf8(entity: string): string	
+parseHtml	src/fusion/htmlparser.html#parseHtml,Stream,string,seq[string]	htmlparser: parseHtml(s: Stream; filename: string; errors: var seq[string]): XmlNode	
+parseHtml	src/fusion/htmlparser.html#parseHtml,Stream	htmlparser: parseHtml(s: Stream): XmlNode	
+parseHtml	src/fusion/htmlparser.html#parseHtml,string	htmlparser: parseHtml(html: string): XmlNode	
+loadHtml	src/fusion/htmlparser.html#loadHtml,string,seq[string]	htmlparser: loadHtml(path: string; errors: var seq[string]): XmlNode	
+loadHtml	src/fusion/htmlparser.html#loadHtml,string	htmlparser: loadHtml(path: string): XmlNode	
