@@ -2368,6 +2368,16 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
         of { "key" : (getStr: @val) }:
           doAssert val is string, $typeof(val)
 
+    block:
+      [(@first, @second), all @trail] := [(12, 3), (33, 4), (12, 33)]
+      doAssert first == 12
+      doAssert second == 3
+      doAssert trail == @[(33, 4), (12, 33)]
+
+    block:
+      if Some(@val) ?= some("hello"):
+        doAssert val is string
+
 
     block:
       let it: seq[string] = "A|B".split("|")
