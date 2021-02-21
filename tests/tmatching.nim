@@ -2696,3 +2696,23 @@ nscd:x:28:28:NSCD Daemon:/:/sbin/nologin"""
         shell
 
     doAssert res is seq[string]
+
+suite "Tests":
+  type
+    Kind1 = enum
+      k1First
+      k1Second
+      k1Third
+
+    Kidn2 = enum
+      k2First
+      k2Second
+      k2Third
+
+  test "Nested kind switches":
+    case (k1First, k2Second):
+      of (in {k1First, k1Second}, _):
+        discard
+
+      else:
+        testFail()
