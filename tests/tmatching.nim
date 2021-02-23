@@ -2697,6 +2697,8 @@ nscd:x:28:28:NSCD Daemon:/:/sbin/nologin"""
 
     doAssert res is seq[string]
 
+import std/[compilesettings]
+
 suite "Tests":
   type
     Kind1 = enum
@@ -2716,3 +2718,10 @@ suite "Tests":
 
       else:
         testFail()
+
+  test "Zzz":
+    type
+      KK = object
+        kind: SingleValueSetting
+
+    arguments() := KK(kind: arguments)
