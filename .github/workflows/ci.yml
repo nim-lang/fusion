@@ -107,7 +107,13 @@ jobs:
 
       - name: Run tests
         shell: bash
-        run: nimble test
+        run: |
+          nimble test
+          if [[ '${{ matrix.branch }}' != 'version-1-0' ]]; then
+            nimble test --gc:orc
+            nimble test --gc:arc
+
+          fi
 
       - name: Build docs
         if: matrix.branch == 'devel'
