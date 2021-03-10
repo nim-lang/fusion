@@ -43,21 +43,41 @@ template multitestSince(
     test name:
       body
 
+template t(body: untyped): untyped =
+  block:
+    parseMatchExpr(
+      n = (
+        quote do:
+          body
+      )
+    )
+
+
+
+suite "Issue tests":
+  test "`matching` bug with `{orc,arc}` #76":
+    # Compilation failed with `--gc:orc` enabled
+    macro parseTests(): untyped =
+      let patt = t O2(o2:Some(@mystring))
+      doAssert patt.kind == kObject
+      doAssert patt.kindCall.get() == ident("O2")
+
+    parseTests()
+
+    type
+      OKind = enum O1 O2
+      O = object
+        case kind: OKind
+        of O1: o1: int
+        of O2: o2: Option[string]
+
+    case O(kind:O2,o2:some[string]("hello world")):
+      of O2(o2:Some(@mystring)): echo mystring
 
 suite "Matching":
   test "Pattern parser tests":
     macro main(): untyped =
-      template t(body: untyped): untyped =
-        block:
-          parseMatchExpr(
-            n = (
-              quote do:
-                body
-            )
-          )
-
       doAssert (t true).kind == kItem
-
       block:
         let s = t [1, 2, all @b, @a]
         doAssert s.seqElems[3].bindVar == some(ident("a"))
@@ -2697,8 +2717,6 @@ nscd:x:28:28:NSCD Daemon:/:/sbin/nologin"""
 
     doAssert res is seq[string]
 
-import std/[compilesettings]
-
 suite "Tests":
   type
     Kind1 = enum
@@ -2718,10 +2736,3 @@ suite "Tests":
 
       else:
         testFail()
-
-  test "Zzz":
-    type
-      KK = object
-        kind: SingleValueSetting
-
-    arguments() := KK(kind: arguments)

@@ -44,16 +44,19 @@ const
 
 const debugWIP = false
 
-template echov(arg: untyped): untyped {.used.} =
+template echov(arg: untyped, indent: int = 0): untyped {.used.} =
   {.noSideEffect.}:
     when debugWIP:
+      let pref = "  ".repeat(indent)
       let val = $arg
-      if split(val).len > 1:
-        echo instantiationInfo().line, " \e[32m", astToStr(arg), "\e[39m "
-        echo val
+      if split(val, '\n').len > 1:
+        echo instantiationInfo().line, pref, " \e[32m",
+         astToStr(arg), "\e[39m "
+        echo pref, val
 
       else:
-        echo instantiationInfo().line, " \e[32m", astToStr(arg), "\e[39m ", val
+        echo instantiationInfo().line, pref,
+          " \e[32m", astToStr(arg), "\e[39m ", val
 
 template varOfIteration*(arg: untyped): untyped =
   when compiles(
@@ -76,6 +79,10 @@ template varOfIteration*(arg: untyped): untyped =
     var tmp2: ref typeof(aux())
     let tmp1 = tmp2[]
     tmp1
+
+func fullCopy[T](s: seq[T]): seq[T] =
+  for elem in s:
+    result.add elem
 
 func codeFmt(str: string): string {.inline.} =
   &"\e[4m{str}\e[24m"
@@ -239,7 +246,7 @@ func dropPrefix(ss: seq[string], patt: string): seq[string] =
     result.add s.dropPrefix(patt)
 
 
-template findItFirstOpt*(s: typed, op: untyped): untyped =
+template findItFirstOpt(s: typed, op: untyped): untyped =
   var res: Option[typeof(s[0])]
   for it {.inject.} in s:
     if op:
@@ -249,7 +256,7 @@ template findItFirstOpt*(s: typed, op: untyped): untyped =
   res
 
 
-func addPrefix*(str, pref: string): string =
+func addPrefix(str, pref: string): string =
   if not str.startsWith(pref): pref & str else: str
 
 func hash(iinfo: LineInfo): Hash =
@@ -507,34 +514,38 @@ func `==`(a, b: AccsElem): bool =
   )
 
 
-func `$`(path: Path): string =
+func `$`*(path: Path): string =
   for elem in path:
     case elem.inStruct:
       of kTuple:
         result &= &"({elem.idx})"
+
       of kSeq:
         result &= "[pos]"
+
       of kAlt:
         result &= &"|{elem.altIdx}/{elem.altMax}|"
+
       of kPairs:
         result &= &"[{elem.key.repr}]"
+
       of kSet:
-        result &= "{}"
+        result &= "{set}"
+
       of kObject:
         result &= &".{elem.fld}"
+
       of kItem:
-        result &= "#"
-
-  result = "--- " & result
+        result &= "<item>"
 
 
-func `$`(match: Match): string
+func `$`*(match: Match): string
 
-func `$`(kvp: KVPair): string =
+func `$`*(kvp: KVPair): string =
   &"{kvp.key.repr}: {kvp.patt}"
 
 
-func `$`(ss: SeqStructure): string =
+func `$`*(ss: SeqStructure): string =
   if ss.kind == lkSlice:
     result = &"{ss.repr}"
   else:
@@ -547,7 +558,7 @@ func `$`(ss: SeqStructure): string =
 
 
 
-func `$`(match: Match): string =
+func `$`*(match: Match): string =
   case match.kind:
     of kAlt:
       result = match.altElems.mapIt($it).join(" | ")
@@ -711,7 +722,7 @@ func toAccs*(path: Path, name: NimNode, pathForType: bool): NimNode =
 
   result =
     if path.len > 0:
-      name.aux(path)
+      name.aux(path.fullCopy())
     else:
       name
 
@@ -1127,8 +1138,6 @@ macro dumpIdxTree(n: untyped) {.used.} =
 func parseMatchExpr*(n: NimNode): Match =
   ## Parse match expression from nim node
 
-  # echov "Parse match expression"
-  # echov n.idxTreeRepr()
   case n.kind:
     of nnkIdent, nnkSym, nnkIntKinds, nnkStrKinds, nnkFloatKinds:
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
@@ -1238,7 +1247,6 @@ func parseMatchExpr*(n: NimNode): Match =
 
     elif n.kind in {nnkObjConstr, nnkCall, nnkCommand} and
          not n[0].eqIdent("opt"):
-      # echov n.idxTreeRepr()
       if n.isBrokenBracket():
         # Broken bracket expression that was written as `A [1]` and
         # subsequently parsed into
@@ -1393,7 +1401,7 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
   let class = path.classifyPath()
 
   if vs notin tbl:
-    tbl[vs] = VarSpec(decl: vsym, varKind: class, typePath: path)
+    tbl[vs] = VarSpec(decl: vsym, varKind: class, typePath: path.fullCopy())
 
   else:
     var doUpdate =
@@ -1402,7 +1410,7 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
 
     if doUpdate:
       tbl[vs].varKind = class
-      tbl[vs].typePath = path
+      tbl[vs].typePath = path.fullCopy()
 
   if class == vkAlt and tbl[vs].varKind == vkAlt:
     for prefix in path.altPrefixes():
@@ -1419,7 +1427,7 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
         tbl[vs] = VarSpec(
           decl: vsym,
           varKind: vkRegular,
-          typePath: path
+          typePath: path.fullCopy()
         )
 
       else:
@@ -1428,18 +1436,18 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
 
   inc tbl[vs].cnt
 
-func makeVarTable(m: Match): tuple[table: VarTable,
-                                   mixident: seq[string]] =
+func makeVarTable(m: Match):
+  tuple[table: VarTable, mixident: seq[string]] =
 
   func aux(sub: Match, vt: var VarTable, path: Path): seq[string] =
     if sub.bindVar.getSome(bindv):
       if sub.isOptional and sub.fallback.isNone():
-        vt.addvar(bindv, path & @[
+        vt.addvar(bindv, path.fullCopy() & @[
           AccsElem(inStruct: kItem, isOpt: true)
         ])
 
       else:
-        vt.addVar(bindv, path)
+        vt.addVar(bindv, path.fullCopy())
 
     case sub.kind:
       of kItem:
@@ -1448,34 +1456,39 @@ func makeVarTable(m: Match): tuple[table: VarTable,
            sub.bindVar.isNone()
           :
           result &= "_"
+
         if sub.itemMatch == imkSubpatt:
           if sub.rhsPatt.kind == kObject and
              sub.rhsPatt.isRefKind and
              sub.rhsPatt.kindCall.getSome(kk)
             :
-            result &= aux(sub.rhsPatt, vt, path & @[
+            result &= aux(sub.rhsPatt, vt, path.fullCopy() & @[
               AccsElem(inStruct: kObject, fld: kk.repr)])
+
           else:
-            result &= aux(sub.rhsPatt, vt, path)
+            result &= aux(sub.rhsPatt, vt, path.fullCopy())
+
 
       of kSet:
         discard
+
       of kAlt:
         for idx, alt in sub.altElems:
-          result &= aux(alt, vt, path & @[AccsElem(
+          result &= aux(alt, vt, path.fullCopy() & @[AccsElem(
             inStruct: kAlt,
             altIdx: idx,
             altMax: sub.altElems.len - 1
           )])
+
       of kSeq:
         for elem in sub.seqElems:
-          let parent = path & @[AccsElem(
+          let parent = path.fullCopy() & @[AccsElem(
             inStruct: kSeq, pos: newLit(0),
             isVariadic: elem.kind notin {lkPos, lkOpt})]
 
           if elem.bindVar.getSome(bindv):
             if elem.patt.isOptional and elem.patt.fallback.isNone():
-              vt.addVar(bindv, parent & @[
+              vt.addVar(bindv, parent.fullCopy() & @[
                 AccsElem(inStruct: kItem, isOpt: true)
               ])
             else:
@@ -1485,22 +1498,31 @@ func makeVarTable(m: Match): tuple[table: VarTable,
 
       of kTuple:
         for idx, it in sub.tupleElems:
-          result &= aux(it, vt, path & @[
+          result &= aux(it, vt, path.fullCopy() & @[
             AccsElem(inStruct: kTuple, idx: idx)])
       of kPairs:
         for pair in sub.pairElems:
-          result &= aux(pair.patt, vt, path & @[
+          result &= aux(pair.patt, vt, path.fullCopy() & @[
             AccsElem(inStruct: kPairs, key: pair.key)])
+
       of kObject:
         for (fld, patt) in sub.fldElems:
-          result &= aux(patt, vt, path & @[
-            AccsElem(inStruct: kObject, fld: fld)])
+          # echov path.mapIt($it), path.len
+          # var newPath: Path
+          # for elem in path:
+          #   newPath.add elem
+          result &= aux(
+            patt, vt, path.fullCopy() & @[
+              AccsElem(inStruct: kObject, fld: fld)])
+
+          # echov path.mapIt($it), path.len
+
 
         if sub.seqMatches.getSome(seqm):
-          result &= aux(seqm, vt, path)
+          result &= aux(seqm, vt, path.fullCopy())
 
         if sub.kvMatches.getSome(kv):
-          result &= aux(kv, vt, path)
+          result &= aux(kv, vt, path.fullCopy())
 
 
   result.mixident = aux(m, result.table, @[]).deduplicate()
@@ -1815,7 +1837,7 @@ func makeSeqMatch(
     posid     = genSym(nskVar, "pos")
     matched   = genSym(nskVar, "matched")
     failBlock = ident("failBlock")
-    getLen    = newCall("len", path.toAccs(mainExpr, false))
+    getLen    = newCall("len", path.fullCopy().toAccs(mainExpr, false))
 
   var failBreak = nnkBreakStmt.newTree(failBlock)
 
@@ -1849,7 +1871,7 @@ func makeSeqMatch(
     else:
       var
         elemMainExpr = elemId
-        parent: Path = path & @[AccsElem(
+        parent: Path = path.fullCopy() & @[AccsElem(
           inStruct: kSeq, pos: posid,
           isVariadic: elem.kind notin {lkPos, lkOpt}
         )]
@@ -1932,7 +1954,8 @@ func makeSeqMatch(
   if doRaise and not debugWIP:
     var pattStr = seqm.declNode.toPattStr()
     let ln = seqm.declNode.lineIInfo()
-    let lenObj = path.toAccs(originalMainExpr, false).toStrLit().codeFmt()
+    let lenObj = path.fullCopy().toAccs(
+      originalMainExpr, false).toStrLit().codeFmt()
 
     if maxLen >= 5000:
       failBreak = quote do:
@@ -1954,7 +1977,7 @@ func makeSeqMatch(
               "` has .len of " & $(`getLen`) & "."
           )
 
-  let tmpExpr = path.toAccs(mainExpr, false)
+  let tmpExpr = path.fullCopy().toAccs(mainExpr, false)
 
   result = quote do:
     # Main match loop
@@ -2039,7 +2062,7 @@ func makeMatchExpr(
 
   case m.kind:
     of kItem:
-      let parent = path.toAccs(mainExpr, false)
+      let parent = path.fullCopy().toAccs(mainExpr, false)
       case m.itemMatch:
         of imkInfixEq, imkSubpatt:
           if m.itemMatch == imkInfixEq:
@@ -2050,7 +2073,7 @@ func makeMatchExpr(
           else:
             result = makeMatchExpr(
               m.rhsPatt, vtable,
-              path, path, mainExpr, # Type path and access path are the same
+              path.fullCopy(), path.fullCopy(), mainExpr, # Type path and access path are the same
               doRaise, originalMainExpr
             )
 
@@ -2086,14 +2109,14 @@ func makeMatchExpr(
 
     of kSeq:
       return makeSeqMatch(
-        m, vtable, path, mainExpr, doRaise, originalMainExpr)
+        m, vtable, path.fullCopy(), mainExpr, doRaise, originalMainExpr)
 
     of kTuple:
       var conds: seq[NimNode]
       for idx, it in m.tupleElems:
-        let path = path & @[AccsElem(inStruct: kTuple, idx: idx)]
+        let path = path.fullCopy() & @[AccsElem(inStruct: kTuple, idx: idx)]
         conds.add it.makeMatchExpr(
-          vtable, path, path, mainExpr, doRaise, originalMainExpr)
+          vtable, path.fullCopy(), path.fullCopy(), mainExpr, doRaise, originalMainExpr)
 
       result = conds.foldInfix("and")
 
@@ -2104,27 +2127,29 @@ func makeMatchExpr(
         if m.isRefKind:
           conds.add newCall(
             "not",
-            newCall(ident "isNil", path.toAccs(mainExpr, false)))
+            newCall(ident "isNil", path.fullCopy().toAccs(mainExpr, false)))
 
-          conds.add newCall(ident "of", path.toAccs(mainExpr, false), kc)
+          conds.add newCall(ident "of", path.fullCopy().toAccs(mainExpr, false), kc)
           refCast.add AccsElem(
             inStruct: kObject, fld: kc.repr)
         else:
-          conds.add newCall(ident "hasKind", path.toAccs(mainExpr, false), kc)
+          conds.add newCall(ident "hasKind", path.fullCopy().toAccs(mainExpr, false), kc)
 
       for (fld, patt) in m.fldElems:
-        let path = path & refCast & @[AccsElem(inStruct: kObject, fld: fld)]
+        let path = path.fullCopy() &
+          refCast.fullCopy() &
+          @[AccsElem(inStruct: kObject, fld: fld)]
 
         conds.add patt.makeMatchExpr(
-          vtable, path, path, mainExpr, doRaise, originalMainExpr)
+          vtable, path.fullCopy(), path.fullCopy(), mainExpr, doRaise, originalMainExpr)
 
       if m.seqMatches.getSome(seqm):
         conds.add seqm.makeMatchExpr(
-          vtable, path, path, mainExpr, doRaise, originalMainExpr)
+          vtable, path.fullCopy(), path.fullCopy(), mainExpr, doRaise, originalMainExpr)
 
       if m.kvMatches.getSome(kv):
         conds.add kv.makeMatchExpr(
-          vtable, path, path, mainExpr, doRaise, originalMainExpr)
+          vtable, path.fullCopy(), path.fullCopy(), mainExpr, doRaise, originalMainExpr)
 
       result = conds.foldInfix("and")
 
@@ -2132,15 +2157,16 @@ func makeMatchExpr(
       var conds: seq[NimNode]
       for pair in m.pairElems:
         let
-          accs = path.toAccs(mainExpr, false)
-          valPath = path & @[AccsElem(
+          accs = path.fullCopy().toAccs(mainExpr, false)
+          valPath = path.fullCopy() & @[AccsElem(
             inStruct: kPairs, key: pair.key, nocheck: m.nocheck)]
 
-          valGet = valPath.toAccs(mainExpr, false)
+          valGet = valPath.fullCopy().toAccs(mainExpr, false)
 
         if m.nocheck:
           conds.add pair.patt.makeMatchExpr(
-            vtable, valPath, valPath, mainExpr, doRaise,
+            vtable, valPath.fullCopy(),
+            valPath.fullCopy(), mainExpr, doRaise,
             originalMainExpr
           )
 
@@ -2152,7 +2178,7 @@ func makeMatchExpr(
             conds.add nnkInfix.newTree(
               ident "and", incheck,
               pair.patt.makeMatchExpr(
-                vtable, valPath, valPath,
+                vtable, valPath.fullCopy(), valPath.fullCopy(),
                 mainExpr, doRaise, originalMainExpr,
               )
             )
@@ -2182,14 +2208,14 @@ func makeMatchExpr(
     of kAlt:
       var conds: seq[NimNode]
       for idx, alt in m.altElems:
-        let path = path & @[AccsElem(
+        let path = path.fullCopy() & @[AccsElem(
           inStruct: kAlt,
           altIdx: idx,
           altMax: m.altElems.len - 1
         )]
 
         conds.add alt.makeMatchExpr(
-         vtable, path, path, mainExpr, false, originalMainExpr)
+         vtable, path.fullCopy(), path.fullCopy(), mainExpr, false, originalMainExpr)
 
       let res = conds.foldInfix("or")
       if not doRaise:
@@ -2205,7 +2231,7 @@ func makeMatchExpr(
 
     of kSet:
       var testSet = nnkCurly.newTree()
-      let setPath = path.toAccs(mainExpr, false)
+      let setPath = path.fullCopy().toAccs(mainExpr, false)
       for elem in m.setElems:
         if elem.kind == kItem:
           testSet.add elem.rhsNode
@@ -2243,9 +2269,8 @@ func toNode(
   var exprNew = nnkStmtList.newTree()
   var hasOption: bool = false
   for name, spec in vtable:
-    echov name & " -> " & $spec
     let vname = ident(name)
-    var typeExpr = toAccs(spec.typePath, mainExpr, true)
+    var typeExpr = toAccs(spec.typePath.fullCopy(), mainExpr, true)
     typeExpr = quote do:
       ((let tmp = `typeExpr`; tmp))
 
@@ -2261,7 +2286,9 @@ func toNode(
     case spec.varKind:
       of vkSequence:
         block:
-          let varExpr = toAccs(spec.typePath[0 .. ^2], mainExpr, false)
+          let varExpr = toAccs(
+            spec.typePath[0 .. ^2].fullCopy(), mainExpr, false)
+
           exprNew.add quote do:
             when not compiles(((discard `typeExpr`))):
               static: error $typeof(`varExpr`) &
@@ -2300,7 +2327,6 @@ proc matchImpl(n: NimNode): NimNode =
         if elem[0] == ident "_":
           error("To create catch-all match use `else` clause", elem[0])
 
-        # echo elem[0].repr
         let (expr, vtable, mixid) =
           toSeq(elem[0 .. ^2]).foldl(
             nnkInfix.newTree(ident "|", a, b)
@@ -2476,7 +2502,6 @@ func buildTreeMaker(
           var `tmp`: seq[`resType`]
 
       for sub in match.seqElems:
-        # debugecho sub.kind, " ", sub.decl.repr
         case sub.kind:
           of lkAll:
             if sub.bindVar.getSome(bindv):
@@ -2491,7 +2516,6 @@ func buildTreeMaker(
                 for elem in `body`:
                   `tmp`.add elem
 
-              # debugecho body.repr
             else:
               error("`all` for pattern construction must have varaible",
                     sub.decl)
@@ -2532,15 +2556,12 @@ func getTypeIdent(node: NimNode): NimNode =
 
 macro makeTreeImpl(node, kind: typed, patt: untyped): untyped =
   var inpatt = patt
-  # debugecho "\e[41m*====\e[49m  093q45ih4qw33  \e[41m=====*\e[49m"
-  # debugecho "patt: ", patt.repr
   if patt.kind in {nnkStmtList}:
     if patt.len > 1:
       inpatt = newStmtList(patt.toSeq())
     else:
       inpatt = patt[0]
 
-  # debugecho "inpatt: ", inpatt.repr
   let (pref, _) = kind.getKindNames()
 
   var match = inpatt.parseMatchExpr()
@@ -2553,7 +2574,6 @@ macro makeTreeImpl(node, kind: typed, patt: untyped): untyped =
     :
     result = nnkBracketExpr.newTree(result, newLit(0))
 
-  # echo result.repr
 
 template makeTree*(T: typed, patt: untyped): untyped =
   ## Construct tree from pattern matching expression. For example of
