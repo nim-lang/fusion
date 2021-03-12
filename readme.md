@@ -17,11 +17,6 @@ Fusion fullfills multiple purposes:
   few procs are preferred over larger modules that have more procs.
 * Fusion is also a Nimble package and it is compatible with Nim version 1 as well
   as the latest Nim.
-* Fusion uses semver but does not go beyond major version 1 since it's also about
-  preserving the past. Instead of breaking changes for a given module M.nim,
-  a module named M2.nim will be introduced.
-  M2.nim can share code with M.nim via Nim's `include` or `import export`
-  mechanism in order to fight code duplication.
 
 Fusion is for now an idea about how to grow Nim's ecosystem without the pain points
 of more traditional approaches.
