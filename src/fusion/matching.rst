@@ -157,7 +157,7 @@ Bind variable type
 
 
 ========================== =====================================
- Pattern                     Ijected variables
+ Pattern                     Injected variables
 ========================== =====================================
  ``[@a]``                    ``var a: typeof(expr[0])``
  ``{"key": @val}``           ``var val: typeof(expr["key"])``
