@@ -19,3 +19,5 @@
 - Added `jssets` module, Set for the JavaScript target
   https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
 - Added `jsheaders` module for [`Headers`](https://developer.mozilla.org/en-US/docs/Web/API/Headers) for the JavaScript target.
+
+- Added `jsexports` module with export and import statements for the JavaScript targets.
