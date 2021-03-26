@@ -80,9 +80,9 @@ suite "Matching":
       doAssert (t true).kind == kItem
       block:
         let s = t [1, 2, all @b, @a]
-        doAssert s.seqElems[3].bindVar == some(ident("a"))
-        doAssert s.seqElems[2].bindVar == some(ident("b"))
-        doAssert s.seqElems[2].patt.bindVar == none(NimNode)
+        doAssert s.seqElements[3].bindVar == some(ident("a"))
+        doAssert s.seqElements[2].bindVar == some(ident("b"))
+        doAssert s.seqElements[2].pattern.bindVar == none(NimNode)
 
       discard t([1,2,3,4])
       discard t((1,2))
