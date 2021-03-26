@@ -261,16 +261,6 @@ func dropPrefix(ss: seq[string], pattern: string): seq[string] =
     result.add s.dropPrefix(pattern)
 
 
-template findItFirstOpt(s: typed, op: untyped): untyped =
-  var res: Option[typeof(s[0])]
-  for it {.inject.} in s:
-    if op:
-      res = some(it)
-      break
-
-  res
-
-
 func addPrefix(str, pref: string): string =
   if not str.startsWith(pref): pref & str else: str
 
@@ -403,7 +393,7 @@ type
             isPlaceholder*: bool ## Always true? `_` pattern is an
             ## infix expression with `isPlaceholder` equal to true
           of imkSubPattern:
-            rhsPattern*: Match ## Subpattern to compare value against
+            rhsPattern*: Match ## SubPattern to compare value against
           of imkPredicate:
             isCall*: bool ## Predicate is a call expression
             ## (`@val.matches()`) or a free-standing expression
@@ -607,7 +597,7 @@ func `$`*(match: Match): string =
 
           else:
             result = &"{match.infix} {match.rhsNode.repr}"
-        of imkSubpattern:
+        of imkSubPattern:
           result = $match.rhsPattern
         of imkPredicate:
           result = match.predBody.repr
@@ -778,7 +768,7 @@ func parseNestedKey(n: NimNode): Match =
             return Match(
               kind: kPairs,
               declNode: spl[0],
-              pairElements: @[KvPair(
+              pairElements: @[KVPair(
                 key: spl[1][0], pattern: aux(spl[1 ..^ 1]))],
               nocheck: true
             )
@@ -797,7 +787,7 @@ func parseNestedKey(n: NimNode): Match =
             return Match(
               kind: kPairs,
               declNode: spl[1],
-              pairElements: @[KvPair(
+              pairElements: @[KVPair(
                 key: spl[1][0], pattern: aux(spl[1 ..^ 1]))],
               nocheck: true
             )
@@ -892,7 +882,7 @@ func parseKVTuple(n: NimNode): Match =
       else:
         elem.assertKind({nnkExprColonExpr})
 
-func contains(kwds: openarray[SeqKeyword], str: string): bool =
+func contains(kwds: openArray[SeqKeyword], str: string): bool =
   for kwd in kwds:
     if eqIdent($kwd, str):
       return true
@@ -1193,7 +1183,7 @@ func parseMatchExpr*(n: NimNode): Match =
     of nnkPrefix: # `is Pattern()`, `@capture` or other prefix expression
       if n[0].nodeStr() in ["is", "of"]: # `is Pattern()`
         result = Match(
-          kind: kItem, itemMatch: imkSubpattern,
+          kind: kItem, itemMatch: imkSubPattern,
           rhsPattern: parseMatchExpr(n[1]), declNode: n)
 
         if n[0].nodeStr() == "of" and result.rhsPattern.kind == kObject:
@@ -1368,12 +1358,12 @@ func parseMatchExpr*(n: NimNode): Match =
         # `@pattern is JString()`
         # `@head is 'd'`
         result = Match(
-          kind: kItem, itemMatch: imkSubpattern,
+          kind: kItem, itemMatch: imkSubPattern,
           rhsPattern: parseMatchExpr(n[2]), declNode: n)
 
       elif n[0].nodeStr() == "of":
         result = Match(
-          kind: kItem, itemMatch: imkSubpattern,
+          kind: kItem, itemMatch: imkSubPattern,
           rhsPattern: parseMatchExpr(n[2]), declNode: n)
 
         if n[0].nodeStr() == "of" and result.rhsPattern.kind == kObject:
@@ -1424,7 +1414,7 @@ func classifyPath(path: Path): VarKind =
 
 
 
-func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
+func addVar(tbl: var VarTable, vsym: NimNode, path: Path): void =
   ## Register addition of variable `vsym` used at `path` to symbol table
   ## `tbl`. This might also update resulting variable type (when capture
   ## have been encountered in all alternative branches).
@@ -1498,7 +1488,7 @@ func makeVarTable(m: Match):
   func aux(sub: Match, vt: var VarTable, path: Path): seq[string] =
     if sub.bindVar.getSome(bindv):
       if sub.isOptional and sub.fallback.isNone():
-        vt.addvar(bindv, path.fullCopy() & @[
+        vt.addVar(bindv, path.fullCopy() & @[
           AccsElem(inStruct: kItem, isOpt: true)
         ])
 
@@ -1513,7 +1503,7 @@ func makeVarTable(m: Match):
           :
           result &= "_"
 
-        if sub.itemMatch == imkSubpattern:
+        if sub.itemMatch == imkSubPattern:
           if sub.rhsPattern.kind == kObject and
              sub.rhsPattern.isRefKind and
              sub.rhsPattern.kindCall.getSome(kk)
@@ -1714,7 +1704,7 @@ proc makeElemMatch(
       if elem.bindVar.getSome(bindv):
         varset = makeVarSet(
           bindv, parent.toAccs(mainExpr, false), vtable, doRaise)
-        # vtable.addvar(bindv, parent) # XXXX
+        # vtable.addVar(bindv, parent) # XXXX
 
       let ln = elem.decl.lineIInfo()
       if doRaise and not debugWIP:
@@ -2163,7 +2153,7 @@ func makeMatchExpr(
     of kItem:
       let parent = path.fullCopy().toAccs(mainExpr, false)
       case m.itemMatch:
-        of imkInfixEq, imkSubpattern:
+        of imkInfixEq, imkSubPattern:
           if m.itemMatch == imkInfixEq:
             if m.isPlaceholder:
               result = newLit(true)
@@ -2179,7 +2169,7 @@ func makeMatchExpr(
             )
 
           if m.bindVar.getSome(vname):
-            # vtable.addvar(vname, path) # XXXX
+            # vtable.addVar(vname, path) # XXXX
             let bindVar = makeVarSet(vname, parent, vtable, doRaise)
             if result == newLit(true):
               result = bindVar
@@ -2196,7 +2186,7 @@ func makeMatchExpr(
           let pred = m.predBody
           var bindVar = newEmptyNode()
           if m.bindVar.getSome(vname):
-            # vtable.addvar(vname, path) # XXXX
+            # vtable.addVar(vname, path) # XXXX
             bindVar = makeVarSet(vname, parent, vtable, doRaise)
           else:
             bindVar = newLit(true)

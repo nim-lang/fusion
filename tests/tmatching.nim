@@ -248,7 +248,7 @@ suite "Matching":
       of [_]: discard
 
     case [1,2,3,4]:
-      of [_]: testfail()
+      of [_]: testFail()
       of [_, 2, 3, _]:
         discard
 
@@ -384,22 +384,22 @@ suite "Matching":
 
     case (c: (a: 12)):
       of (c: (a: _)): discard
-      else: testfail()
+      else: testFail()
 
     case [(a: 12, b: 3)]:
-      of [(a: 12, b: 22)]: testfail()
+      of [(a: 12, b: 22)]: testFail()
       of [(a: _, b: _)]: discard
 
     case (c: [3, 3, 4]):
       of (c: [_, _, _]): discard
-      of (c: _): testfail()
+      of (c: _): testFail()
 
     case (c: [(a: [1, 3])]):
-      of (c: [(a: [_])]): testfail()
+      of (c: [(a: [_])]): testFail()
       else: discard
 
     case (c: [(a: [1, 3]), (a: [1, 4])]):
-      of (c: [(a: [_]), _]): testfail()
+      of (c: [(a: [_]), _]): testFail()
       else:
         discard
 
@@ -407,21 +407,21 @@ suite "Matching":
       of enEE(eee: [(kind: enZZ, fl: 12)]):
         discard
       else:
-        testfail()
+        testFail()
 
     case Obj2():
       of enEE():
         discard
       of enZZ():
-        testfail()
+        testFail()
       else:
-        testfail()
+        testFail()
 
     case Obj2():
       of (kind: in {enEE, enEE1}):
         discard
       else:
-        testfail()
+        testFail()
 
   func len(o: Obj2): int = o.eee.len
   iterator items(o: Obj2): Obj2 =
@@ -433,22 +433,22 @@ suite "Matching":
       of [_, _]:
         discard
       else:
-        testfail()
+        testFail()
 
     case Obj2(kind: enEE, eee: @[Obj2(), Obj2()]):
-      of EE(eee: [_, _, _]): testfail()
+      of EE(eee: [_, _, _]): testFail()
       of EE(eee: [_, _]): discard
-      else: testfail()
+      else: testFail()
 
     case Obj2(kind: enEE1, eee: @[Obj2(), Obj2()]):
       of EE([_, _]):
-        testfail()
+        testFail()
       of EE1([_, _, _]):
-        testfail()
+        testFail()
       of EE1([_, _]):
         discard
       else:
-        testfail()
+        testFail()
 
 
 
@@ -458,7 +458,7 @@ suite "Matching":
         of ($a, $a, $a, $a):
           discard
         else:
-          testfail()
+          testFail()
 
     assertEq "122", case (a: 12, b: 2):
                       of (a: @a, b: @b): $a & $b
@@ -573,7 +573,7 @@ suite "Matching":
   multitest "Set":
     case [3]:
       of [{2, 3}]: discard
-      else: testfail()
+      else: testFail()
 
     [{'a' .. 'z'}, {' ', '*'}] := "z "
 
@@ -678,13 +678,13 @@ suite "Matching":
       of [any @elem is JString()]:
         discard
       else:
-        testfail()
+        testFail()
 
     case ("foo", 78)
       of ("foo", 78):
         discard
       of ("bar", 88):
-        testfail()
+        testFail()
 
     block: Some(@x) := some("hello")
 
@@ -733,19 +733,19 @@ suite "Matching":
     proc g1[T](a: seq[T]): T =
       case a:
         of [@a]: discard
-        else: testfail()
+        else: testFail()
 
       expand case a:
         of [_]: discard
-        else: testfail()
+        else: testFail()
 
       expand case a:
         of [_.startsWith("--")]: discard
-        else: testfail()
+        else: testFail()
 
       expand case a:
         of [(len: < 12)]: discard
-        else: testfail()
+        else: testFail()
 
     discard g1(@["---===---=="])
 
@@ -753,9 +753,9 @@ suite "Matching":
   test "Predicates":
     case ["hello"]:
       of [_.startsWith("--")]:
-        testfail()
+        testFail()
       of [_.startsWith("==")]:
-        testfail()
+        testFail()
       else:
         discard
 
@@ -780,17 +780,17 @@ suite "Matching":
   multitest "One-or-more":
     case [1]:
       of [@a]: assertEq a, 1
-      else: testfail()
+      else: testFail()
 
     case [1]:
       of [all @a]: assertEq a, @[1]
-      else: testfail()
+      else: testFail()
 
     case [1,2,3,4]:
       of [_, until @a is 4, 4]:
         assertEq a, @[2,3]
       else:
-        testfail()
+        testFail()
 
 
     case [1,2,3,4]:
@@ -798,7 +798,7 @@ suite "Matching":
         doAssert a is int
         doAssert a == 1
       else:
-        testfail()
+        testFail()
 
 
     case [1,2,3,4]:
@@ -806,7 +806,7 @@ suite "Matching":
         doAssert a is seq[int]
         doAssert a == @[1,2,3,4]
       else:
-        testfail()
+        testFail()
 
   multitest "Optional matches":
     case [1,2,3,4]:
@@ -1057,7 +1057,7 @@ suite "Matching":
     block:
       case (true, false):
         of (@a, @a):
-          testfail()
+          testFail()
         of (@a, _):
           doAssert a == true
 
@@ -1174,7 +1174,7 @@ suite "Matching":
       of (f1: (f2: (f3: < 10))):
         discard
       else:
-        testfail()
+        testFail()
 
   multitest "Nested key access":
     let val = (@[1,2,3], @[3,4,5])
@@ -1183,7 +1183,7 @@ suite "Matching":
       of ((len: <= 3), (len: <= 3)):
         discard
       else:
-        testfail()
+        testFail()
 
     let val2 = (hello: @[1,2,3])
 
@@ -1191,7 +1191,7 @@ suite "Matching":
       of (hello.len: <= 3):
         discard
       else:
-        testfail()
+        testFail()
 
 
     let val3 = (hello3: @[@[@["eee"]]])
@@ -1223,7 +1223,7 @@ suite "Matching":
     try:
       [_, any is (1 | 2)] := [3,4,5]
 
-      testfail("_, any is (1 | 2)")
+      testFail("_, any is (1 | 2)")
 
     except MatchError:
       let msg = getCurrentExceptionMsg()
@@ -1249,7 +1249,7 @@ suite "Matching":
 
     try:
       [(1 | 2)] := [3]
-      testfail("[(1 | 2)] := [3]")
+      testFail("[(1 | 2)] := [3]")
     except MatchError:
       doAssert "pattern '(1 | 2)'" in getCurrentExceptionMsg()
 
@@ -1315,7 +1315,7 @@ suite "Matching":
       of (fld3: @subf):
         discard
       else:
-        testfail()
+        testFail()
 
     var tmp: Root = SubRoot(fld3: 12)
     doAssert tmp.SubRoot().fld3 == 12
@@ -1323,7 +1323,7 @@ suite "Matching":
       of of SubRoot(fld3: @subf):
         doAssert subf == 12
       else:
-        testfail()
+        testFail()
 
   multitest "Ref object in maps, subfields and sequences":
     block:
@@ -1503,7 +1503,7 @@ suite "Gara tests":
       of [@b == 2]:
         assertEq b, 2
       else:
-        testfail()
+        testFail()
 
 
   multitest "Object":
@@ -1511,11 +1511,11 @@ suite "Gara tests":
 
     case a:
       of (a: 4, b: 1):
-        testfail()
+        testFail()
       of (a: 2, b: @b):
         assertEq b, 0
       else :
-        testfail()
+        testFail()
 
   multitest "Subpattern":
     let repo = Repo(
@@ -1531,7 +1531,7 @@ suite "Gara tests":
 
     case repo:
       of (name: "New", commits: == @[]):
-        testfail()
+        testFail()
       of (
         name: @name,
         author: (
@@ -1543,7 +1543,7 @@ suite "Gara tests":
         assertEq name, "ExampleDB"
         assertEq email.raw, "example@exampledb.org"
       else:
-        testfail()
+        testFail()
 
   test "Sequence":
     let a = @[
@@ -1554,11 +1554,11 @@ suite "Gara tests":
 
     case a:
       of []:
-        testfail()
+        testFail()
       of [_, all @others is (a: 4, b: 4)]:
         assertEq others, a[1 .. ^1]
       else:
-        testfail()
+        testFail()
 
     # _ is always true, (a: 4, b: 4) didn't match element 2
 
@@ -1722,7 +1722,7 @@ suite "Gara tests":
 
     case email:
       of (data: (name: "academy")):
-        testfail()
+        testFail()
 
       of (tokens: [_, _, _, _, @token]):
         assertEq token, "org"
@@ -1734,7 +1734,7 @@ suite "Gara tests":
       of [_, @t(it mod 2 == 0)]:
         assertEq t, 0
       else:
-        testfail()
+        testFail()
 
   multitest "unification":
     let b = @["nim", "nim", "c++"]
@@ -1750,11 +1750,11 @@ suite "Gara tests":
 
     case b:
       of [@x, @x, @x]:
-        testfail()
+        testFail()
       of [@x, @x, _]:
         assertEq x, "nim"
       else:
-        testfail()
+        testFail()
 
   multitest "option":
     let a = some[int](3)
@@ -1763,7 +1763,7 @@ suite "Gara tests":
       of Some(@i):
         assertEq i, 3
       else:
-        testfail()
+        testFail()
 
 
   multitest "nameless tuple":
@@ -1771,13 +1771,13 @@ suite "Gara tests":
 
     case a:
       of ("a", "c"):
-        testfail()
+        testFail()
       of ("a", "c"):
-        testfail()
+        testFail()
       of ("a", @c):
         assertEq c, "b"
       else:
-        testfail()
+        testFail()
 
   multitest "ref":
     type
@@ -1791,13 +1791,13 @@ suite "Gara tests":
       of (name: @name):
         assertEq name, "2"
       else:
-        testfail()
+        testFail()
 
     let node2: Node = nil
 
     case node2:
       of (isNil: false, name: "4"):
-        testfail()
+        testFail()
       else:
         discard
 
@@ -1808,7 +1808,7 @@ suite "Gara tests":
       of [4'i8]:
         discard
       else:
-        testfail()
+        testFail()
 
   multitest "dot access":
     let a = Rectangle(b: 4)
@@ -1817,19 +1817,19 @@ suite "Gara tests":
       of (b: == a.b):
         discard
       else:
-        testfail()
+        testFail()
 
   multitest "arrays":
     let a = [1, 2, 3, 4]
 
     case a:
       of [1, @a, 3, @b, 5]:
-        testfail()
+        testFail()
       of [1, @a, 3, @b]:
         assertEq a, 2
         assertEq b, 4
       else:
-        testfail()
+        testFail()
 
   multitest "bool":
     let a = Rectangle(a: 0, b: 0)
@@ -1837,7 +1837,7 @@ suite "Gara tests":
     if a.matches((b: 0)):
       discard
     else:
-      testfail()
+      testFail()
 
 suite "More tests":
   multitest "String len":
@@ -1900,7 +1900,7 @@ suite "More tests":
 
         of ["get", @objectName]:
           doAssert "get" in cmd
-          doASsert objectName == "test"
+          doAssert objectName == "test"
 
         of ["go", (parseDirection: @direction)]:
           case direction:
@@ -2510,7 +2510,7 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
   test "example from documentation":
     case [(1, 3), (3, 4)]:
       of [(1, @a), _]:
-        doASsert a == 3
+        doAssert a == 3
 
       else:
         fail()
@@ -2732,7 +2732,7 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
 
           for it0 {.inject.} in `arg`:
             `evalExpr`
-            `resId`.add `lastid`
+            `resId`.add `lastId`
 
           `resId`
       else:
