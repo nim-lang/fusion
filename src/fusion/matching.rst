@@ -204,8 +204,12 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
 
     - ``all @val is <expr>``: capture all elements in ``@val`` if ``<expr>``
       is true for every one of them.
+
 ``opt``
-    Single element match
+
+    Optional single element match - if sequence contains less elements than
+    necessary element is considered missing. In that case either `default`
+    fallback (if present) is used as value, or capture is set to `None(T)`.
 
     - ``opt @a``: match optional element and bind it to a
 
@@ -213,7 +217,7 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
       "default"
 ``any``
     greedy. Consume all sequence elements until the end and
-    succed only if any element has matched.
+    succed only if at least one element has matched.
 
     - ``any @val is "d"``: capture all element that match ``is "d"``
 
@@ -565,6 +569,11 @@ You can use ``opt`` in following situations:
   like ``ref``, or ``ptr`` rules are also the same. If you want to handle
   custom type you can define ``optHasValue()`` and ``optGetOrDefault()``
   procedures.
+
+It also should be noted that `or default` clause makes pattern always
+succed, so in case of `[any (field: @capture or "default")]` resulting
+`capture` will have as many elements as the original sequence but one that
+had "no value", will be filled by `default`.
 
 
 Tree matching
