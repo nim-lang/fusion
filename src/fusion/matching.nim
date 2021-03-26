@@ -427,18 +427,24 @@ type
     case inStruct: MatchKind
       of kSeq:
         pos*: NimNode ## Expressions for accessing seq element
+
       of kTuple:
         idx*: int ## Tuple field index
+
       of kObject:
         fld*: string ## Object field name
+
       of kPairs:
         key*: NimNode ## Expression for key-value pair
         nocheck*: bool
+
       of kSet:
         discard
+
       of kAlt:
         altIdx*: int
         altMax*: int
+
       of kItem:
         isOpt*: bool ## Is match optional
 
@@ -475,18 +481,12 @@ func hash(accs: AccsElem): Hash =
   var h: Hash = 0
   h = h !& hash(accs.isVariadic)
   case accs.inStruct:
-    of kSeq:
-      h = h !& hash(accs.pos.repr)
-    of kTuple:
-      h = h !& hash(accs.idx)
-    of kObject:
-      h = h !& hash(accs.fld)
-    of kPairs:
-      h = h !& hash(accs.key.repr) !& hash(accs.nocheck)
-    of kAlt:
-      h = h !& hash(accs.altIdx) !& hash(accs.altMax)
-    of kItem:
-      h = h !& hash(accs.isOpt)
+    of kSeq:    h = h !& hash(accs.pos.repr)
+    of kTuple:  h = h !& hash(accs.idx)
+    of kObject: h = h !& hash(accs.fld)
+    of kPairs:  h = h !& hash(accs.key.repr) !& hash(accs.nocheck)
+    of kAlt:    h = h !& hash(accs.altIdx) !& hash(accs.altMax)
+    of kItem:   h = h !& hash(accs.isOpt)
     of kSet:
       discard
 
@@ -576,10 +576,20 @@ func `$`*(match: Match): string =
       case match.itemMatch:
         of imkInfixEq:
           if match.isPlaceholder:
+            if match.isOptional:
+              result = "opt "
+
+
             if match.bindVar.getSome(vn):
-              result = &"@{vn.repr}"
+              result &= &"@{vn.repr}"
+
             else:
-              result = "_"
+              result &= "_"
+
+            if match.fallback.getSome(fallback):
+              result &= &" or {fallback.toStrLit().strVal()}"
+
+
           else:
             result = &"{match.infix} {match.rhsNode.repr}"
         of imkSubpatt:
@@ -737,6 +747,7 @@ func parseNestedKey(n: NimNode): Match =
   ## - first key should be handled by caller.
   n.assertKind({nnkExprColonExpr})
   func aux(spl: seq[NimNode]): Match =
+    echov spl
     case spl[0].kind:
       of nnkIdentKinds:
         if spl.len == 1:
@@ -824,6 +835,7 @@ func parseKVTuple(n: NimNode): Match =
   for elem in n[start .. ^1]:
     case elem.kind:
       of nnkExprColonExpr:
+        echov "Expr colon expr in pattern " & elem.treeRepr()
         var str: string
         case elem[0].kind:
           of nnkIdentKinds, nnkDotExpr, nnkBracketExpr:
@@ -849,6 +861,7 @@ func parseKVTuple(n: NimNode): Match =
             )
 
         result.fldElems.add((str, elem.parseNestedKey()))
+        echov result
 
       of nnkBracket, nnkStmtList:
         # `Bracket` - Special case for object access - allow omission of
@@ -1137,7 +1150,7 @@ macro dumpIdxTree(n: untyped) {.used.} =
 
 func parseMatchExpr*(n: NimNode): Match =
   ## Parse match expression from nim node
-
+  echov n.lispRepr()
   case n.kind:
     of nnkIdent, nnkSym, nnkIntKinds, nnkStrKinds, nnkFloatKinds:
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
@@ -1322,6 +1335,10 @@ func parseMatchExpr*(n: NimNode): Match =
           result = parseKVTuple(n)
 
     elif (n.kind in {nnkCommand, nnkCall}) and n[0].eqIdent("opt"):
+      # Separate handling of `opt @capture` expressions for sequence, field
+      # and key-value pair matching.
+      # Expected input has for of `opt @capture or default`
+      # `(Command (Ident "opt") (Infix (Ident "or") (Prefix (Ident "@") (Ident "capture")) (IntLit 12)))`
       let (lhs, rhs) = splitOpt(n)
       result = lhs.parseMatchExpr()
       result.isOptional = true
@@ -1397,8 +1414,16 @@ func classifyPath(path: Path): VarKind =
 
 
 func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
+  ## Register addition of variable `vsym` used at `path` to symbol table
+  ## `tbl`. This might also update resulting variable type (when capture
+  ## have been encountered in all alternative branches).
   let vs = vsym.nodeStr()
   let class = path.classifyPath()
+
+  echov "Adding variable to var table"
+  echov tbl
+  echov vsym
+  echov path
 
   if vs notin tbl:
     tbl[vs] = VarSpec(decl: vsym, varKind: class, typePath: path.fullCopy())
@@ -1435,6 +1460,7 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
 
 
   inc tbl[vs].cnt
+  echov tbl
 
 func makeVarTable(m: Match):
   tuple[table: VarTable, mixident: seq[string]] =
@@ -1442,11 +1468,13 @@ func makeVarTable(m: Match):
   func aux(sub: Match, vt: var VarTable, path: Path): seq[string] =
     if sub.bindVar.getSome(bindv):
       if sub.isOptional and sub.fallback.isNone():
+        echov sub
         vt.addvar(bindv, path.fullCopy() & @[
           AccsElem(inStruct: kItem, isOpt: true)
         ])
 
       else:
+        echov sub
         vt.addVar(bindv, path.fullCopy())
 
     case sub.kind:
@@ -1507,13 +1535,35 @@ func makeVarTable(m: Match):
 
       of kObject:
         for (fld, patt) in sub.fldElems:
-          # echov path.mapIt($it), path.len
-          # var newPath: Path
-          # for elem in path:
-          #   newPath.add elem
+          echov patt
+          echov fld
+          echov sub
           result &= aux(
             patt, vt, path.fullCopy() & @[
               AccsElem(inStruct: kObject, fld: fld)])
+
+          if patt.isOptional and patt.bindVar.isSome():
+            let name = patt.bindVar.get().toStrLit().strVal()
+            # vt[name].typePath &=
+            let spec = vt[name]
+
+            if patt.fallback.isNone():
+              vt[name] = VarSpec(
+                varKind: vkRegular,
+                decl: spec.decl,
+                cnt: spec.cnt,
+                typePath: spec.typePath,
+              )
+
+            else:
+              vt[name] = VarSpec(
+                varKind: vkRegular,
+                decl: spec.decl,
+                cnt: spec.cnt,
+                typePath: spec.typePath & @[
+                  AccsElem(inStruct: kObject, fld: "get")],
+              )
+
 
           # echov path.mapIt($it), path.len
 
@@ -2068,8 +2118,10 @@ func makeMatchExpr(
           if m.itemMatch == imkInfixEq:
             if m.isPlaceholder:
               result = newLit(true)
+
             else:
               result = nnkInfix.newTree(ident m.infix, parent, m.rhsNode)
+
           else:
             result = makeMatchExpr(
               m.rhsPatt, vtable,
@@ -2125,23 +2177,53 @@ func makeMatchExpr(
       var refCast: seq[AccsElem]
       if m.kindCall.getSome(kc):
         if m.isRefKind:
+          # Derived object matching call
           conds.add newCall(
             "not",
+            # Inject explicit `isNil` check (by default `of` does not perform it)
             newCall(ident "isNil", path.fullCopy().toAccs(mainExpr, false)))
 
           conds.add newCall(ident "of", path.fullCopy().toAccs(mainExpr, false), kc)
-          refCast.add AccsElem(
-            inStruct: kObject, fld: kc.repr)
+          refCast.add AccsElem(inStruct: kObject, fld: kc.repr)
+
         else:
+          # Insert call to helper `hasKind` implementation that handles
+          # prefix optionality
           conds.add newCall(ident "hasKind", path.fullCopy().toAccs(mainExpr, false), kc)
 
-      for (fld, patt) in m.fldElems:
+      for (field, patt) in m.fldElems:
         let path = path.fullCopy() &
           refCast.fullCopy() &
-          @[AccsElem(inStruct: kObject, fld: fld)]
+          @[AccsElem(inStruct: kObject, fld: field)]
 
-        conds.add patt.makeMatchExpr(
-          vtable, path.fullCopy(), path.fullCopy(), mainExpr, doRaise, originalMainExpr)
+        if patt.isOptional:
+          # echov "Optional field"
+          # echov path
+
+          let isSomeCheck = nnkInfix.newTree(
+            ident "and",
+            newCall("isSome", path.fullCopy().toAccs(mainExpr, false)),
+            patt.makeMatchExpr(
+              vtable,
+              path.fullCopy() & @[AccsElem(inStruct: kObject, fld: "get")],
+              path.fullCopy() & @[AccsElem(inStruct: kObject, fld: "get")],
+              mainExpr, doRaise, originalMainExpr
+            )
+          )
+
+          if patt.fallback.getSome(fallback):
+            conds.add nnkInfix.newTree(
+              ident "or",
+              isSomeCheck,
+              makeVarSet(patt.bindVar.get(), fallback, vtable, doRaise)
+            )
+
+          else:
+            conds.add isSomeCheck
+
+        else:
+          conds.add patt.makeMatchExpr(
+            vtable, path.fullCopy(), path.fullCopy(), mainExpr, doRaise, originalMainExpr)
 
       if m.seqMatches.getSome(seqm):
         conds.add seqm.makeMatchExpr(
@@ -2388,6 +2470,9 @@ macro assertMatch*(input, pattern: untyped): untyped =
       expr, true, input# .toStrLit().strVal()
     )
 
+  echov vtable
+
+  let
     matched = toNode(mexpr, vtable, expr)
 
 
@@ -2395,6 +2480,10 @@ macro assertMatch*(input, pattern: untyped): untyped =
     let `expr` = `input`
     let ok = `matched`
     discard ok
+
+
+  echov result.repr
+
 
 macro matches*(input, pattern: untyped): untyped =
   ## Try to match `input` using `pattern` and return `false` on

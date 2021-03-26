@@ -327,8 +327,8 @@ For matching object fields you can use ``(fld: value)`` -
       of (fld1: @capture):
         doAssert capture == 0
 
-For objects with `Option[]` fields it is possible to use `field: opt
-@capture or "default"` to either get capture value, or set it to fallback
+For objects with ``Option[T]`` fields it is possible to use ``field: opt
+@capture or "default"`` to either get capture value, or set it to fallback
 expression.
 
 Variant object matching

@@ -2304,6 +2304,29 @@ suite "Article examples":
       else:
         testFail()
 
+  multitest "Optional object field matches":
+    type
+      Obj90 = object
+        field1: Option[int]
+        field2: Option[float]
+
+    block: (field1: opt @capture or 12) := Obj90(); doAssert capture == 12
+    when false:
+      block: doAssert not matches(Obj90(), (field2: opt @capture) ?= Obj90())
+      block: doAssert matches(Obj90(), (field1: opt @c or 1))
+      block: doAssert matches((none(12), some(2)), (opt @h or 1, _))
+      block:
+        matches([
+          (none(12), some(0)),
+          (none(12), some(0)),
+          (none(2), some(90))
+        ], [
+          any (opt @head or 12, _)
+        ])
+
+        doAssert head is seq[int]
+        doAssert head == @[12, 12, 12]
+
 
 
 
