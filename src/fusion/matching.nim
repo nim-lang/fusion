@@ -223,6 +223,21 @@ func foldInfix(
       nnkInfix.newTree(ident inf, a, b))
 
 
+func nilAccessCondition(condition, access: NimNode): NimNode =
+  nnkInfix.newTree(
+    ident "and",
+    (
+      quote do:
+        block:
+          type AccessType = typeof(`access`)
+          when AccessType is ref: not isNil(`access`)
+          elif AccessType is ptr: not isNil(`access`)
+          else: true
+    ),
+    condition
+  )
+
+
 func commonPrefix(strs: seq[string]): string =
   ## Find common prefix for seq of strings
   if strs.len == 0:
@@ -2276,7 +2291,7 @@ func makeMatchExpr(
 
         else:
           let
-            incheck = nnkInfix.newTree(ident "in", pair.key, accs)
+            incheck = nnkInfix.newTree(ident "in", pair.key, accs).nilAccessCondition(accs)
 
           if not pair.patt.isOptional:
             conds.add nnkInfix.newTree(
