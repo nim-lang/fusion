@@ -747,7 +747,6 @@ func parseNestedKey(n: NimNode): Match =
   ## - first key should be handled by caller.
   n.assertKind({nnkExprColonExpr})
   func aux(spl: seq[NimNode]): Match =
-    echov spl
     case spl[0].kind:
       of nnkIdentKinds:
         if spl.len == 1:
@@ -835,7 +834,6 @@ func parseKVTuple(n: NimNode): Match =
   for elem in n[start .. ^1]:
     case elem.kind:
       of nnkExprColonExpr:
-        echov "Expr colon expr in pattern " & elem.treeRepr()
         var str: string
         case elem[0].kind:
           of nnkIdentKinds, nnkDotExpr, nnkBracketExpr:
@@ -861,7 +859,6 @@ func parseKVTuple(n: NimNode): Match =
             )
 
         result.fldElems.add((str, elem.parseNestedKey()))
-        echov result
 
       of nnkBracket, nnkStmtList:
         # `Bracket` - Special case for object access - allow omission of
@@ -1150,7 +1147,6 @@ macro dumpIdxTree(n: untyped) {.used.} =
 
 func parseMatchExpr*(n: NimNode): Match =
   ## Parse match expression from nim node
-  echov n.lispRepr()
   case n.kind:
     of nnkIdent, nnkSym, nnkIntKinds, nnkStrKinds, nnkFloatKinds:
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
@@ -1420,11 +1416,6 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
   let vs = vsym.nodeStr()
   let class = path.classifyPath()
 
-  echov "Adding variable to var table"
-  echov tbl
-  echov vsym
-  echov path
-
   if vs notin tbl:
     tbl[vs] = VarSpec(decl: vsym, varKind: class, typePath: path.fullCopy())
 
@@ -1460,7 +1451,31 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
 
 
   inc tbl[vs].cnt
-  echov tbl
+
+func correctPathForOptionalField(
+  sub: Match, vt: var VarTable, patt: Match, path: Path) =
+
+  if patt.isOptional and patt.bindVar.isSome():
+    let name = patt.bindVar.get().toStrLit().strVal()
+    let spec = vt[name]
+
+    if patt.fallback.isNone():
+      vt[name] = VarSpec(
+        varKind: spec.varKind,
+        decl: spec.decl,
+        cnt: spec.cnt,
+        typePath: spec.typePath,
+      )
+
+    else:
+      vt[name] = VarSpec(
+        varKind: spec.varKind,
+        decl: spec.decl,
+        cnt: spec.cnt,
+        typePath: spec.typePath & @[
+          AccsElem(inStruct: kObject, fld: "get")],
+      )
+
 
 func makeVarTable(m: Match):
   tuple[table: VarTable, mixident: seq[string]] =
@@ -1468,13 +1483,11 @@ func makeVarTable(m: Match):
   func aux(sub: Match, vt: var VarTable, path: Path): seq[string] =
     if sub.bindVar.getSome(bindv):
       if sub.isOptional and sub.fallback.isNone():
-        echov sub
         vt.addvar(bindv, path.fullCopy() & @[
           AccsElem(inStruct: kItem, isOpt: true)
         ])
 
       else:
-        echov sub
         vt.addVar(bindv, path.fullCopy())
 
     case sub.kind:
@@ -1528,6 +1541,10 @@ func makeVarTable(m: Match):
         for idx, it in sub.tupleElems:
           result &= aux(it, vt, path.fullCopy() & @[
             AccsElem(inStruct: kTuple, idx: idx)])
+
+          correctPathForOptionalField(sub, vt, it, path)
+
+
       of kPairs:
         for pair in sub.pairElems:
           result &= aux(pair.patt, vt, path.fullCopy() & @[
@@ -1535,35 +1552,11 @@ func makeVarTable(m: Match):
 
       of kObject:
         for (fld, patt) in sub.fldElems:
-          echov patt
-          echov fld
-          echov sub
           result &= aux(
             patt, vt, path.fullCopy() & @[
               AccsElem(inStruct: kObject, fld: fld)])
 
-          if patt.isOptional and patt.bindVar.isSome():
-            let name = patt.bindVar.get().toStrLit().strVal()
-            # vt[name].typePath &=
-            let spec = vt[name]
-
-            if patt.fallback.isNone():
-              vt[name] = VarSpec(
-                varKind: vkRegular,
-                decl: spec.decl,
-                cnt: spec.cnt,
-                typePath: spec.typePath,
-              )
-
-            else:
-              vt[name] = VarSpec(
-                varKind: vkRegular,
-                decl: spec.decl,
-                cnt: spec.cnt,
-                typePath: spec.typePath & @[
-                  AccsElem(inStruct: kObject, fld: "get")],
-              )
-
+          correctPathForOptionalField(sub, vt, patt, path)
 
           # echov path.mapIt($it), path.len
 
@@ -2098,6 +2091,49 @@ func makeSeqMatch(
   # echov result.repr
 
 
+func makeOptionalFieldExprConditions(
+    patt: Match,
+    path: Path,
+    vtable: VarTable,
+    mainExpr: NimNode,
+    doRaise: bool,
+    originalMainExpr: NimNode
+  ): seq[NimNode] =
+
+  if patt.isOptional:
+    let patternPath = path.fullCopy() & (
+      # If fallback expression is present variable has type `T`, and
+      # result has to be assigned from `<path>.get()` expression.
+      # Otherwise optional field value is assigned as-is (hence empty
+      # sequence)
+      if patt.fallback.isSome():
+        @[AccsElem(inStruct: kObject, fld: "get")]
+      else:
+        @[]
+    )
+
+    let isSomeCheck = nnkInfix.newTree(
+      ident "and",
+      newCall("isSome", path.fullCopy().toAccs(mainExpr, false)),
+      patt.makeMatchExpr(
+        vtable,
+        patternPath,
+        patternPath,
+        mainExpr, doRaise, originalMainExpr
+      )
+    )
+
+    if patt.fallback.getSome(fallback):
+      result.add nnkInfix.newTree(
+        # Additional wrapper expression to execute fallback
+        # assignment (always true) in case of missing value.
+        ident "or",
+        isSomeCheck,
+        makeVarSet(patt.bindVar.get(), fallback, vtable, doRaise)
+      )
+
+    else:
+      result.add isSomeCheck
 
 
 func makeMatchExpr(
@@ -2167,8 +2203,15 @@ func makeMatchExpr(
       var conds: seq[NimNode]
       for idx, it in m.tupleElems:
         let path = path.fullCopy() & @[AccsElem(inStruct: kTuple, idx: idx)]
-        conds.add it.makeMatchExpr(
-          vtable, path.fullCopy(), path.fullCopy(), mainExpr, doRaise, originalMainExpr)
+
+        if it.isOptional:
+          echov it
+          conds.add makeOptionalFieldExprConditions(
+            it, path, vtable, mainExpr, doRaise, originalMainExpr)
+
+        else:
+          conds.add it.makeMatchExpr(
+            vtable, path.fullCopy(), path.fullCopy(), mainExpr, doRaise, originalMainExpr)
 
       result = conds.foldInfix("and")
 
@@ -2197,29 +2240,8 @@ func makeMatchExpr(
           @[AccsElem(inStruct: kObject, fld: field)]
 
         if patt.isOptional:
-          # echov "Optional field"
-          # echov path
-
-          let isSomeCheck = nnkInfix.newTree(
-            ident "and",
-            newCall("isSome", path.fullCopy().toAccs(mainExpr, false)),
-            patt.makeMatchExpr(
-              vtable,
-              path.fullCopy() & @[AccsElem(inStruct: kObject, fld: "get")],
-              path.fullCopy() & @[AccsElem(inStruct: kObject, fld: "get")],
-              mainExpr, doRaise, originalMainExpr
-            )
-          )
-
-          if patt.fallback.getSome(fallback):
-            conds.add nnkInfix.newTree(
-              ident "or",
-              isSomeCheck,
-              makeVarSet(patt.bindVar.get(), fallback, vtable, doRaise)
-            )
-
-          else:
-            conds.add isSomeCheck
+          conds.add makeOptionalFieldExprConditions(
+            patt, path, vtable, mainExpr, doRaise, originalMainExpr)
 
         else:
           conds.add patt.makeMatchExpr(
@@ -2505,6 +2527,8 @@ macro matches*(input, pattern: untyped): untyped =
   result = quote do:
     let `expr` = `input`
     `matched`
+
+  echov result
 
 func buildTreeMaker(
   prefix: string,

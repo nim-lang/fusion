@@ -2311,21 +2311,46 @@ suite "Article examples":
         field2: Option[float]
 
     block: (field1: opt @capture or 12) := Obj90(); doAssert capture == 12
-    when false:
-      block: doAssert not matches(Obj90(), (field2: opt @capture) ?= Obj90())
-      block: doAssert matches(Obj90(), (field1: opt @c or 1))
-      block: doAssert matches((none(12), some(2)), (opt @h or 1, _))
-      block:
-        matches([
-          (none(12), some(0)),
-          (none(12), some(0)),
-          (none(2), some(90))
-        ], [
-          any (opt @head or 12, _)
-        ])
+    block: doAssert not matches(Obj90(), (field2: opt @capture))
+    block: doAssert matches(Obj90(), (field1: opt @c or 1))
+    block: doAssert matches((none(int), some(2)), (opt @h or 1, _))
+    block:
+      assertMatch([
+        (some(12), some(0)),
+        (some(12), some(0)),
+        (none(int), some(90))
+      ], [
+        any (opt @head or 12, _)
+      ])
 
-        doAssert head is seq[int]
-        doAssert head == @[12, 12, 12]
+      doAssert head is seq[int]
+      doAssert head == @[12, 12, 12]
+
+  test "`opt` for objects":
+    type
+      Settings = object of RootObj
+        config: JsonNode
+        company: Option[string]
+        id: Option[string]
+        secret: Option[string]
+        savePosition: bool
+        alwaysOnTop: bool
+
+
+    discard Settings().matches((
+      company: opt @c or "",
+      savePosition: @pch,
+      alwaysOnTop: @aot,
+      config: {
+        "a": opt @b or JsonNode(),
+        "b": opt @q
+      }
+    ))
+
+    doAssert c is string
+    doAssert pch is bool
+    doAssert b is JsonNode
+    doAssert q is Option[JsonNode]
 
 
 
