@@ -1840,6 +1840,15 @@ suite "Gara tests":
       testfail()
 
 suite "More tests":
+  multitest "String len":
+    let s = "test string"
+
+    case [s]
+      of [(len: > 5)]:
+        echo "len more than 5"
+      else:
+        echo "nope"
+
   multitest "Matching boolean tables":
     case (true, false, false):
       of (true, false, false):
