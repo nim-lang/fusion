@@ -327,6 +327,10 @@ For matching object fields you can use ``(fld: value)`` -
       of (fld1: @capture):
         doAssert capture == 0
 
+For objects with `Option[]` fields it is possible to use `field: opt
+@capture or "default"` to either get capture value, or set it to fallback
+expression.
+
 Variant object matching
 -----------------------
 
@@ -518,62 +522,6 @@ following functions:
 - ``isSome(): bool`` (for `Some()` pattern check),
 - ``isNone(): bool`` (for `None()` pattern), and
 - ``get(): T`` (for getting value if type is some).
-
-"No-value" matching
--------------------
-
-In addition to explicit ``Option`` type 'no value' can also be represented
-by some special value, like ``nil``. In this case writing ``opt @capture``
-would generate ``None()`` if value is missing. Additionally, ``opt @capture
-or "default"`` can be used to have a fallback value. These pattersn are
-transformed into ``optHasValue()`` check, or ``optGetOrDefault()``
-respectively.
-
-.. code:: nim
-
-    mightReturnNil().matches(opt @someRef or newDefaultT())
-
-    # is transformed into
-
-    let expr = mightReturnNil().optGetOrDefault(newDefaultT())
-
-
-To avoild eager evaluatiopn of default clause it is recommeded to implement
-``optGetOrDefault`` as ``template`` in form of
-
-.. code:: nim
-
-    template optGetOrDefault(value, fallback: T): untyped =
-      let value2 = value
-      if #[user check if expression has value]#:
-        value2
-
-      else:
-        # `else` branch is evaluated only if expression has no value
-        fallback
-
-Notes on ``opt`` vs edge case for ``Option`` - latter one is added as
-special-case support for a type defined ``std/options``, while former one
-should be used to work with "has value" and "no value" elements - ``nil``
-fields, missing array element, or value for non-existent key.
-
-You can use ``opt`` in following situations:
-
-- Optional trailing element in array: ``[@head, opt @tail or default]`` -
-  if sequence only has two elements `default` will be used. Without `or
-  default` clause `tail` will have `Option[_]` type.
-- Optional key-value pair: `{ "key": opt @value or default }` - same rules
-  apply as with sequence. If key cannot be found use `default`, if no
-  default clause capture is an explicit `Option[_]`.
-- 'optional' field: ``(field: opt @capture or default)`. For field types
-  like ``ref``, or ``ptr`` rules are also the same. If you want to handle
-  custom type you can define ``optHasValue()`` and ``optGetOrDefault()``
-  procedures.
-
-It also should be noted that `or default` clause makes pattern always
-succed, so in case of `[any (field: @capture or "default")]` resulting
-`capture` will have as many elements as the original sequence but one that
-had "no value", will be filled by `default`.
 
 
 Tree matching
