@@ -660,14 +660,14 @@ func makeVarSet(
             when compiles($(`varn`)):
               {.line: `ln`.}:
                 raise MatchError(
-                  msg: "Match failure: variable '" & `varStr` &
-                    "' is already set to " & $(`varn`) &
-                    ", and does not match with " & $(`expr`) & "."
+                  msg: "Match failure: capture '" & `varStr` &
+                    "' is already set to '" & $(`varn`) &
+                    "', and does not match with '" & $(`expr`) & "'."
                 )
             else:
               {.line: `ln`.}:
                 raise MatchError(
-                  msg: "Match failure: variable '" & `varStr` &
+                  msg: "Match failure: capture '" & `varStr` &
                     "' is already set and new value does not match."
                 )
          else:
@@ -2495,8 +2495,6 @@ macro assertMatch*(input, pattern: untyped): untyped =
       expr, true, input# .toStrLit().strVal()
     )
 
-  echov vtable
-
   let
     matched = toNode(mexpr, vtable, expr)
 
@@ -2505,9 +2503,6 @@ macro assertMatch*(input, pattern: untyped): untyped =
     let `expr` = `input`
     let ok = `matched`
     discard ok
-
-
-  echov result.repr
 
 
 macro matches*(input, pattern: untyped): untyped =

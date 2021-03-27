@@ -81,7 +81,7 @@ like `(len: < 12)` also work as expected.
 
 It is possible to have mixed assess for objects. Mixed object access
 via ``(gg: _, [], {})`` creates the same code for checking. E.g ``([_])``
-is the same as ``[_]``, ``({"key": "val"})`` is is identical to just
+is the same as ``[_]``, ``({"key": "val"})`` and is identical to just
 ``{"key": "val"}``. You can also call functions and check their values
 (like ``(len: _(it < 10))`` or ``(len: in {0 .. 10})``) to check for
 sequence length.
@@ -120,7 +120,7 @@ Examples
 Variable binding
 ================
 
-Match can be bound to new varaible. All variable declarations happen
+Match can be bound to new variable. All variable declarations happen
 via ``@varname`` syntax.
 
 - To bind element to variable without any additional checks do: ``(fld: @varname)``
@@ -157,7 +157,7 @@ Bind variable type
 
 
 ========================== =====================================
- Pattern                     Ijected variables
+ Pattern                     Injected variables
 ========================== =====================================
  ``[@a]``                    ``var a: typeof(expr[0])``
  ``{"key": @val}``           ``var val: typeof(expr["key"])``
@@ -195,7 +195,7 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
 ``until``
     non-greedy. Match everything until ``<expr>``
 
-    - ``until <expr>``: match all until frist element that matches Expr
+    - ``until <expr>``: match all until the first element that matches Expr
 
 ``all``
     greedy. Match everything that matches ``<expr>``
@@ -207,7 +207,7 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
 
 ``opt``
 
-    Optional single element match - if sequence contains less elements than
+    Optional single element match - if sequence contains fewer elements than
     necessary element is considered missing. In that case either `default`
     fallback (if present) is used as value, or capture is set to `None(T)`.
 
@@ -217,7 +217,7 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
       "default"
 ``any``
     greedy. Consume all sequence elements until the end and
-    succed only if at least one element has matched.
+    succeed only if at least one element has matched.
 
     - ``any @val is "d"``: capture all element that match ``is "d"``
 
@@ -260,7 +260,7 @@ Use examples
 
 In addition to working with nested subpatterns it is possible to use
 pattern matching as simple text scanner, similar to strscans. Main
-difference is that it allows to work on arbitrary sequences, meaning it is
+difference is that it allows working on arbitrary sequences, meaning it is
 possible, for example, to operate on tokens, or as in this example on
 strings (for the sake of simplicity).
 
@@ -287,13 +287,17 @@ Input tuple: ``(1, 2, "fa")``
 ============================ ========== ============
  ``(_, _, _)``                **Ok**      Match all
  ``(@a, @a, _)``              **Fail**
- ``(@a is (1 | 2), @a, _)``   **Error**
+ ``(@a is (1 | 2), @a, _)``   **Fail**    [1]
  ``(1, 1 | 2, _)``            **Ok**
 ============================ ========== ============
 
-There are not a lot of features implemented for tuple matching, though it
-should be noted that `:=` operator can be quite handy when it comes to
-unpacking nested tuples -
+- [1] Pattern backtracking is not performed, ``@a`` is first bound to `1`,
+  and in subsequent match attempts pattern fails.
+
+Tuple element matches support any regular match expression like
+``@capture``, and not different from field matches. You can also use ``opt
+@capture or "default"`` in order to assign fallback value on tuple
+unpacking.
 
 .. code:: nim
 
@@ -420,7 +424,7 @@ types.
 
 Note that ``of`` operator is necessary for distinguishing between multiple
 derived objects, or getting fields that are present only in derived types.
-In addition it performs ``isNil()`` check in the object, so it might be
+In addition to it performs ``isNil()`` check in the object, so it might be
 used in cases when you are not dealing with derived types.
 
 Due to ``isNil()`` check this pattern only makes sense when working with
