@@ -111,7 +111,14 @@ jobs:
 
       - name: Build docs
         if: matrix.branch == 'devel'
-        run: nimble docs
+        run: |
+          set +e
+          nim -v
+          find .
+          nimble docs
+          let htmldocs
+          find htmldocs
+
 
       - name: Deploy docs
         # to view docs on your own fork: push a gh-pages branch on your fork,
