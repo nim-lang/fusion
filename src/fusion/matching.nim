@@ -1132,7 +1132,7 @@ func fixBrokenBracket(inNode: NimNode): NimNode =
 func isBrokenPar(n: NimNode): bool =
   result = (
     n.kind == nnkCommand and
-    n[1].kind == nnkPar
+    n[1].kind in {nnkPar, nnkTupleConstr}
   )
 
 
@@ -1162,8 +1162,9 @@ func parseMatchExpr*(n: NimNode): Match =
         result.rhsNode = n
         result.infix = "=="
 
-    of nnkPar: # Named or unnamed tuple
+    of nnkPar, nnkTupleConstr: # Named or unnamed tuple
       if n.isNamedTuple(): # `(field1: ...)`
+
         result = parseKVTuple(n)
 
       elif n[0].kind == nnkInfix and n[0][0].eqIdent("|"):
