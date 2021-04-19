@@ -41,9 +41,9 @@ template jsUnsafeFmt*(code: untyped) =
     assert str == "1000000"
 
   block:
-    func fmt(s: cstring): cstring {.importjs: "fmt`#`".}
+    func fmt(s: cstring): cstring {.importjs: "fmt`#`", used.}
 
-    func `&`(s: cstring): cstring {.importjs: "fmt`#`".}
+    func `&`(s: cstring): cstring {.importjs: "fmt`#`", used.}
 
     func jsFmtInjectFmt {.importjs: """const fmt = (strings, ...values) => {
     return values.reduce((finalString, value, index) => {
