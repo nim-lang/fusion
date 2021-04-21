@@ -293,7 +293,6 @@ proc getKindNames*(head: NimNode): (string, seq[string]) =
 
 
 macro hasKindImpl*(head: typed, kind: untyped): untyped =
-  echov head.idxTreeRepr()
   if kind.kind == nnkDotExpr:
     result = nnkInfix.newTree(ident "==", head, kind)
 
@@ -306,8 +305,6 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
       error("Invalid kind name - " & kind.toStrLit().strVal(), kind)
 
     result = nnkInfix.newTree(ident "==", head, kind)
-
-  echov result.idxTreeRepr()
 
 template hasKind*(head, kindExpr: untyped): untyped =
   ## Determine if `head` has `kind` value. Either function/procedure
@@ -1177,14 +1174,16 @@ func parseMatchExpr*(n: NimNode): Match =
         result = parseKVTuple(n)
 
       elif n[0].kind == nnkInfix and n[0][0].eqIdent("|"):
+        # `(Par (Infix (Ident "|") (IntLit 1) (IntLit 2)))`
+        # `(1 | 2)`
         result = parseAltMatch(n[0])
 
       else: # Unnamed tuple `( , , , , )`
         if n.len == 1: # Tuple with single argument is most likely used as
                        # regular parens in order to change operator
                        # precendence.
-
           result = parseMatchExpr(n[0])
+
         else:
           result = Match(kind: kTuple, declNode: n)
           for elem in n:
@@ -1297,8 +1296,6 @@ func parseMatchExpr*(n: NimNode): Match =
           )
 
         elif n[0].kind == nnkDotExpr:
-          echov n.idxTreeRepr()
-
           if n[0][0].kind == nnkIdent and
              n[0][1].kind == nnkIdent and
              n[0][0].strVal() != "_":
@@ -1347,6 +1344,11 @@ func parseMatchExpr*(n: NimNode): Match =
         elif n.kind == nnkCall and
              n.len > 1 and
              n[1].kind == nnkStmtList:
+          #```
+          # BracketExpr:
+          #   @head
+          #   @typeParam
+          #```
 
           if n[0].kind == nnkIdent:
             result = parseKVTuple(n)
@@ -2232,7 +2234,6 @@ func makeMatchExpr(
         let path = path.fullCopy() & @[AccsElem(inStruct: kTuple, idx: idx)]
 
         if it.isOptional:
-          echov it
           conds.add makeOptionalFieldExprConditions(
             it, path, vtable, mainExpr, doRaise, originalMainExpr)
 
@@ -2495,8 +2496,6 @@ proc matchImpl(n: NimNode): NimNode =
       let `posId` {.used.}: int = 0
       discard `posId`
       `matchcase`
-
-  echov result.toStrLit()
 
 when (NimMajor, NimMinor, NimPatch) >= (1,5,1):
   macro `case`*(n: untyped): untyped = matchImpl(n)
