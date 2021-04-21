@@ -74,6 +74,18 @@ suite "Issue tests":
     case O(kind:O2,o2:some[string]("hello world")):
       of O2(o2:Some(@mystring)): echo mystring
 
+  test "Support qualified variant selectors with matching? #83":
+    type
+      ZKind = enum Z1
+      Z = object
+        case kind: ZKind
+          of Z1:
+            o1: int
+
+    case Z(kind: Z1, o1: 1):
+      of ZKind.Z1(o1: @i):
+        doAssert i == 1
+
 suite "Matching":
   test "Pattern parser tests":
     macro main(): untyped =

@@ -42,7 +42,7 @@ const
     ## identifiers)
 
 
-const debugWIP = false
+const debugWIP = true
 
 template echov(arg: untyped, indent: int = 0): untyped {.used.} =
   {.noSideEffect.}:
@@ -293,14 +293,21 @@ proc getKindNames*(head: NimNode): (string, seq[string]) =
 
 
 macro hasKindImpl*(head: typed, kind: untyped): untyped =
-  let (pref, names) = getKindNames(head)
-  kind.assertKind({nnkIdent})
-  let str = kind.toStrLit().nodeStr().addPrefix(pref)
-  let kind = ident(str)
-  if not names.anyIt(eqIdent(it.addPrefix(pref), str)):
-    error("Invalid kind name - " & kind.toStrLit().strVal(), kind)
+  echov head.idxTreeRepr()
+  if kind.kind == nnkDotExpr:
+    result = nnkInfix.newTree(ident "==", head, kind)
 
-  result = nnkInfix.newTree(ident "==", head, kind)
+  else:
+    let (pref, names) = getKindNames(head)
+    kind.assertKind({nnkIdent})
+    let str = kind.toStrLit().nodeStr().addPrefix(pref)
+    let kind = ident(str)
+    if not names.anyIt(eqIdent(it.addPrefix(pref), str)):
+      error("Invalid kind name - " & kind.toStrLit().strVal(), kind)
+
+    result = nnkInfix.newTree(ident "==", head, kind)
+
+  echov result.idxTreeRepr()
 
 template hasKind*(head, kindExpr: untyped): untyped =
   ## Determine if `head` has `kind` value. Either function/procedure
@@ -1132,8 +1139,7 @@ func fixBrokenBracket(inNode: NimNode): NimNode =
 func isBrokenPar(n: NimNode): bool =
   result = (
     n.kind == nnkCommand and
-    n[1].kind in {nnkPar, nnkTupleConstr}
-  )
+    n[1].kind in {nnkPar, nnkTupleConstr})
 
 
 
@@ -1155,6 +1161,10 @@ func parseMatchExpr*(n: NimNode): Match =
   case n.kind:
     of nnkIdent, nnkSym, nnkIntKinds, nnkStrKinds, nnkFloatKinds:
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
+      # Underscore placeholders are converted to always-true matches,
+      # otherwise comparison is done using `==` operator. RHS node is
+      # pasted without modification for primitive literals (strings,
+      # integers, floats).
       if n == ident "_":
         result.isPlaceholder = true
 
@@ -1164,7 +1174,6 @@ func parseMatchExpr*(n: NimNode): Match =
 
     of nnkPar, nnkTupleConstr: # Named or unnamed tuple
       if n.isNamedTuple(): # `(field1: ...)`
-
         result = parseKVTuple(n)
 
       elif n[0].kind == nnkInfix and n[0][0].eqIdent("|"):
@@ -1262,6 +1271,9 @@ func parseMatchExpr*(n: NimNode): Match =
 
     elif n.kind in {nnkObjConstr, nnkCall, nnkCommand} and
          not n[0].eqIdent("opt"):
+      # - Object pattern matches `Kind(field: expr)`
+      # - Standalone calls `Kind()` - if no field matches is needed
+
       if n.isBrokenBracket():
         # Broken bracket expression that was written as `A [1]` and
         # subsequently parsed into
@@ -1285,32 +1297,42 @@ func parseMatchExpr*(n: NimNode): Match =
           )
 
         elif n[0].kind == nnkDotExpr:
-          var body = n
-          var bindVar: Option[NimNode]
-          if n[0][0].kind == nnkPrefix:
-            n[0][0][1].assertKind({nnkIdent})
-            bindVar = some(n[0][0][1])
+          echov n.idxTreeRepr()
 
-            # Store name of the bound variable and then replace `_` with
-            # `it` to make `it.call("arguments")`
-            body[0][0] = ident("it")
+          if n[0][0].kind == nnkIdent and
+             n[0][1].kind == nnkIdent and
+             n[0][0].strVal() != "_":
+            # `PureEnum.Value(<pattern>)` but not `_.call(<arguments>)`
+            result = parseKvTuple(n)
+            result.kindCall = some(n[0])
 
-          else: # `_.call("Arguments")`
-            # `(DotExpr (Ident "_") (Ident "<function-name>"))`
-            n[0][1].assertKind({nnkIdent, nnkOpenSymChoice})
-            n[0][0].assertKind({nnkIdent, nnkOpenSymChoice})
+          else:
+            var body = n
+            var bindVar: Option[NimNode]
+            if n[0][0].kind == nnkPrefix:
+              n[0][0][1].assertKind({nnkIdent})
+              bindVar = some(n[0][0][1])
 
-            # Replace `_` with `it` to make `it.call("arguments")`
-            body[0][0] = ident("it")
+              # Store name of the bound variable and then replace `_` with
+              # `it` to make `it.call("arguments")`
+              body[0][0] = ident("it")
 
-          result = Match(
-            kind: kItem,
-            itemMatch: imkPredicate,
-            declNode: n,
-            predBody: body,
-            bindVar: bindVar
+            else: # `_.call("Arguments")`
+              # `(DotExpr (Ident "_") (Ident "<function-name>"))`
+              n[0][1].assertKind({nnkIdent, nnkOpenSymChoice})
+              n[0][0].assertKind({nnkIdent, nnkOpenSymChoice})
 
-          )
+              # Replace `_` with `it` to make `it.call("arguments")`
+              body[0][0] = ident("it")
+
+            result = Match(
+              kind: kItem,
+              itemMatch: imkPredicate,
+              declNode: n,
+              predBody: body,
+              bindVar: bindVar
+            )
+
         elif n.kind == nnkCall and n[0].eqIdent("_"):
           # `_(some < expression)`. NOTE - this is probably a
           # not-that-common use case, but I don't think explicitly
@@ -1383,6 +1405,7 @@ func parseMatchExpr*(n: NimNode): Match =
 
       if n[1].kind == nnkPrefix: # WARNING
         result.bindVar = some(n[1][1])
+
     else:
       error(
         "Malformed DSL - found " & n.toStrLit().strVal() &
@@ -2453,7 +2476,6 @@ proc matchImpl(n: NimNode): NimNode =
         discard
 
   let head = n[0]
-  let pos = newCommentStmtNode($n.lineInfoObj())
   var mixinList = newStmtList nnkMixinStmt.newTree(
     mixidents.deduplicate.mapIt(
       ident it
@@ -2467,14 +2489,14 @@ proc matchImpl(n: NimNode): NimNode =
   let posId = genSym(nskLet, "pos")
   result = quote do:
     block:
-      # `mixinList`
-      `pos`
       {.line: `ln`.}:
         let `mainExpr` {.used.} = `head`
 
       let `posId` {.used.}: int = 0
       discard `posId`
       `matchcase`
+
+  echov result.toStrLit()
 
 when (NimMajor, NimMinor, NimPatch) >= (1,5,1):
   macro `case`*(n: untyped): untyped = matchImpl(n)
@@ -2493,8 +2515,7 @@ macro assertMatch*(input, pattern: untyped): untyped =
   let
     expr = genSym(nskLet, "expr")
     (mexpr, vtable, _) = pattern.parseMatchExpr().makeMatchExpr(
-      expr, true, input# .toStrLit().strVal()
-    )
+      expr, true, input)
 
   let
     matched = toNode(mexpr, vtable, expr)
@@ -2526,8 +2547,6 @@ macro matches*(input, pattern: untyped): untyped =
   result = quote do:
     let `expr` = `input`
     `matched`
-
-  echov result
 
 func buildTreeMaker(
   prefix: string,
