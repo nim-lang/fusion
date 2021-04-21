@@ -163,9 +163,10 @@ func firstDot(n: NimNode): NimNode {.inline.} =
   splitDots(n)[0]
 
 template assertKind(node: NimNode, kindSet: set[NimNodeKind]): untyped =
-  if node.kind notin kindSet:
-    raiseAssert("Expected one of " & $kindSet & " but node has kind " &
-      $node.kind & " (assertion on " & $instantiationInfo() & ")")
+  {.line: instantiationInfo(fullpaths = true).}:
+    if node.kind notin kindSet:
+      raiseAssert("Expected one of " & $kindSet & " but node has kind " &
+        $node.kind & " (assertion on " & $instantiationInfo() & ")")
 
 func startsWith(n: NimNode, str: string): bool =
   n.nodeStr().startsWith(str)

@@ -415,6 +415,56 @@ types of fields might be returned on tuple unpacking, but not mandatory.
 If different fields have varying types ``when`` **must** and ``static`` be
 used to allow for compile-time code selection.
 
+Predicates and infix operators
+------------------------------
+
+Infix operators
+~~~~~~~~~~~~~~~
+
+By default object fields are either matched using recursive pattern, or
+compared for equality (when ``field: "some value"`` is used). It is also
+possible to explicitly specify operator, for example using ``=~`` from
+``std/re`` module:
+
+.. code:: nim
+    case (parent: (field: "string")):
+      of (parent.field: =~ re"str(.*)"):
+        doAssert matches[0] == "ing"
+
+
+It should be noted that implicitly injected ``matches`` variable is also
+visible in the case branch.
+
+
+Custom predicates
+~~~~~~~~~~~~~~~~~
+
+Matching expressions using custom predicates is also possible. If it is not
+necessary to capture matched element placeholder ``_.`` should be used as a
+first argument:
+
+
+.. code:: nim
+
+    proc lenEq(s: openarray[int], value: int): bool = s.len == value
+
+    case [1, 2]:
+      of _.lenEq(3):
+        # fails
+
+      of _.lenEq(2):
+        # matches
+
+To capture value using predicate placeholder can be replaced with
+``@capture`` pattern:
+
+.. code:: nim
+
+    let arr = @[@[1, 2], @[2, 3], @[4]]
+    discard arr.matches([any @capture.lenEq(2)])
+    doAssert capture == @[@[1, 2], @[2, 3]]
+
+
 Ref object matching
 -------------------
 

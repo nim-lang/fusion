@@ -1,4 +1,4 @@
-import std/[strutils, sequtils, strformat, sugar,
+import std/[strutils, sequtils, strformat, sugar, re,
             macros, options, tables, json]
 
 import fusion/matching
@@ -2334,6 +2334,37 @@ suite "Article examples":
 
       else:
         testFail()
+
+  test "Predicates and infix operators":
+    case (field: "string"):
+      of (field: =~ re"str(.*)"):
+        doAssert matches[0] == "ing"
+
+      else:
+        testFail()
+
+    case (parent: (field: "string")):
+      of (parent.field: =~ re"str(.*)"):
+        doAssert matches[0] == "ing"
+
+      else:
+        testFail()
+
+
+    proc lenEq(s: openarray[int], value: int): bool = s.len == value
+
+    case [1, 2]:
+      of _.lenEq(3):
+        testFail()
+
+      of _.lenEq(2):
+        discard
+
+    let arr = @[@[1, 2], @[2, 3], @[4]]
+    discard arr.matches([any @capture.lenEq(2)])
+    doAssert capture == @[@[1, 2], @[2, 3]]
+
+
 
   multitest "Optional object field matches":
     type
