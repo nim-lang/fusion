@@ -1,4 +1,4 @@
-import std/[strutils, sequtils, strformat, sugar, re,
+import std/[strutils, sequtils, strformat, sugar, pegs,
             macros, options, tables, json]
 
 import fusion/matching
@@ -2337,14 +2337,14 @@ suite "Article examples":
 
   test "Predicates and infix operators":
     case (field: "string"):
-      of (field: =~ re"str(.*)"):
+      of (field: =~ peg"str{\w+}"):
         doAssert matches[0] == "ing"
 
       else:
         testFail()
 
     case (parent: (field: "string")):
-      of (parent.field: =~ re"str(.*)"):
+      of (parent.field: =~ peg"str{\w+}"):
         doAssert matches[0] == "ing"
 
       else:

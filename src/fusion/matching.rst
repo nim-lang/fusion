@@ -424,11 +424,11 @@ Infix operators
 By default object fields are either matched using recursive pattern, or
 compared for equality (when ``field: "some value"`` is used). It is also
 possible to explicitly specify operator, for example using ``=~`` from
-``std/re`` module:
+``std/pegs`` module:
 
 .. code:: nim
     case (parent: (field: "string")):
-      of (parent.field: =~ re"str(.*)"):
+      of (parent.field: =~ peg"str{\w+}"):
         doAssert matches[0] == "ing"
 
 
