@@ -42,7 +42,7 @@ const
     ## identifiers)
 
 
-const debugWIP = true
+const debugWIP = false
 
 template echov(arg: untyped, indent: int = 0): untyped {.used.} =
   {.noSideEffect.}:
@@ -2218,11 +2218,12 @@ func makeMatchExpr(
             bindVar = newLit(true)
 
           result = quote do:
-            let it {.inject.} = `parent`
-            if `pred`:
-              `bindVar`
-            else:
-              false
+            block:
+              let it {.inject.} = `parent`
+              if `pred`:
+                `bindVar`
+              else:
+                false
 
     of kSeq:
       return makeSeqMatch(

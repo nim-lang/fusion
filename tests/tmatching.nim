@@ -777,7 +777,9 @@ suite "Matching":
     [all (len: < 10)] := [@[1,2,3,4], @[1,2,3,4]]
     [all _.startsWith("--")] := @["--", "--", "--=="]
 
-    block: [@a.startsWith("--")] := ["--12"]
+    block:
+      [@a.startsWith("--")] := ["--12"]
+      doAssert a == "--12"
 
     proc exception() =
       # This should generate quite nice exception message:
@@ -788,6 +790,21 @@ suite "Matching":
 
     expect MatchError:
       exception()
+
+  multitest "Decision matrix":
+    proc test1(str, arg: string): bool = str == arg
+    proc test2(str, arg: string): bool = str == arg
+
+    case ("1", "2"):
+      of (_.test1("1"), _.test2("1")):
+        testFail()
+
+      of (_.test1("1"), _.test2("2")):
+        discard
+
+      else:
+        testFail()
+
 
   multitest "One-or-more":
     case [1]:
@@ -1848,6 +1865,7 @@ suite "Gara tests":
 
     if a.matches((b: 0)):
       discard
+
     else:
       testFail()
 
@@ -1857,9 +1875,10 @@ suite "More tests":
 
     case [s]
       of [(len: > 5)]:
-        echo "len more than 5"
+        discard
+
       else:
-        echo "nope"
+        testFail()
 
   multitest "Matching boolean tables":
     case (true, false, false):
