@@ -43,83 +43,6 @@ proc `$`*[T](p: Arc[T]): string {.inline.} =
   else: "Arc[" & $T & "](" & $p.val.value & ")"
 
 type
-  SpinLock* = object
-    lock: bool
-
-proc acquire*(s: var SpinLock) =
-  while true:
-    if not atomicExchangeN(addr s.lock, true, AtomicAcquire):
-      return
-    else:
-      while atomicLoadN(addr s.lock, AtomicRelaxed): cpuRelax()
-
-proc tryAcquire*(s: var SpinLock): bool =
-  result = not atomicLoadN(addr s.lock, AtomicRelaxed) and
-      not atomicExchangeN(addr s.lock, true, AtomicAcquire)
-
-proc release*(s: var SpinLock) =
-  atomicStoreN(addr s.lock, false, AtomicRelease)
-
-template withLock*(a: SpinLock, body: untyped) =
-  acquire(a)
-  try:
-    body
-  finally:
-    release(a)
-
-type
-  Once* = object
-    L: Lock
-    finished: bool
-
-proc initOnce*(o: var Once) =
-  initLock(o.L)
-  o.finished = false
-
-proc destroyOnce*(o: var Once) {.inline.} =
-  deinitLock(o.L)
-
-template once*(o: Once, body: untyped) =
-  if not atomicLoadN(addr o.finished, AtomicAcquire):
-    acquire o.L
-    try:
-      if not o.finished:
-        try:
-          body
-        finally:
-          atomicStoreN(addr o.finished, true, AtomicRelease)
-    finally:
-      release o.L
-
-type
-  Semaphore* = object
-    c: Cond
-    L: Lock
-    counter: int
-
-proc initSemaphore*(s: var Semaphore; value: Natural = 0) =
-  initCond(s.c)
-  initLock(s.L)
-  s.counter = value
-
-proc destroySemaphore*(s: var Semaphore) {.inline.} =
-  deinitCond(s.c)
-  deinitLock(s.L)
-
-proc blockUntil*(s: var Semaphore) =
-  acquire(s.L)
-  while s.counter <= 0:
-    wait(s.c, s.L)
-  dec s.counter
-  release(s.L)
-
-proc signal*(s: var Semaphore) =
-  acquire(s.L)
-  inc s.counter
-  signal(s.c)
-  release(s.L)
-
-type
   Barrier* = object
     c: Cond
     L: Lock
@@ -150,6 +73,30 @@ proc wait*(b: var Barrier) =
     while cycle == b.cycle:
       wait(b.c, b.L)
   release(b.L)
+
+type
+  Once* = object
+    L: Lock
+    finished: bool
+
+proc initOnce*(o: var Once) =
+  initLock(o.L)
+  o.finished = false
+
+proc destroyOnce*(o: var Once) {.inline.} =
+  deinitLock(o.L)
+
+template once*(o: Once, body: untyped) =
+  if not atomicLoadN(addr o.finished, AtomicAcquire):
+    acquire o.L
+    try:
+      if not o.finished:
+        try:
+          body
+        finally:
+          atomicStoreN(addr o.finished, true, AtomicRelease)
+    finally:
+      release o.L
 
 type
   RwMonitor* = object
@@ -210,5 +157,58 @@ template writeWith*(a: RwMonitor, body: untyped) =
     body
   finally:
     endWrite(a)
+
+type
+  Semaphore* = object
+    c: Cond
+    L: Lock
+    counter: int
+
+proc initSemaphore*(s: var Semaphore; value: Natural = 0) =
+  initCond(s.c)
+  initLock(s.L)
+  s.counter = value
+
+proc destroySemaphore*(s: var Semaphore) {.inline.} =
+  deinitCond(s.c)
+  deinitLock(s.L)
+
+proc blockUntil*(s: var Semaphore) =
+  acquire(s.L)
+  while s.counter <= 0:
+    wait(s.c, s.L)
+  dec s.counter
+  release(s.L)
+
+proc signal*(s: var Semaphore) =
+  acquire(s.L)
+  inc s.counter
+  signal(s.c)
+  release(s.L)
+
+type
+  SpinLock* = object
+    lock: bool
+
+proc acquire*(s: var SpinLock) =
+  while true:
+    if not atomicExchangeN(addr s.lock, true, AtomicAcquire):
+      return
+    else:
+      while atomicLoadN(addr s.lock, AtomicRelaxed): cpuRelax()
+
+proc tryAcquire*(s: var SpinLock): bool =
+  result = not atomicLoadN(addr s.lock, AtomicRelaxed) and
+      not atomicExchangeN(addr s.lock, true, AtomicAcquire)
+
+proc release*(s: var SpinLock) =
+  atomicStoreN(addr s.lock, false, AtomicRelease)
+
+template withLock*(a: SpinLock, body: untyped) =
+  acquire(a)
+  try:
+    body
+  finally:
+    release(a)
 
 {.pop.}

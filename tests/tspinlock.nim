@@ -1,4 +1,4 @@
-import sync, std / os
+import fusion / sync, std / os
 
 var
   data = 0
