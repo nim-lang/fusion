@@ -95,9 +95,10 @@ template getHelper(a, x, ifFound, ifNotFound) {.dirty.} =
     var r = binarySearch(x, a)
     if (r < a.m) and eq(x, a.e[r].key):
       return ifFound
-    a = if r == 0: a.p0 else: a.e[r-1].p
-    if a.isNil:
-      return ifNotFound
+    else:
+      a = if r == 0: a.p0 else: a.e[r-1].p
+      if a.isNil:
+        return ifNotFound
 
 
 proc getOrDefault*[A, B](t: Table[A, B]; x: A): B =
@@ -175,12 +176,13 @@ proc `[]`*[A, B](t: Table[A, B]; x: A): B =
     var r = binarySearch(x, a)
     if (r < a.m) and eq(x, a.e[r].key):
       return a.e[r].val
-    a = if r == 0: a.p0 else: a.e[r-1].p
-    if a.isNil:
-      when compiles($key):
-        raise newException(KeyError, "key not found: " & $key)
-      else:
-        raise newException(KeyError, "key not found")
+    else:
+      a = if r == 0: a.p0 else: a.e[r-1].p
+      if a.isNil:
+        when compiles($key):
+          raise newException(KeyError, "key not found: " & $key)
+        else:
+          raise newException(KeyError, "key not found")
 
 
 proc `[]`*[A, B](t: var Table[A, B]; x: A): var B =
@@ -204,12 +206,13 @@ proc `[]`*[A, B](t: var Table[A, B]; x: A): var B =
     var r = binarySearch(x, a)
     if (r < a.m) and eq(x, a.e[r].key):
       return a.e[r].val
-    a = if r == 0: a.p0 else: a.e[r-1].p
-    if a.isNil:
-      when compiles($key):
-        raise newException(KeyError, "key not found: " & $key)
-      else:
-        raise newException(KeyError, "key not found")
+    else:
+      a = if r == 0: a.p0 else: a.e[r-1].p
+      if a.isNil:
+        when compiles($key):
+          raise newException(KeyError, "key not found: " & $key)
+        else:
+          raise newException(KeyError, "key not found")
 
 
 proc hasKey*[A, B](t: Table[A, B]; x: A): bool =
