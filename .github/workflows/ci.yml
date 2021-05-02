@@ -121,7 +121,7 @@ jobs:
           github.event_name == 'push' && github.ref == 'refs/heads/master' &&
           matrix.target.os == 'linux' && matrix.target.cpu == 'amd64' &&
           matrix.branch == 'devel'
-        uses: crazy-max/ghaction-github-pages@v1
+        uses: crazy-max/ghaction-github-pages@v2
         with:
           build_dir: fusion/htmldocs
           target_branch: gh-pages
