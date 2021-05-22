@@ -1658,17 +1658,16 @@ proc makeElemMatch(
           {.line: `ln`.}:
             raise MatchError(msg: `str` & $(`posid` - 1) & " failed")
 
+      var varset = newStmtList()
       if elem.bindVar.getSome(bindv):
         result.body.add newCommentStmtNode(
           "Set variable " & bindv.nodeStr() & " " &
             $vtable[bindv.nodeStr()].varKind)
 
-
         let vars = makeVarSet(
           bindv, parent.toAccs(mainExpr, false), vtable, doRaise)
 
-
-        result.body.add quote do:
+        varset.add quote do:
           if not `vars`:
             `failBreak`
 
@@ -1676,19 +1675,18 @@ proc makeElemMatch(
          elem.pattern.itemMatch == imkInfixEq and
          elem.pattern.isPlaceholder:
         result.body.add quote do:
+          `varSet`
           inc `counter`
           inc `posid`
           continue
       else:
         result.body.add quote do:
           if `expr`:
-            # debugecho "Match ok"
             inc `counter`
             inc `posid`
             continue
 
           else:
-            # debugecho "Fail break"
             `failBreak`
 
     else:

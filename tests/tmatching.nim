@@ -55,6 +55,23 @@ template t(body: untyped): untyped =
 
 
 suite "Issue tests":
+  test "Duplicated unpacking":
+    [all [@head < 10, _]] := @[[1, 2], [3, 4], [5, 6]]
+    doAssert head.len == 3
+
+    macro sumt(arg: untyped): untyped =
+      Asgn[@name is Ident(), Call[_, [all @typeFields]]] := arg[0]
+      [all Call[@names is Ident(), _]] := typeFields
+
+      doAssert names.len == 3
+
+    sumt:
+      Name = sumtype:
+        Kind1(string)
+        Kind2(float)
+        Kind3(char)
+
+
   test "`matching` bug with `{orc,arc}` #76":
     # Compilation failed with `--gc:orc` enabled
     macro parseTests(): untyped =
