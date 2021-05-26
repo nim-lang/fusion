@@ -1590,9 +1590,6 @@ func makeVarTable(m: Match):
 
           correctPathForOptionalField(sub, vt, pattern, path)
 
-          # echov path.mapIt($it), path.len
-
-
         if sub.seqMatches.getSome(seqm):
           result &= aux(seqm, vt, path.fullCopy())
 
