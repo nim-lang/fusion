@@ -42,8 +42,8 @@ Quick reference
 Supported match elements
 ========================
 
-- *seqs* - matched using ``[Patt1(), Patt2(), ..]``. Must have
-  ``len(): int`` and ``[int]: T`` defined.
+- *seqs* - matched using ``[Patt1(), Patt2(), ..]``. Must have ``len():
+  int`` and ``iterator items(): T`` defined.
 - *tuples* - matched using ``(Patt1(), Patt2(), ..)``.
 - *pairable* - matched using ``{Key: Patt()}``. Must have ``[Key]: T``
   defined. ``Key`` is not a pattern - search for whole collection
@@ -81,7 +81,7 @@ like `(len: < 12)` also work as expected.
 
 It is possible to have mixed assess for objects. Mixed object access
 via ``(gg: _, [], {})`` creates the same code for checking. E.g ``([_])``
-is the same as ``[_]``, ``({"key": "val"})`` is is identical to just
+is the same as ``[_]``, ``({"key": "val"})`` and is identical to just
 ``{"key": "val"}``. You can also call functions and check their values
 (like ``(len: _(it < 10))`` or ``(len: in {0 .. 10})``) to check for
 sequence length.
@@ -120,7 +120,7 @@ Examples
 Variable binding
 ================
 
-Match can be bound to new varaible. All variable declarations happen
+Match can be bound to new variable. All variable declarations happen
 via ``@varname`` syntax.
 
 - To bind element to variable without any additional checks do: ``(fld: @varname)``
@@ -195,7 +195,7 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
 ``until``
     non-greedy. Match everything until ``<expr>``
 
-    - ``until <expr>``: match all until frist element that matches Expr
+    - ``until <expr>``: match all until the first element that matches Expr
 
 ``all``
     greedy. Match everything that matches ``<expr>``
@@ -204,8 +204,12 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
 
     - ``all @val is <expr>``: capture all elements in ``@val`` if ``<expr>``
       is true for every one of them.
+
 ``opt``
-    Single element match
+
+    Optional single element match - if sequence contains fewer elements than
+    necessary element is considered missing. In that case either `default`
+    fallback (if present) is used as value, or capture is set to `None(T)`.
 
     - ``opt @a``: match optional element and bind it to a
 
@@ -213,7 +217,7 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
       "default"
 ``any``
     greedy. Consume all sequence elements until the end and
-    succed only if any element has matched.
+    succeed only if at least one element has matched.
 
     - ``any @val is "d"``: capture all element that match ``is "d"``
 
@@ -256,7 +260,7 @@ Use examples
 
 In addition to working with nested subpatterns it is possible to use
 pattern matching as simple text scanner, similar to strscans. Main
-difference is that it allows to work on arbitrary sequences, meaning it is
+difference is that it allows working on arbitrary sequences, meaning it is
 possible, for example, to operate on tokens, or as in this example on
 strings (for the sake of simplicity).
 
@@ -283,13 +287,17 @@ Input tuple: ``(1, 2, "fa")``
 ============================ ========== ============
  ``(_, _, _)``                **Ok**      Match all
  ``(@a, @a, _)``              **Fail**
- ``(@a is (1 | 2), @a, _)``   **Error**
+ ``(@a is (1 | 2), @a, _)``   **Fail**    [1]
  ``(1, 1 | 2, _)``            **Ok**
 ============================ ========== ============
 
-There are not a lot of features implemented for tuple matching, though it
-should be noted that `:=` operator can be quite handy when it comes to
-unpacking nested tuples -
+- [1] Pattern backtracking is not performed, ``@a`` is first bound to `1`,
+  and in subsequent match attempts pattern fails.
+
+Tuple element matches support any regular match expression like
+``@capture``, and not different from field matches. You can also use ``opt
+@capture or "default"`` in order to assign fallback value on tuple
+unpacking.
 
 .. code:: nim
 
@@ -322,6 +330,10 @@ For matching object fields you can use ``(fld: value)`` -
 
       of (fld1: @capture):
         doAssert capture == 0
+
+For objects with ``Option[T]`` fields it is possible to use ``field: opt
+@capture or "default"`` to either get capture value, or set it to fallback
+expression.
 
 Variant object matching
 -----------------------
@@ -403,6 +415,56 @@ types of fields might be returned on tuple unpacking, but not mandatory.
 If different fields have varying types ``when`` **must** and ``static`` be
 used to allow for compile-time code selection.
 
+Predicates and infix operators
+------------------------------
+
+Infix operators
+~~~~~~~~~~~~~~~
+
+By default object fields are either matched using recursive pattern, or
+compared for equality (when ``field: "some value"`` is used). It is also
+possible to explicitly specify operator, for example using ``=~`` from
+``std/pegs`` module:
+
+.. code:: nim
+    case (parent: (field: "string")):
+      of (parent.field: =~ peg"str{\w+}"):
+        doAssert matches[0] == "ing"
+
+
+It should be noted that implicitly injected ``matches`` variable is also
+visible in the case branch.
+
+
+Custom predicates
+~~~~~~~~~~~~~~~~~
+
+Matching expressions using custom predicates is also possible. If it is not
+necessary to capture matched element placeholder ``_.`` should be used as a
+first argument:
+
+
+.. code:: nim
+
+    proc lenEq(s: openarray[int], value: int): bool = s.len == value
+
+    case [1, 2]:
+      of _.lenEq(3):
+        # fails
+
+      of _.lenEq(2):
+        # matches
+
+To capture value using predicate placeholder can be replaced with
+``@capture`` pattern:
+
+.. code:: nim
+
+    let arr = @[@[1, 2], @[2, 3], @[4]]
+    discard arr.matches([any @capture.lenEq(2)])
+    doAssert capture == @[@[1, 2], @[2, 3]]
+
+
 Ref object matching
 -------------------
 
@@ -412,7 +474,7 @@ types.
 
 Note that ``of`` operator is necessary for distinguishing between multiple
 derived objects, or getting fields that are present only in derived types.
-In addition it performs ``isNil()`` check in the object, so it might be
+In addition to it performs ``isNil()`` check in the object, so it might be
 used in cases when you are not dealing with derived types.
 
 Due to ``isNil()`` check this pattern only makes sense when working with
@@ -506,6 +568,15 @@ Option matching
 ``Some(@x)`` and ``None()`` is a special case that will be rewritten into
 ``(isSome: true, get: @x)`` and ``(isNone: true)`` respectively. This is
 made to allow better integration with optional types.  [9]_ .
+
+Note: implementation does not explicitly require to use
+``std/options.Option`` type, but instead works with anything that provides
+following functions:
+
+- ``isSome(): bool`` (for `Some()` pattern check),
+- ``isNone(): bool`` (for `None()` pattern), and
+- ``get(): T`` (for getting value if type is some).
+
 
 Tree matching
 =============
