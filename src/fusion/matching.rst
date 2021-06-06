@@ -577,6 +577,64 @@ following functions:
 - ``isNone(): bool`` (for `None()` pattern), and
 - ``get(): T`` (for getting value if type is some).
 
+``Some()`` pattern can be used with ``?=`` to unpack optionals in
+conditions:
+
+.. code:: nim
+
+    for it in @[some(12), none(int)]:
+      if Some(@unpacked) ?= it:
+        doAssert unpacked == 12
+
+
+Difference between ``Some()/None()`` and ``opt``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Some()`` and ``None()`` checks are used *only* when working with
+``Option`` type (and any that provides the same API). When such pattern is
+encountered it is immediately transformed into ``isSome/isNone`` calls.
+
+``opt`` on the other hand is used for dealing with potentially missing
+values and providing default fallback values. In sequences, tables *or*
+optional fields. When used ``opt`` might add one layer of optionality if
+default value is not provided, or remove one layer if value is provided.
+
+
+.. code:: nim
+    let table = {"a": 12, "b": 2}.toTable()
+
+    {"a": @tableA, "b": opt @tableB, "c": opt @tableC or 99} := table
+    doAssert tableA == 12
+    # No default value for `b` - added `Option` wrapper layer
+    doAssert tableB is Option and tableB == some(2)
+    # Had default value, no `Option` addition
+    doAssert tableC == 99
+
+    let sequence = @[1, 3]
+
+    [@seqFirst, opt @seqSecond, opt @seqThird or 99] := sequence
+
+    doAssert seqFirst == 1
+    # Second element in sequence is optional, no default value so adding
+    # `Option` layer
+    doAssert seqSecond is Option and seqSecond == some(3)
+    # Third element is also optional, but it had default value so no
+    # `Optional` addition.
+    doAssert seqThird is int and seqThird == 99
+
+    let objOrTuple = (a: some(12), b: none(int))
+
+    objOrTuple.assertMatch (
+      a: opt @objA,
+      b: opt @objB or 999, # Had default value, removing one layer of
+                           # option
+    )
+
+    doAssert objA is Option[Option[int]] and objA == some(some(12))
+    # As a result final value is simply `int` and is equal to default
+    # value.
+    doAssert objB is int and objB == 999
+
 
 Tree matching
 =============

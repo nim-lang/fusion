@@ -2405,6 +2405,67 @@ suite "Article examples":
       doAssert head is seq[int]
       doAssert head == @[12, 12, 12]
 
+  test "Common use cases for optionals":
+    doAssert some(12).matches(Some(@capture)) and capture == 12
+
+    doAssert none(int).matches(@noneCapture is None()) and
+             noneCapture.isNone()
+
+    let optFields = (a: some(12), b: none(string))
+
+    (a: opt @capture2) := optFields
+    (a: Some(@capture3)) := optFields
+    (b: opt @noneCapture2 or "default") := optFields
+    (b: @noneCapture3) := optFields
+
+    doAssert not((b: opt @optCap) ?= optFields)
+
+    doAssert noneCapture2 == "default"
+    doAssert noneCapture2 is string
+    doAssert noneCapture3 is Option[string]
+    doAssert capture2 is Option[Option[int]]
+    doAssert capture3 is int and capture3 == 12
+    # doAssert capture2 == 12
+
+    for it in @[some(12), none(int)]:
+      if Some(@unpacked) ?= it:
+        doAssert unpacked == 12
+
+  test "`opt` for missing values":
+    let table = {"a": 12, "b": 2}.toTable()
+
+    {"a": @tableA, "b": opt @tableB, "c": opt @tableC or 99} := table
+    doAssert tableA == 12
+    # No default value for `b` - added `Option` wrapper layer
+    doAssert tableB is Option and tableB == some(2)
+    # Had default value, no `Option` addition
+    doAssert tableC == 99
+
+    let sequence = @[1, 3]
+
+    [@seqFirst, opt @seqSecond, opt @seqThird or 99] := sequence
+
+    doAssert seqFirst == 1
+    # Second element in sequence is optional, no default value so adding
+    # `Option` layer
+    doAssert seqSecond is Option and seqSecond == some(3)
+    # Third element is also optional, but it had default value so no
+    # `Optional` addition.
+    doAssert seqThird is int and seqThird == 99
+
+    let objOrTuple = (a: some(12), b: none(int))
+
+    objOrTuple.assertMatch (
+      a: opt @objA,
+      b: opt @objB or 999, # Had default value, removing one layer of
+                           # option
+    )
+
+    doAssert objA is Option[Option[int]] and objA == some(some(12))
+    # As a result final value is simply `int` and is equal to default
+    # value.
+    doAssert objB is int and objB == 999
+
   test "`opt` for objects":
     type
       Settings = object of RootObj
