@@ -42,8 +42,6 @@ const
     ## identifiers)
 
 
-const debugWIP = false
-
 template echov(arg: untyped, indent: int = 0): untyped {.used.} =
   {.noSideEffect.}:
     when debugWIP:
@@ -1648,12 +1646,13 @@ proc makeElemMatch(
       let ln = elem.decl.lineIInfo()
       if doRaise and not debugWIP:
         var str = newNimNode(nnkRStrLit)
-        str.strVal = "Match failure for pattern '" & patternStr.strVal() &
+        str.strVal = "Match failure for pattern '" &
+            patternStr.strVal().codeFmt() &
             "'. Item at index "
 
         failBreak = quote do:
           {.line: `ln`.}:
-            raise MatchError(msg: `str` & $(`posid` - 1) & " failed")
+            raise MatchError(msg: `str` & $(`posid`) & " failed")
 
       var varset = newStmtList()
       if elem.bindVar.getSome(bindv):
