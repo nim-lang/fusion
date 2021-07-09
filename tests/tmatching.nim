@@ -808,6 +808,22 @@ suite "Matching":
     expect MatchError:
       exception()
 
+  multitest "Box reimplementation":
+    type
+      TypeKind = enum tkString, tkInt, tkFloat
+      VNType = object
+        case kind: TypeKind
+        of tkString: stringVal*: string
+        of tkInt: intVal*: int
+        of tkFloat: floatVal*: float
+
+    proc `-` (a, b: VNType): VNType =
+      case (a, b):
+        of ((intVal: @val1(a.kind == tkInt)),
+            (intVal: @val2(b.kind == tkInt))):
+
+          return VNType(intVal: val1 - val2, kind: tkInt)
+
   multitest "Decision matrix":
     proc test1(str, arg: string): bool = str == arg
     proc test2(str, arg: string): bool = str == arg
@@ -1297,7 +1313,8 @@ suite "Matching":
       [(1 | 2)] := [3]
       testFail("[(1 | 2)] := [3]")
     except MatchError:
-      doAssert "pattern '(1 | 2)'" in getCurrentExceptionMsg()
+      doAssert "(1 | 2)" in getCurrentExceptionMsg(),
+        getCurrentExceptionMsg()
 
 
     1 := 1

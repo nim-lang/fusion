@@ -41,6 +41,7 @@ const
     ## Set of all token-like nodes (primitive type literals or
     ## identifiers)
 
+const debugWip = false
 
 template echov(arg: untyped, indent: int = 0): untyped {.used.} =
   {.noSideEffect.}:
