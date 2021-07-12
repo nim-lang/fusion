@@ -31,6 +31,18 @@ type
     last: ptr Chunk[T]
     lastCap: int
 
+proc `=copy`*[T](dest: var Pool[T]; src: Pool[T]) {.error.}
+
+proc `=destroy`*[T](p: var Pool[T]) =
+  var it = p.last
+  while it != nil:
+    when not supportsCopyMem(T):
+      for i in 0..<it.len:
+        `=destroy`(it.elems[i])
+    let next = it.next
+    deallocShared(it)
+    it = next
+
 proc newNode*[T](p: var Pool[T]): ptr T =
   if p.len >= p.lastCap:
     if p.lastCap == 0: p.lastCap = 4
@@ -46,21 +58,6 @@ proc newNode*[T](p: var Pool[T]): ptr T =
   result = addr(p.last.elems[p.len])
   inc p.len
   inc p.last.len
-
-proc `=`[T](dest: var Pool[T]; src: Pool[T]) {.error.}
-
-proc `=destroy`[T](p: var Pool[T]) =
-  var it = p.last
-  while it != nil:
-    when not supportsCopyMem(T):
-      for i in 0..<it.len:
-        `=destroy`(it.elems[i])
-    let next = it.next
-    deallocShared(it)
-    it = next
-  p.len = 0
-  p.lastCap = 0
-  p.last = nil
 
 when isMainModule:
   const withNonTrivialDestructor = false
