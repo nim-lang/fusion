@@ -31,8 +31,6 @@ type
     last: ptr Chunk[T]
     lastCap: int
 
-proc `=copy`*[T](dest: var Pool[T]; src: Pool[T]) {.error.}
-
 proc `=destroy`*[T](p: var Pool[T]) =
   var it = p.last
   while it != nil:
@@ -43,14 +41,16 @@ proc `=destroy`*[T](p: var Pool[T]) =
     deallocShared(it)
     it = next
 
+proc `=copy`*[T](dest: var Pool[T]; src: Pool[T]) {.error.}
+
 proc newNode*[T](p: var Pool[T]): ptr T =
   if p.len >= p.lastCap:
     if p.lastCap == 0: p.lastCap = 4
     elif p.lastCap < 65_000: p.lastCap *= 2
     when not supportsCopyMem(T):
-      var n = cast[ptr Chunk[T]](allocShared0(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
+      let n = cast[ptr Chunk[T]](allocShared0(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
     else:
-      var n = cast[ptr Chunk[T]](allocShared(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
+      let n = cast[ptr Chunk[T]](allocShared(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
     n.next = nil
     n.next = p.last
     p.last = n
