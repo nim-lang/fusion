@@ -47,7 +47,7 @@ proc newNode*[T](p: var Pool[T]): ptr T =
   inc p.len
   inc p.last.len
 
-proc `=`[T](dest: var Pool[T]; src: Pool[T]) {.error.}
+proc `=copy`[T](dest: var Pool[T]; src: Pool[T]) {.error.}
 
 proc `=destroy`[T](p: var Pool[T]) =
   var it = p.last
