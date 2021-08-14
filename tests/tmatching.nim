@@ -2398,6 +2398,64 @@ suite "Article examples":
     discard arr.matches([any @capture.lenEq(2)])
     doAssert capture == @[@[1, 2], @[2, 3]]
 
+  test "Key-value pair matching":
+    let node = parseJson("""
+      {"menu": {
+        "id": "file",
+        "value": "File",
+        "menuitem": [
+          {"value": "New", "onclick": "CreateNewDoc()",
+           "ondrop": "OnDrop()"},
+          {"value": "Open", "onclick": "OpenDoc()"},
+          {"value": "Close", "onclick": "CloseDoc()"}
+        ]
+      }}""")
+
+    block:
+      node.assertMatch:
+        {"menu":
+          {"menuitem":
+            [all {"value": @values, "onclick": @onclicks}]}}
+
+      doAssert values is seq[JsonNode]
+      doAssert onclicks is seq[JsonNode]
+      doAssert values.len == 3
+      doAssert onclicks.len == 3
+      doAssert values[0].getStr() == "New"
+      doAssert values[1].getStr() == "Open"
+      doAssert values[2].getStr() == "Close"
+
+    block get_all_keys:
+      node.assertMatch {"menu": {"menuitem": [all {"value": @values}]}}
+      doAssert values is seq[JsonNode]
+      doAssert values == @[%"New", %"Open", %"Close"]
+
+    block optional_elements_fallback:
+      node.assertMatch {"menu": {"menuitem":
+        [all {"ondrop": @drops or %"<defaulted>"}]}}
+
+      doAssert drops == @[%"OnDrop()", %"<defaulted>", %"<defaulted>"]
+
+    block optional_elements:
+      node.assertMatch {"menu": {"menuitem": [any {"ondrop": @drops}]}}
+
+      doAssert drops == @[%"OnDrop()"]
+
+
+
+    block case_match:
+      case node:
+        of {"value": JString(getStr: "File")}:
+          discard
+
+        of {"value": JString(getStr: @other)}:
+          fail()
+          static:
+            doAssert other is string
+
+        of {"value": @other}:
+          fail()
+
 
 
   multitest "Optional object field matches":

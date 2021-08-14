@@ -5,17 +5,6 @@ import std/[
 
 export options
 
-runnableExamples:
-  {.experimental: "caseStmtMacros".}
-
-  case [(1, 3), (3, 4)]:
-    of [(1, @a), _]:
-      echo a
-
-    else:
-      echo "Match failed"
-
-
 ## .. include:: matching.rst
 
 const

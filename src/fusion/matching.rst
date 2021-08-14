@@ -9,6 +9,16 @@ This module implements pattern matching for objects, tuples,
 sequences, key-value pairs, case and derived objects. DSL can also be
 used to create object trees (AST).
 
+.. code:: nim
+  {.experimental: "caseStmtMacros".}
+
+  case [(1, 3), (3, 4)]:
+    of [(1, @a), _]:
+      echo a
+
+    else:
+      echo "Match failed"
+
 
 
 Quick reference
@@ -206,7 +216,6 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
       is true for every one of them.
 
 ``opt``
-
     Optional single element match - if sequence contains fewer elements than
     necessary element is considered missing. In that case either `default`
     fallback (if present) is used as value, or capture is set to `None(T)`.
@@ -537,7 +546,11 @@ Due to ``isNil()`` check this pattern only makes sense when working with
 KV-pairs matching
 -----------------
 
-Input json string
+Pattern matchig also support key-value pairs - any type that has ``[]`` and
+``contains`` defined for the necessary types can be used. In this example
+we would use ``JsonNode`` type from the standard library.
+
+Input json in all examples in this section (``node`` variable)
 
 .. code:: json
 
@@ -546,21 +559,54 @@ Input json string
       "value": "File",
       "popup": {
         "menuitem": [
-          {"value": "New", "onclick": "CreateNewDoc()"},
+          {"value": "New", "onclick": "CreateNewDoc()",
+           "ondrop": "OnDrop()"},
           {"value": "Open", "onclick": "OpenDoc()"},
           {"value": "Close", "onclick": "CloseDoc()"}
         ]
       }
     }}
 
-- Get input ``["menu"]["file"]`` from node and
+
+
+Get each "value" from an array. Resulting match would be stored ``values``
+variable - ``@[%"New", %"Open", %"Close"]``
 
 .. code:: nim
-    case inj:
-      of {"menu" : {"file": @file is JString()}}:
-        # ...
-      else:
-        raiseAssert("Expected [menu][file] as string, but found " & $inj)
+    node.assertMatch {"menu": {"menuitem": [all {"value": @values}]}}
+
+It is also possible to mix key-value pairs, field and kind object matching.
+In this example case first branch would trigger if ``node`` contains
+``"value"`` that is a jstring, with value ``"File"``. Second would trigger
+if string value is anything else (but it must still be a jstring).
+
+
+.. code:: nim
+    case node:
+      of {"value": JString(getStr: "File")}:
+        # JString "File"
+
+      of {"value": JString(getStr: @other)}:
+        # Any jstring
+
+      of {"value": @other}
+        # Any other kind
+
+Collect ``"ondrop"`` from all elements in array, providing fallback
+values - ``drops`` would contain ``@[%"OnDrop()", %"<defaulted>",
+%"<defaulted>"]``
+
+.. code:: nim
+    node.assertMatch {"menu": {"menuitem":
+      [all {"ondrop": @drops or %"<defaulted>"}]}}
+
+Collect only explicitly specified values - capture ``@[%"OnDrop()"]``
+
+.. code:: nim
+    node.assertMatch {"menu": {"menuitem": [any {"ondrop": @drops}]}}
+
+
+
 
 Option matching
 ---------------
