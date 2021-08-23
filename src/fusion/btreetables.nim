@@ -179,8 +179,8 @@ proc `[]`*[A, B](t: Table[A, B]; x: A): B =
     else:
       a = if r == 0: a.p0 else: a.e[r-1].p
       if a.isNil:
-        when compiles($key):
-          raise newException(KeyError, "key not found: " & $key)
+        when compiles($x):
+          raise newException(KeyError, "key not found: " & $x)
         else:
           raise newException(KeyError, "key not found")
 
@@ -209,8 +209,8 @@ proc `[]`*[A, B](t: var Table[A, B]; x: A): var B =
     else:
       a = if r == 0: a.p0 else: a.e[r-1].p
       if a.isNil:
-        when compiles($key):
-          raise newException(KeyError, "key not found: " & $key)
+        when compiles($x):
+          raise newException(KeyError, "key not found: " & $x)
         else:
           raise newException(KeyError, "key not found")
 
