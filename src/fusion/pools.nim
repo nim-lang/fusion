@@ -31,25 +31,7 @@ type
     last: ptr Chunk[T]
     lastCap: int
 
-proc newNode*[T](p: var Pool[T]): ptr T =
-  if p.len >= p.lastCap:
-    if p.lastCap == 0: p.lastCap = 4
-    elif p.lastCap < 65_000: p.lastCap *= 2
-    when not supportsCopyMem(T):
-      var n = cast[ptr Chunk[T]](allocShared0(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
-    else:
-      var n = cast[ptr Chunk[T]](allocShared(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
-    n.next = nil
-    n.next = p.last
-    p.last = n
-    p.len = 0
-  result = addr(p.last.elems[p.len])
-  inc p.len
-  inc p.last.len
-
-proc `=`[T](dest: var Pool[T]; src: Pool[T]) {.error.}
-
-proc `=destroy`[T](p: var Pool[T]) =
+proc `=destroy`*[T](p: var Pool[T]) =
   var it = p.last
   while it != nil:
     when not supportsCopyMem(T):
@@ -58,9 +40,24 @@ proc `=destroy`[T](p: var Pool[T]) =
     let next = it.next
     deallocShared(it)
     it = next
-  p.len = 0
-  p.lastCap = 0
-  p.last = nil
+
+proc `=copy`*[T](dest: var Pool[T]; src: Pool[T]) {.error.}
+
+proc newNode*[T](p: var Pool[T]): ptr T =
+  if p.len >= p.lastCap:
+    if p.lastCap == 0: p.lastCap = 4
+    elif p.lastCap < 65_000: p.lastCap *= 2
+    when not supportsCopyMem(T):
+      let n = cast[ptr Chunk[T]](allocShared0(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
+    else:
+      let n = cast[ptr Chunk[T]](allocShared(sizeof(Chunk[T]) + p.lastCap * sizeof(T)))
+    n.next = nil
+    n.next = p.last
+    p.last = n
+    p.len = 0
+  result = addr(p.last.elems[p.len])
+  inc p.len
+  inc p.last.len
 
 when isMainModule:
   const withNonTrivialDestructor = false
