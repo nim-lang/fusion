@@ -3008,3 +3008,19 @@ suite "Tests":
 
       else:
         testFail()
+
+  multitest "Assuming v2 as":
+    macro asssuming_v1(arg: untyped): untyped =
+      arg.assertMatch:
+
+        BracketExpr[@head, @typeParam] |
+        Command[@head, Bracket[@typeParam]] |
+        (@head is Ident())
+
+    macro assumingV2(arg, body: untyped): untyped =
+      arg.assertMatch:
+        Infix[(strVal: "as"), @expr, @name is Ident()] |
+        (@name is Ident())
+
+    assumingV2 expr() as name:
+      echo 12
