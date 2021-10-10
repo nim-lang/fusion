@@ -2462,12 +2462,14 @@ proc matchImpl(n: NimNode): NimNode =
       else:
         discard
 
+  if matchcase.len() == 1 and
+     matchcase[0].kind == nnkElse:
+    matchcase.insert(
+      0, nnkElifBranch.newTree(newLit(false), newEmptyNode()))
+
   let head = n[0]
   var mixinList = newStmtList nnkMixinStmt.newTree(
-    mixidents.deduplicate.mapIt(
-      ident it
-    )
-  )
+    mixidents.deduplicate.mapIt(ident it))
 
   if mixidents.len == 0:
     mixinList = newEmptyNode()

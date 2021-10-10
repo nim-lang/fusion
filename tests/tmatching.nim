@@ -103,6 +103,20 @@ suite "Issue tests":
       of ZKind.Z1(o1: @i):
         doAssert i == 1
 
+  test "Compiler crashes when else match NimNode #98":
+    # https://github.com/nim-lang/fusion/issues/98
+    #
+    # Compiler crash was caused by depleted case - single `else` branch for
+    # case generated `IfStmt[Else[StmtList[]]]` node that is not valid.
+    # This caused compiler crash due to lack of bound check somewhere in
+    # the compiler body, I'm not sure what exactly.
+    macro m() =
+      case newLit(0):
+        else:
+          discard
+
+    m()
+
 suite "Matching":
   test "Pattern parser tests":
     macro main(): untyped =
