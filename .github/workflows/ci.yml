@@ -93,7 +93,7 @@ jobs:
           else
             arch=32
           fi
-          curl -L "https://nim-lang.org/download/mingw$arch-6.3.0.7z" -o "external/mingw$arch.7z"
+          curl -L "https://nim-lang.org/download/mingw$arch.7z" -o "external/mingw$arch.7z"
           7z x "external/mingw$arch.7z" -oexternal/
 
           cygpath -aw "external/mingw$arch/bin" >> "${GITHUB_PATH}"
