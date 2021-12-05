@@ -700,7 +700,7 @@ proc child*(n: XmlNode, name: string): XmlNode =
     f.add newElement("firstSon")
     f.add newElement("secondSon")
     f.add newElement("thirdSon")
-    assert $(f.child("secondSon")) == "<secondSon />"
+    assert $(f.child("secondSon")) == "<secondSon>\n</secondSon>"
 
   assert n.kind == xnElement
   for i in items(n):
