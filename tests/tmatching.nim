@@ -52,7 +52,9 @@ template t(body: untyped): untyped =
       )
     )
 
-
+proc newTupleConstr(exprs: varargs[NimNode]): NimNode =
+  ## Create a new parentheses-enclosed expression.
+  newNimNode(nnkTupleConstr).add(exprs)
 
 suite "Issue tests":
   test "Duplicated unpacking":
@@ -512,7 +514,7 @@ suite "Matching":
 
   multitest "Infix":
     macro a(): untyped  =
-      case newPar(ident "1", ident "2"):
+      case newTupleConstr(ident "1", ident "2"):
         of Par([@ident1, @ident2]):
           doAssert ident1.strVal == "1"
           doAssert ident2.strVal == "2"
