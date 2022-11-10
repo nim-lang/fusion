@@ -51,6 +51,8 @@ proc `[]`*[T](p: UniquePtr[T]): var T {.inline.} =
     assert(p.val != nil, "deferencing nil unique pointer")
   p.val[]
 
+proc `[]=`*[T](p:UniquePtr[T], v:T) {.inline.} = (p[]) = v
+
 proc `$`*[T](p: UniquePtr[T]): string {.inline.} =
   if p.val == nil: "UniquePtr[" & $T & "](nil)"
   else: "UniquePtr[" & $T & "](" & $p.val[] & ")"
@@ -110,6 +112,8 @@ proc `[]`*[T](p: SharedPtr[T]): var T {.inline.} =
     doAssert(p.val != nil, "deferencing nil shared pointer")
   p.val.value
 
+proc `[]=`*[T](p:SharedPtr[T], v:T) {.inline.} = (p[]) = v
+
 proc `$`*[T](p: SharedPtr[T]): string {.inline.} =
   if p.val == nil: "SharedPtr[" & $T & "](nil)"
   else: "SharedPtr[" & $T & "](" & $p.val.value & ")"
@@ -134,6 +138,8 @@ proc `[]`*[T](p: ConstPtr[T]): lent T {.inline.} =
   when compileOption("boundChecks"):
     doAssert(SharedPtr[T](p).val != nil, "deferencing nil const pointer")
   SharedPtr[T](p).val.value
+
+template `[]=`*[T](p:ConstPtr[T], v:T) = {.error: "'" & p.astToStr & "[]' cannot be assigned to (ConstPtr)".}
 
 proc `$`*[T](p: ConstPtr[T]): string {.inline.} =
   if SharedPtr[T](p).val == nil: "ConstPtr[" & $T & "](nil)"
