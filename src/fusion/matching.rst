@@ -243,7 +243,7 @@ subpatterns or have trailing ``.._`` in pattern.
 ============= ============== ==============
 
 Use examples
-~~~~~~~~~~~~
+############
 
 - capture all elements in sequence: ``[all @elems]``
 - get all elements until (not including "d"): ``[until @a is "d"]``
@@ -419,7 +419,7 @@ Predicates and infix operators
 ------------------------------
 
 Infix operators
-~~~~~~~~~~~~~~~
+###############
 
 By default object fields are either matched using recursive pattern, or
 compared for equality (when ``field: "some value"`` is used). It is also
@@ -437,7 +437,7 @@ visible in the case branch.
 
 
 Custom predicates
-~~~~~~~~~~~~~~~~~
+#################
 
 Matching expressions using custom predicates is also possible. If it is not
 necessary to capture matched element placeholder ``_.`` should be used as a

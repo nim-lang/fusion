@@ -904,6 +904,9 @@ suite "Matching":
       text*: string
       subn*: seq[HtmlNode]
 
+  proc `==`(x, y: HtmlNode): bool {.noSideEffect.} =
+    x.kind == y.kind and x.text == y.text and x.subn == y.subn
+
   func add(n: var HtmlNode, s: HtmlNode) = n.subn.add s
 
   func len(n: HtmlNode): int = n.subn.len
