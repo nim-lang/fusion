@@ -2019,7 +2019,7 @@ func makeSeqMatch(
   else:
     setCheck = quote do:
       ## Check required len
-      `getLen` notin {`minNode` .. `maxNode`}
+      `getLen` notin `minNode` .. `maxNode`
 
   if doRaise and not debugWIP:
     var patternStr = seqm.declNode.toPatternStr()
