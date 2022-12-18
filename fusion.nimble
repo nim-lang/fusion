@@ -1,6 +1,6 @@
 # Package
 
-version       = "1.1"
+version       = "1.2"
 author        = "Araq"
 description   = "Extensions for Nim's stdlib"
 license       = "MIT"
