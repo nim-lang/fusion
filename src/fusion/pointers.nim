@@ -15,3 +15,37 @@ proc toUncheckedArray*[T](a: ptr T): ptr UncheckedArray[T] {.inline.} =
     pa[0] += 5
     doAssert a[1] == 105
   cast[ptr UncheckedArray[T]](a)
+
+template `+`*[T](p: ptr T, off: int): ptr T =
+  ## Unsafe.
+  runnableExamples:
+    var a = @[10, 11, 12]
+    let pa = a[0].addr
+    doAssert (pa + 1)[] == 11
+    doAssert pa[2] == 12
+    pa[1] = 2
+    doAssert a[1] == 2
+  type T = typeof(p[]) # pending https://github.com/nim-lang/Nim/issues/13527
+  cast[ptr T](cast[ByteAddress](p) +% off * sizeof(T))
+
+template `-`*[T](p: ptr T, off: int): ptr T =
+  ## Unsafe.
+  type T = typeof(p[])
+  cast[ptr T](cast[ByteAddress](p) -% off * sizeof(T))
+
+template `[]`*[T](p: ptr T, off: int): T =
+  ## Unsafe.
+  (p + off)[]
+
+template `[]=`*[T](p: ptr T, off: int, val: T) =
+  ## Unsafe.
+  (p + off)[] = val
+
+proc `+=`*[T](p: var ptr T, off: int) {.inline.} =
+  ## Unsafe.
+  # not a template to avoid double evaluation issues
+  p = p + off
+
+proc `-=`*[T](p: var ptr T, off: int) {.inline.} =
+  ## Unsafe.
+  p = p - off
