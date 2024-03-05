@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [version-1-0, version-1-2, version-1-4, devel]
+        branch: [version-1-6, version-2-0, devel]
         target:
           - os: linux
             cpu: amd64
@@ -27,7 +27,7 @@ jobs:
             builder: ubuntu-20.04
           - target:
               os: macos
-            builder: macos-10.15
+            builder: macos-12
           - target:
               os: windows
             builder: windows-2019
