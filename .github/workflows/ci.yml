@@ -40,7 +40,7 @@ jobs:
         working-directory: fusion
 
     steps:
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
       - name: Checkout fusion
         uses: actions/checkout@v2
         with:
