@@ -1,0 +1,12 @@
+nimTitle	jssets	src/fusion/js/jssets.html	module src/fusion/js/jssets		0
+nim	JsSet	src/fusion/js/jssets.html#JsSet	type JsSet		8
+nim	newJsSet	src/fusion/js/jssets.html#newJsSet	proc newJsSet(): JsSet		11
+nim	newJsSet	src/fusion/js/jssets.html#newJsSet,openArray[JsObject]	proc newJsSet(items: openArray[JsObject]): JsSet		13
+nim	add	src/fusion/js/jssets.html#add,JsSet,JsObject	proc add(this: JsSet; value: JsObject)		15
+nim	delete	src/fusion/js/jssets.html#delete,JsSet,JsObject	proc delete(this: JsSet; value: JsObject)		18
+nim	clear	src/fusion/js/jssets.html#clear,JsSet	proc clear(this: JsSet)		21
+nim	contains	src/fusion/js/jssets.html#contains,JsSet,JsObject	proc contains(this: JsSet; value: JsObject): bool		24
+nim	toString	src/fusion/js/jssets.html#toString,JsSet	proc toString(this: JsSet): seq[cstring]		27
+nim	len	src/fusion/js/jssets.html#len,JsSet	proc len(this: JsSet): int		31
+nim	`$`	src/fusion/js/jssets.html#$,JsSet	proc `$`(this: JsSet): string		33
+nimgrp	newjsset	src/fusion/js/jssets.html#newJsSet-procs-all	proc		11

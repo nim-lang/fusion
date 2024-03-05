@@ -1,0 +1,5 @@
+nimTitle	pools	src/fusion/pools.html	module src/fusion/pools		0
+nim	Pool	src/fusion/pools.html#Pool	object Pool		29
+nim	`=destroy`	src/fusion/pools.html#=destroy,Pool[T]	proc `=destroy`[T](p: var Pool[T])		34
+nim	`=copy`	src/fusion/pools.html#=copy,Pool[T],Pool[T]	proc `=copy`[T](dest: var Pool[T]; src: Pool[T])		44
+nim	newNode	src/fusion/pools.html#newNode,Pool[T]	proc newNode[T](p: var Pool[T]): ptr T		46

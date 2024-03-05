@@ -1,0 +1,4 @@
+nimTitle	astdsl	src/fusion/astdsl.html	module src/fusion/astdsl		0
+nim	buildAst	src/fusion/astdsl.html#buildAst.m,untyped,untyped	macro buildAst(node, children: untyped): NimNode		96
+nim	buildAst	src/fusion/astdsl.html#buildAst.m,untyped	macro buildAst(children: untyped): NimNode		136
+nimgrp	buildast	src/fusion/astdsl.html#buildAst-macros-all	macro		96

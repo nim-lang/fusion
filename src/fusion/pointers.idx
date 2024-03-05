@@ -1,0 +1,2 @@
+nimTitle	pointers	src/fusion/pointers.html	module src/fusion/pointers		0
+nim	toUncheckedArray	src/fusion/pointers.html#toUncheckedArray,ptr.T	proc toUncheckedArray[T](a: ptr T): ptr UncheckedArray[T]		5

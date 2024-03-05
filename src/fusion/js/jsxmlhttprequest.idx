@@ -1,0 +1,11 @@
+nimTitle	jsxmlhttprequest	src/fusion/js/jsxmlhttprequest.html	module src/fusion/js/jsxmlhttprequest		0
+nim	XMLHttpRequest	src/fusion/js/jsxmlhttprequest.html#XMLHttpRequest	type XMLHttpRequest		7
+nim	newXMLHttpRequest	src/fusion/js/jsxmlhttprequest.html#newXMLHttpRequest	proc newXMLHttpRequest(): XMLHttpRequest		13
+nim	open	src/fusion/js/jsxmlhttprequest.html#open,XMLHttpRequest,cstring,cstring	proc open(this: XMLHttpRequest; metod, url: cstring; async = true;\n     user = cstring.default; password = cstring.default)		16
+nim	send	src/fusion/js/jsxmlhttprequest.html#send,XMLHttpRequest	proc send(this: XMLHttpRequest; body: cstring | Node = cstring.default)		19
+nim	abort	src/fusion/js/jsxmlhttprequest.html#abort,XMLHttpRequest	proc abort(this: XMLHttpRequest)		22
+nim	getAllResponseHeaders	src/fusion/js/jsxmlhttprequest.html#getAllResponseHeaders,XMLHttpRequest	proc getAllResponseHeaders(this: XMLHttpRequest): cstring		25
+nim	overrideMimeType	src/fusion/js/jsxmlhttprequest.html#overrideMimeType,XMLHttpRequest,cstring	proc overrideMimeType(this: XMLHttpRequest; mimeType: cstring)		28
+nim	setRequestHeader	src/fusion/js/jsxmlhttprequest.html#setRequestHeader,XMLHttpRequest,cstring,cstring	proc setRequestHeader(this: XMLHttpRequest; key, value: cstring)		31
+nim	setRequestHeader	src/fusion/js/jsxmlhttprequest.html#setRequestHeader,XMLHttpRequest,openArray[tuple[cstring,cstring]]	proc setRequestHeader(this: XMLHttpRequest;\n                 keyValuePairs: openArray[tuple[key, val: cstring]])		34
+nimgrp	setrequestheader	src/fusion/js/jsxmlhttprequest.html#setRequestHeader-procs-all	proc		31

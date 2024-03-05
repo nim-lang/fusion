@@ -1,0 +1,144 @@
+nimTitle	htmlparser	src/fusion/htmlparser.html	module src/fusion/htmlparser		0
+nim	tagUnknown	src/fusion/htmlparser.html#tagUnknown	HtmlTag.tagUnknown		54
+nim	tagA	src/fusion/htmlparser.html#tagA	HtmlTag.tagA		54
+nim	tagAbbr	src/fusion/htmlparser.html#tagAbbr	HtmlTag.tagAbbr		54
+nim	tagAcronym	src/fusion/htmlparser.html#tagAcronym	HtmlTag.tagAcronym		54
+nim	tagAddress	src/fusion/htmlparser.html#tagAddress	HtmlTag.tagAddress		54
+nim	tagApplet	src/fusion/htmlparser.html#tagApplet	HtmlTag.tagApplet		54
+nim	tagArea	src/fusion/htmlparser.html#tagArea	HtmlTag.tagArea		54
+nim	tagArticle	src/fusion/htmlparser.html#tagArticle	HtmlTag.tagArticle		54
+nim	tagAside	src/fusion/htmlparser.html#tagAside	HtmlTag.tagAside		54
+nim	tagAudio	src/fusion/htmlparser.html#tagAudio	HtmlTag.tagAudio		54
+nim	tagB	src/fusion/htmlparser.html#tagB	HtmlTag.tagB		54
+nim	tagBase	src/fusion/htmlparser.html#tagBase	HtmlTag.tagBase		54
+nim	tagBdi	src/fusion/htmlparser.html#tagBdi	HtmlTag.tagBdi		54
+nim	tagBdo	src/fusion/htmlparser.html#tagBdo	HtmlTag.tagBdo		54
+nim	tagBasefont	src/fusion/htmlparser.html#tagBasefont	HtmlTag.tagBasefont		54
+nim	tagBig	src/fusion/htmlparser.html#tagBig	HtmlTag.tagBig		54
+nim	tagBlockquote	src/fusion/htmlparser.html#tagBlockquote	HtmlTag.tagBlockquote		54
+nim	tagBody	src/fusion/htmlparser.html#tagBody	HtmlTag.tagBody		54
+nim	tagBr	src/fusion/htmlparser.html#tagBr	HtmlTag.tagBr		54
+nim	tagButton	src/fusion/htmlparser.html#tagButton	HtmlTag.tagButton		54
+nim	tagCanvas	src/fusion/htmlparser.html#tagCanvas	HtmlTag.tagCanvas		54
+nim	tagCaption	src/fusion/htmlparser.html#tagCaption	HtmlTag.tagCaption		54
+nim	tagCenter	src/fusion/htmlparser.html#tagCenter	HtmlTag.tagCenter		54
+nim	tagCite	src/fusion/htmlparser.html#tagCite	HtmlTag.tagCite		54
+nim	tagCode	src/fusion/htmlparser.html#tagCode	HtmlTag.tagCode		54
+nim	tagCol	src/fusion/htmlparser.html#tagCol	HtmlTag.tagCol		54
+nim	tagColgroup	src/fusion/htmlparser.html#tagColgroup	HtmlTag.tagColgroup		54
+nim	tagCommand	src/fusion/htmlparser.html#tagCommand	HtmlTag.tagCommand		54
+nim	tagDatalist	src/fusion/htmlparser.html#tagDatalist	HtmlTag.tagDatalist		54
+nim	tagDd	src/fusion/htmlparser.html#tagDd	HtmlTag.tagDd		54
+nim	tagDel	src/fusion/htmlparser.html#tagDel	HtmlTag.tagDel		54
+nim	tagDetails	src/fusion/htmlparser.html#tagDetails	HtmlTag.tagDetails		54
+nim	tagDfn	src/fusion/htmlparser.html#tagDfn	HtmlTag.tagDfn		54
+nim	tagDialog	src/fusion/htmlparser.html#tagDialog	HtmlTag.tagDialog		54
+nim	tagDiv	src/fusion/htmlparser.html#tagDiv	HtmlTag.tagDiv		54
+nim	tagDir	src/fusion/htmlparser.html#tagDir	HtmlTag.tagDir		54
+nim	tagDl	src/fusion/htmlparser.html#tagDl	HtmlTag.tagDl		54
+nim	tagDt	src/fusion/htmlparser.html#tagDt	HtmlTag.tagDt		54
+nim	tagEm	src/fusion/htmlparser.html#tagEm	HtmlTag.tagEm		54
+nim	tagEmbed	src/fusion/htmlparser.html#tagEmbed	HtmlTag.tagEmbed		54
+nim	tagFieldset	src/fusion/htmlparser.html#tagFieldset	HtmlTag.tagFieldset		54
+nim	tagFigcaption	src/fusion/htmlparser.html#tagFigcaption	HtmlTag.tagFigcaption		54
+nim	tagFigure	src/fusion/htmlparser.html#tagFigure	HtmlTag.tagFigure		54
+nim	tagFont	src/fusion/htmlparser.html#tagFont	HtmlTag.tagFont		54
+nim	tagFooter	src/fusion/htmlparser.html#tagFooter	HtmlTag.tagFooter		54
+nim	tagForm	src/fusion/htmlparser.html#tagForm	HtmlTag.tagForm		54
+nim	tagFrame	src/fusion/htmlparser.html#tagFrame	HtmlTag.tagFrame		54
+nim	tagFrameset	src/fusion/htmlparser.html#tagFrameset	HtmlTag.tagFrameset		54
+nim	tagH1	src/fusion/htmlparser.html#tagH1	HtmlTag.tagH1		54
+nim	tagH2	src/fusion/htmlparser.html#tagH2	HtmlTag.tagH2		54
+nim	tagH3	src/fusion/htmlparser.html#tagH3	HtmlTag.tagH3		54
+nim	tagH4	src/fusion/htmlparser.html#tagH4	HtmlTag.tagH4		54
+nim	tagH5	src/fusion/htmlparser.html#tagH5	HtmlTag.tagH5		54
+nim	tagH6	src/fusion/htmlparser.html#tagH6	HtmlTag.tagH6		54
+nim	tagHead	src/fusion/htmlparser.html#tagHead	HtmlTag.tagHead		54
+nim	tagHeader	src/fusion/htmlparser.html#tagHeader	HtmlTag.tagHeader		54
+nim	tagHgroup	src/fusion/htmlparser.html#tagHgroup	HtmlTag.tagHgroup		54
+nim	tagHtml	src/fusion/htmlparser.html#tagHtml	HtmlTag.tagHtml		54
+nim	tagHr	src/fusion/htmlparser.html#tagHr	HtmlTag.tagHr		54
+nim	tagI	src/fusion/htmlparser.html#tagI	HtmlTag.tagI		54
+nim	tagIframe	src/fusion/htmlparser.html#tagIframe	HtmlTag.tagIframe		54
+nim	tagImg	src/fusion/htmlparser.html#tagImg	HtmlTag.tagImg		54
+nim	tagInput	src/fusion/htmlparser.html#tagInput	HtmlTag.tagInput		54
+nim	tagIns	src/fusion/htmlparser.html#tagIns	HtmlTag.tagIns		54
+nim	tagIsindex	src/fusion/htmlparser.html#tagIsindex	HtmlTag.tagIsindex		54
+nim	tagKbd	src/fusion/htmlparser.html#tagKbd	HtmlTag.tagKbd		54
+nim	tagKeygen	src/fusion/htmlparser.html#tagKeygen	HtmlTag.tagKeygen		54
+nim	tagLabel	src/fusion/htmlparser.html#tagLabel	HtmlTag.tagLabel		54
+nim	tagLegend	src/fusion/htmlparser.html#tagLegend	HtmlTag.tagLegend		54
+nim	tagLi	src/fusion/htmlparser.html#tagLi	HtmlTag.tagLi		54
+nim	tagLink	src/fusion/htmlparser.html#tagLink	HtmlTag.tagLink		54
+nim	tagMap	src/fusion/htmlparser.html#tagMap	HtmlTag.tagMap		54
+nim	tagMark	src/fusion/htmlparser.html#tagMark	HtmlTag.tagMark		54
+nim	tagMenu	src/fusion/htmlparser.html#tagMenu	HtmlTag.tagMenu		54
+nim	tagMeta	src/fusion/htmlparser.html#tagMeta	HtmlTag.tagMeta		54
+nim	tagMeter	src/fusion/htmlparser.html#tagMeter	HtmlTag.tagMeter		54
+nim	tagNav	src/fusion/htmlparser.html#tagNav	HtmlTag.tagNav		54
+nim	tagNobr	src/fusion/htmlparser.html#tagNobr	HtmlTag.tagNobr		54
+nim	tagNoframes	src/fusion/htmlparser.html#tagNoframes	HtmlTag.tagNoframes		54
+nim	tagNoscript	src/fusion/htmlparser.html#tagNoscript	HtmlTag.tagNoscript		54
+nim	tagObject	src/fusion/htmlparser.html#tagObject	HtmlTag.tagObject		54
+nim	tagOl	src/fusion/htmlparser.html#tagOl	HtmlTag.tagOl		54
+nim	tagOptgroup	src/fusion/htmlparser.html#tagOptgroup	HtmlTag.tagOptgroup		54
+nim	tagOption	src/fusion/htmlparser.html#tagOption	HtmlTag.tagOption		54
+nim	tagOutput	src/fusion/htmlparser.html#tagOutput	HtmlTag.tagOutput		54
+nim	tagP	src/fusion/htmlparser.html#tagP	HtmlTag.tagP		54
+nim	tagParam	src/fusion/htmlparser.html#tagParam	HtmlTag.tagParam		54
+nim	tagPre	src/fusion/htmlparser.html#tagPre	HtmlTag.tagPre		54
+nim	tagProgress	src/fusion/htmlparser.html#tagProgress	HtmlTag.tagProgress		54
+nim	tagQ	src/fusion/htmlparser.html#tagQ	HtmlTag.tagQ		54
+nim	tagRp	src/fusion/htmlparser.html#tagRp	HtmlTag.tagRp		54
+nim	tagRt	src/fusion/htmlparser.html#tagRt	HtmlTag.tagRt		54
+nim	tagRuby	src/fusion/htmlparser.html#tagRuby	HtmlTag.tagRuby		54
+nim	tagS	src/fusion/htmlparser.html#tagS	HtmlTag.tagS		54
+nim	tagSamp	src/fusion/htmlparser.html#tagSamp	HtmlTag.tagSamp		54
+nim	tagScript	src/fusion/htmlparser.html#tagScript	HtmlTag.tagScript		54
+nim	tagSection	src/fusion/htmlparser.html#tagSection	HtmlTag.tagSection		54
+nim	tagSelect	src/fusion/htmlparser.html#tagSelect	HtmlTag.tagSelect		54
+nim	tagSmall	src/fusion/htmlparser.html#tagSmall	HtmlTag.tagSmall		54
+nim	tagSource	src/fusion/htmlparser.html#tagSource	HtmlTag.tagSource		54
+nim	tagSpan	src/fusion/htmlparser.html#tagSpan	HtmlTag.tagSpan		54
+nim	tagStrike	src/fusion/htmlparser.html#tagStrike	HtmlTag.tagStrike		54
+nim	tagStrong	src/fusion/htmlparser.html#tagStrong	HtmlTag.tagStrong		54
+nim	tagStyle	src/fusion/htmlparser.html#tagStyle	HtmlTag.tagStyle		54
+nim	tagSub	src/fusion/htmlparser.html#tagSub	HtmlTag.tagSub		54
+nim	tagSummary	src/fusion/htmlparser.html#tagSummary	HtmlTag.tagSummary		54
+nim	tagSup	src/fusion/htmlparser.html#tagSup	HtmlTag.tagSup		54
+nim	tagTable	src/fusion/htmlparser.html#tagTable	HtmlTag.tagTable		54
+nim	tagTbody	src/fusion/htmlparser.html#tagTbody	HtmlTag.tagTbody		54
+nim	tagTd	src/fusion/htmlparser.html#tagTd	HtmlTag.tagTd		54
+nim	tagTextarea	src/fusion/htmlparser.html#tagTextarea	HtmlTag.tagTextarea		54
+nim	tagTfoot	src/fusion/htmlparser.html#tagTfoot	HtmlTag.tagTfoot		54
+nim	tagTh	src/fusion/htmlparser.html#tagTh	HtmlTag.tagTh		54
+nim	tagThead	src/fusion/htmlparser.html#tagThead	HtmlTag.tagThead		54
+nim	tagTime	src/fusion/htmlparser.html#tagTime	HtmlTag.tagTime		54
+nim	tagTitle	src/fusion/htmlparser.html#tagTitle	HtmlTag.tagTitle		54
+nim	tagTr	src/fusion/htmlparser.html#tagTr	HtmlTag.tagTr		54
+nim	tagTrack	src/fusion/htmlparser.html#tagTrack	HtmlTag.tagTrack		54
+nim	tagTt	src/fusion/htmlparser.html#tagTt	HtmlTag.tagTt		54
+nim	tagU	src/fusion/htmlparser.html#tagU	HtmlTag.tagU		54
+nim	tagUl	src/fusion/htmlparser.html#tagUl	HtmlTag.tagUl		54
+nim	tagVar	src/fusion/htmlparser.html#tagVar	HtmlTag.tagVar		54
+nim	tagVideo	src/fusion/htmlparser.html#tagVideo	HtmlTag.tagVideo		54
+nim	tagWbr	src/fusion/htmlparser.html#tagWbr	HtmlTag.tagWbr		54
+nim	HtmlTag	src/fusion/htmlparser.html#HtmlTag	enum HtmlTag		54
+nim	tagToStr	src/fusion/htmlparser.html#tagToStr	const tagToStr		182
+nim	InlineTags	src/fusion/htmlparser.html#InlineTags	const InlineTags		203
+nim	BlockTags	src/fusion/htmlparser.html#BlockTags	const BlockTags		210
+nim	SingleTags	src/fusion/htmlparser.html#SingleTags	const SingleTags		215
+nim	htmlTag	src/fusion/htmlparser.html#htmlTag,XmlNode	proc htmlTag(n: XmlNode): HtmlTag		356
+nim	htmlTag	src/fusion/htmlparser.html#htmlTag,string	proc htmlTag(s: string): HtmlTag		362
+nim	runeToEntity	src/fusion/htmlparser.html#runeToEntity,Rune	proc runeToEntity(rune: Rune): string		368
+nim	entityToRune	src/fusion/htmlparser.html#entityToRune,string	proc entityToRune(entity: string): Rune		379
+nim	entityToUtf8	src/fusion/htmlparser.html#entityToUtf8,string	proc entityToUtf8(entity: string): string		1872
+nim	parseHtml	src/fusion/htmlparser.html#parseHtml,Stream,string,seq[string]	proc parseHtml(s: Stream; filename: string; errors: var seq[string]): XmlNode		1981
+nim	parseHtml	src/fusion/htmlparser.html#parseHtml,Stream	proc parseHtml(s: Stream): XmlNode		2006
+nim	parseHtml	src/fusion/htmlparser.html#parseHtml,string	proc parseHtml(html: string): XmlNode		2012
+nim	loadHtml	src/fusion/htmlparser.html#loadHtml,string,seq[string]	proc loadHtml(path: string; errors: var seq[string]): XmlNode		2017
+nim	loadHtml	src/fusion/htmlparser.html#loadHtml,string	proc loadHtml(path: string): XmlNode		2025
+nimgrp	loadhtml	src/fusion/htmlparser.html#loadHtml-procs-all	proc		2017
+nimgrp	parsehtml	src/fusion/htmlparser.html#parseHtml-procs-all	proc		1981
+nimgrp	htmltag	src/fusion/htmlparser.html#htmlTag-procs-all	proc		356
+heading	Example: Transforming hyperlinks	src/fusion/htmlparser.html#examplecolon-transforming-hyperlinks	 Example: Transforming hyperlinks		0

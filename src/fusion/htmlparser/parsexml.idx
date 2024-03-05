@@ -1,0 +1,57 @@
+nimTitle	parsexml	src/fusion/htmlparser/parsexml.html	module src/fusion/htmlparser/parsexml		0
+nim	xmlError	src/fusion/htmlparser/parsexml.html#xmlError	XmlEventKind.xmlError		137
+nim	xmlEof	src/fusion/htmlparser/parsexml.html#xmlEof	XmlEventKind.xmlEof		137
+nim	xmlCharData	src/fusion/htmlparser/parsexml.html#xmlCharData	XmlEventKind.xmlCharData		137
+nim	xmlWhitespace	src/fusion/htmlparser/parsexml.html#xmlWhitespace	XmlEventKind.xmlWhitespace		137
+nim	xmlComment	src/fusion/htmlparser/parsexml.html#xmlComment	XmlEventKind.xmlComment		137
+nim	xmlPI	src/fusion/htmlparser/parsexml.html#xmlPI	XmlEventKind.xmlPI		137
+nim	xmlElementStart	src/fusion/htmlparser/parsexml.html#xmlElementStart	XmlEventKind.xmlElementStart		137
+nim	xmlElementEnd	src/fusion/htmlparser/parsexml.html#xmlElementEnd	XmlEventKind.xmlElementEnd		137
+nim	xmlElementOpen	src/fusion/htmlparser/parsexml.html#xmlElementOpen	XmlEventKind.xmlElementOpen		137
+nim	xmlAttribute	src/fusion/htmlparser/parsexml.html#xmlAttribute	XmlEventKind.xmlAttribute		137
+nim	xmlElementClose	src/fusion/htmlparser/parsexml.html#xmlElementClose	XmlEventKind.xmlElementClose		137
+nim	xmlCData	src/fusion/htmlparser/parsexml.html#xmlCData	XmlEventKind.xmlCData		137
+nim	xmlEntity	src/fusion/htmlparser/parsexml.html#xmlEntity	XmlEventKind.xmlEntity		137
+nim	xmlSpecial	src/fusion/htmlparser/parsexml.html#xmlSpecial	XmlEventKind.xmlSpecial		137
+nim	XmlEventKind	src/fusion/htmlparser/parsexml.html#XmlEventKind	enum XmlEventKind		137
+nim	errNone	src/fusion/htmlparser/parsexml.html#errNone	XmlErrorKind.errNone		153
+nim	errEndOfCDataExpected	src/fusion/htmlparser/parsexml.html#errEndOfCDataExpected	XmlErrorKind.errEndOfCDataExpected		153
+nim	errNameExpected	src/fusion/htmlparser/parsexml.html#errNameExpected	XmlErrorKind.errNameExpected		153
+nim	errSemicolonExpected	src/fusion/htmlparser/parsexml.html#errSemicolonExpected	XmlErrorKind.errSemicolonExpected		153
+nim	errQmGtExpected	src/fusion/htmlparser/parsexml.html#errQmGtExpected	XmlErrorKind.errQmGtExpected		153
+nim	errGtExpected	src/fusion/htmlparser/parsexml.html#errGtExpected	XmlErrorKind.errGtExpected		153
+nim	errEqExpected	src/fusion/htmlparser/parsexml.html#errEqExpected	XmlErrorKind.errEqExpected		153
+nim	errQuoteExpected	src/fusion/htmlparser/parsexml.html#errQuoteExpected	XmlErrorKind.errQuoteExpected		153
+nim	errEndOfCommentExpected	src/fusion/htmlparser/parsexml.html#errEndOfCommentExpected	XmlErrorKind.errEndOfCommentExpected		153
+nim	errAttributeValueExpected	src/fusion/htmlparser/parsexml.html#errAttributeValueExpected	XmlErrorKind.errAttributeValueExpected		153
+nim	XmlErrorKind	src/fusion/htmlparser/parsexml.html#XmlErrorKind	enum XmlErrorKind		153
+nim	reportWhitespace	src/fusion/htmlparser/parsexml.html#reportWhitespace	XmlParseOption.reportWhitespace		168
+nim	reportComments	src/fusion/htmlparser/parsexml.html#reportComments	XmlParseOption.reportComments		168
+nim	allowUnquotedAttribs	src/fusion/htmlparser/parsexml.html#allowUnquotedAttribs	XmlParseOption.allowUnquotedAttribs		168
+nim	allowEmptyAttribs	src/fusion/htmlparser/parsexml.html#allowEmptyAttribs	XmlParseOption.allowEmptyAttribs		168
+nim	XmlParseOption	src/fusion/htmlparser/parsexml.html#XmlParseOption	enum XmlParseOption		168
+nim	XmlParser	src/fusion/htmlparser/parsexml.html#XmlParser	object XmlParser		174
+nim	open	src/fusion/htmlparser/parsexml.html#open,XmlParser,Stream,string,set[XmlParseOption]	proc open(my: var XmlParser; input: Stream; filename: string;\n     options: set[XmlParseOption] = {})		197
+nim	close	src/fusion/htmlparser/parsexml.html#close,XmlParser	proc close(my: var XmlParser)		215
+nim	kind	src/fusion/htmlparser/parsexml.html#kind,XmlParser	proc kind(my: XmlParser): XmlEventKind		219
+nim	charData	src/fusion/htmlparser/parsexml.html#charData.t,XmlParser	template charData(my: XmlParser): string		223
+nim	elementName	src/fusion/htmlparser/parsexml.html#elementName.t,XmlParser	template elementName(my: XmlParser): string		233
+nim	entityName	src/fusion/htmlparser/parsexml.html#entityName.t,XmlParser	template entityName(my: XmlParser): string		242
+nim	attrKey	src/fusion/htmlparser/parsexml.html#attrKey.t,XmlParser	template attrKey(my: XmlParser): string		250
+nim	attrValue	src/fusion/htmlparser/parsexml.html#attrValue.t,XmlParser	template attrValue(my: XmlParser): string		258
+nim	piName	src/fusion/htmlparser/parsexml.html#piName.t,XmlParser	template piName(my: XmlParser): string		266
+nim	piRest	src/fusion/htmlparser/parsexml.html#piRest.t,XmlParser	template piRest(my: XmlParser): string		274
+nim	rawData	src/fusion/htmlparser/parsexml.html#rawData,XmlParser	proc rawData(my: var XmlParser): string		282
+nim	rawData2	src/fusion/htmlparser/parsexml.html#rawData2,XmlParser	proc rawData2(my: var XmlParser): string		290
+nim	getColumn	src/fusion/htmlparser/parsexml.html#getColumn,XmlParser	proc getColumn(my: XmlParser): int		298
+nim	getLine	src/fusion/htmlparser/parsexml.html#getLine,XmlParser	proc getLine(my: XmlParser): int		302
+nim	getFilename	src/fusion/htmlparser/parsexml.html#getFilename,XmlParser	proc getFilename(my: XmlParser): string		306
+nim	errorMsg	src/fusion/htmlparser/parsexml.html#errorMsg,XmlParser	proc errorMsg(my: XmlParser): string		310
+nim	errorMsgExpected	src/fusion/htmlparser/parsexml.html#errorMsgExpected,XmlParser,string	proc errorMsgExpected(my: XmlParser; tag: string): string		316
+nim	errorMsg	src/fusion/htmlparser/parsexml.html#errorMsg,XmlParser,string	proc errorMsg(my: XmlParser; msg: string): string		322
+nim	next	src/fusion/htmlparser/parsexml.html#next,XmlParser	proc next(my: var XmlParser)		737
+nimgrp	errormsg	src/fusion/htmlparser/parsexml.html#errorMsg-procs-all	proc		310
+idx	XML	src/fusion/htmlparser/parsexml.html#xml_1	Module parsexml		0
+idx	HTML	src/fusion/htmlparser/parsexml.html#html_1	Module parsexml		0
+heading	Example 1: Retrieve HTML title	src/fusion/htmlparser/parsexml.html#example-1colon-retrieve-html-title	 Example 1: Retrieve HTML title		0
+heading	Example 2: Retrieve all HTML links	src/fusion/htmlparser/parsexml.html#example-2colon-retrieve-all-html-links	 Example 2: Retrieve all HTML links		0

@@ -1,0 +1,2 @@
+nimTitle	scripting	src/fusion/scripting.html	module src/fusion/scripting		0
+nim	withDir	src/fusion/scripting.html#withDir.t,string,untyped	template withDir(dir: string; body: untyped): untyped		4

@@ -1,0 +1,176 @@
+nimTitle	btreetables	src/fusion/btreetables.html	module src/fusion/btreetables		0
+nim	Table	src/fusion/btreetables.html#Table	object Table		24
+nim	TableRef	src/fusion/btreetables.html#TableRef	type TableRef		34
+nim	initTable	src/fusion/btreetables.html#initTable,int	proc initTable[A, B](initialSize = 0): Table[A, B]		57
+nim	`[]=`	src/fusion/btreetables.html#[]=,Table[A,B],A,B	proc `[]=`[A, B](t: var Table[A, B]; key: A; val: B)		73
+nim	toTable	src/fusion/btreetables.html#toTable,openArray[]	proc toTable[A, B](pairs: openArray[(A, B)]): Table[A, B]		75
+nim	getOrDefault	src/fusion/btreetables.html#getOrDefault,Table[A,B],A	proc getOrDefault[A, B](t: Table[A, B]; x: A): B		104
+nim	getOrDefault	src/fusion/btreetables.html#getOrDefault,Table[A,B],A,B	proc getOrDefault[A, B](t: Table[A, B]; x: A; default: B): B		127
+nim	`[]`	src/fusion/btreetables.html#[],Table[A,B],A	proc `[]`[A, B](t: Table[A, B]; x: A): B		150
+nim	`[]`	src/fusion/btreetables.html#[],Table[A,B],A_2	proc `[]`[A, B](t: var Table[A, B]; x: A): var B		188
+nim	hasKey	src/fusion/btreetables.html#hasKey,Table[A,B],A	proc hasKey[A, B](t: Table[A, B]; x: A): bool		218
+nim	contains	src/fusion/btreetables.html#contains,Table[A,B],A	proc contains[A, B](t: Table[A, B]; x: A): bool		234
+nim	hasKeyOrPut	src/fusion/btreetables.html#hasKeyOrPut,Table[A,B],A,B	proc hasKeyOrPut[A, B](t: var Table[A, B]; key: A; val: B): bool		347
+nim	mgetOrPut	src/fusion/btreetables.html#mgetOrPut,Table[A,B],A,B	proc mgetOrPut[A, B](t: var Table[A, B]; key: A; val: B): var B		372
+nim	del	src/fusion/btreetables.html#del,Table[A,B],A	proc del[A, B](t: var Table[A, B]; key: A)		529
+nim	pop	src/fusion/btreetables.html#pop,Table[A,B],A,B	proc pop[A, B](t: var Table[A, B]; key: A; val: var B): bool		545
+nim	take	src/fusion/btreetables.html#take,Table[A,B],A,B	proc take[A, B](t: var Table[A, B]; key: A; val: var B): bool		572
+nim	clear	src/fusion/btreetables.html#clear,Table[A,B]	proc clear[A, B](t: var Table[A, B])		579
+nim	len	src/fusion/btreetables.html#len,Table[A,B]	proc len[A, B](t: Table[A, B]): int		594
+nim	keys	src/fusion/btreetables.html#keys.i,Table[A,B]	iterator keys[A, B](t: Table[A, B]): A		677
+nim	keysFrom	src/fusion/btreetables.html#keysFrom.i,Table[A,B],A	iterator keysFrom[A, B](b: Table[A, B]; fromKey: A): A		695
+nim	keysBetween	src/fusion/btreetables.html#keysBetween.i,Table[A,B],A,A	iterator keysBetween[A, B](b: Table[A, B]; fromKey: A; toKey: A): A		700
+nim	values	src/fusion/btreetables.html#values.i,Table[A,B]	iterator values[A, B](t: Table[A, B]): B		706
+nim	mvalues	src/fusion/btreetables.html#mvalues.i,Table[A,B]	iterator mvalues[A, B](t: var Table[A, B]): var B		724
+nim	valuesFrom	src/fusion/btreetables.html#valuesFrom.i,Table[A,B],A	iterator valuesFrom[A, B](b: Table[A, B]; fromKey: A): B		743
+nim	valuesBetween	src/fusion/btreetables.html#valuesBetween.i,Table[A,B],A,A	iterator valuesBetween[A, B](b: Table[A, B]; fromKey: A; toKey: A): B		748
+nim	pairs	src/fusion/btreetables.html#pairs.i,Table[A,B]	iterator pairs[A, B](t: Table[A, B]): (A, B)		754
+nim	mpairs	src/fusion/btreetables.html#mpairs.i,Table[A,B]	iterator mpairs[A, B](t: var Table[A, B]): (A, var B)		781
+nim	pairsFrom	src/fusion/btreetables.html#pairsFrom.i,Table[A,B],A	iterator pairsFrom[A, B](b: Table[A, B]; fromKey: A): tuple[key: A, val: B]		801
+nim	pairsBetween	src/fusion/btreetables.html#pairsBetween.i,Table[A,B],A,A	iterator pairsBetween[A, B](b: Table[A, B]; fromKey: A; toKey: A): tuple[key: A, val: B]		806
+nim	`$`	src/fusion/btreetables.html#$,Table[A,B]	proc `$`[A, B](t: Table[A, B]): string		812
+nim	`==`	src/fusion/btreetables.html#==,Table[A,B],Table[A,B]	proc `==`[A, B](a, b: Table[A, B]): bool		826
+nim	newTable	src/fusion/btreetables.html#newTable	proc newTable[A, B](): TableRef[A, B]		854
+nim	newTable	src/fusion/btreetables.html#newTable,openArray[]	proc newTable[A, B](pairs: openArray[(A, B)]): TableRef[A, B]		875
+nim	newTableFrom	src/fusion/btreetables.html#newTableFrom,A,proc(B)	proc newTableFrom[A, B, C](collection: A; index: proc (x: B): C): TableRef[C, B]		891
+nim	`[]`	src/fusion/btreetables.html#[],TableRef[A,B],A	proc `[]`[A, B](t: TableRef[A, B]; key: A): var B		899
+nim	`[]=`	src/fusion/btreetables.html#[]=,TableRef[A,B],A,B	proc `[]=`[A, B](t: TableRef[A, B]; key: A; val: B)		923
+nim	hasKey	src/fusion/btreetables.html#hasKey,TableRef[A,B],A	proc hasKey[A, B](t: TableRef[A, B]; key: A): bool		939
+nim	contains	src/fusion/btreetables.html#contains,TableRef[A,B],A	proc contains[A, B](t: TableRef[A, B]; key: A): bool		958
+nim	hasKeyOrPut	src/fusion/btreetables.html#hasKeyOrPut,TableRef[A,B],A,B	proc hasKeyOrPut[A, B](t: var TableRef[A, B]; key: A; val: B): bool		968
+nim	getOrDefault	src/fusion/btreetables.html#getOrDefault,TableRef[A,B],A	proc getOrDefault[A, B](t: TableRef[A, B]; key: A): B		988
+nim	getOrDefault	src/fusion/btreetables.html#getOrDefault,TableRef[A,B],A,B	proc getOrDefault[A, B](t: TableRef[A, B]; key: A; default: B): B		1007
+nim	mgetOrPut	src/fusion/btreetables.html#mgetOrPut,TableRef[A,B],A,B	proc mgetOrPut[A, B](t: TableRef[A, B]; key: A; val: B): var B		1025
+nim	len	src/fusion/btreetables.html#len,TableRef[A,B]	proc len[A, B](t: TableRef[A, B]): int		1046
+nim	del	src/fusion/btreetables.html#del,TableRef[A,B],A	proc del[A, B](t: TableRef[A, B]; key: A)		1055
+nim	pop	src/fusion/btreetables.html#pop,TableRef[A,B],A,B	proc pop[A, B](t: TableRef[A, B]; key: A; val: var B): bool		1072
+nim	take	src/fusion/btreetables.html#take,TableRef[A,B],A,B	proc take[A, B](t: TableRef[A, B]; key: A; val: var B): bool		1098
+nim	clear	src/fusion/btreetables.html#clear,TableRef[A,B]	proc clear[A, B](t: TableRef[A, B])		1104
+nim	`$`	src/fusion/btreetables.html#$,TableRef[A,B]	proc `$`[A, B](t: TableRef[A, B]): string		1119
+nim	`==`	src/fusion/btreetables.html#==,TableRef[A,B],TableRef[A,B]	proc `==`[A, B](s, t: TableRef[A, B]): bool		1125
+nim	keys	src/fusion/btreetables.html#keys.i,TableRef[A,B]	iterator keys[A, B](t: TableRef[A, B]): A		1140
+nim	values	src/fusion/btreetables.html#values.i,TableRef[A,B]	iterator values[A, B](t: TableRef[A, B]): B		1158
+nim	mvalues	src/fusion/btreetables.html#mvalues.i,TableRef[A,B]	iterator mvalues[A, B](t: TableRef[A, B]): var B		1176
+nim	pairs	src/fusion/btreetables.html#pairs.i,TableRef[A,B]	iterator pairs[A, B](t: TableRef[A, B]): (A, B)		1194
+nim	mpairs	src/fusion/btreetables.html#mpairs.i,TableRef[A,B]	iterator mpairs[A, B](t: TableRef[A, B]): (A, var B)		1221
+nim	OrderedTable	src/fusion/btreetables.html#OrderedTable	object OrderedTable		1253
+nim	OrderedTableRef	src/fusion/btreetables.html#OrderedTableRef	type OrderedTableRef		1261
+nim	initOrderedTable	src/fusion/btreetables.html#initOrderedTable,int	proc initOrderedTable[A, B](initialSize = 64): OrderedTable[A, B]		1315
+nim	`[]=`	src/fusion/btreetables.html#[]=,OrderedTable[A,B],A,B	proc `[]=`[A, B](t: var OrderedTable[A, B]; k: A; v: B)		1332
+nim	toOrderedTable	src/fusion/btreetables.html#toOrderedTable,openArray[]	proc toOrderedTable[A, B](pairs: openArray[(A, B)]): OrderedTable[A, B]		1349
+nim	`[]`	src/fusion/btreetables.html#[],OrderedTable[A,B],A	proc `[]`[A, B](t: OrderedTable[A, B]; key: A): B		1366
+nim	`[]`	src/fusion/btreetables.html#[],OrderedTable[A,B],A_2	proc `[]`[A, B](t: var OrderedTable[A, B]; key: A): var B		1390
+nim	hasKey	src/fusion/btreetables.html#hasKey,OrderedTable[A,B],A	proc hasKey[A, B](t: OrderedTable[A, B]; key: A): bool		1406
+nim	contains	src/fusion/btreetables.html#contains,OrderedTable[A,B],A	proc contains[A, B](t: OrderedTable[A, B]; key: A): bool		1429
+nim	hasKeyOrPut	src/fusion/btreetables.html#hasKeyOrPut,OrderedTable[A,B],A,B	proc hasKeyOrPut[A, B](t: var OrderedTable[A, B]; key: A; val: B): bool		1439
+nim	getOrDefault	src/fusion/btreetables.html#getOrDefault,OrderedTable[A,B],A	proc getOrDefault[A, B](t: OrderedTable[A, B]; key: A): B		1461
+nim	getOrDefault	src/fusion/btreetables.html#getOrDefault,OrderedTable[A,B],A,B	proc getOrDefault[A, B](t: OrderedTable[A, B]; key: A; default: B): B		1483
+nim	mgetOrPut	src/fusion/btreetables.html#mgetOrPut,OrderedTable[A,B],A,B	proc mgetOrPut[A, B](t: var OrderedTable[A, B]; key: A; val: B): var B		1504
+nim	len	src/fusion/btreetables.html#len,OrderedTable[A,B]	proc len[A, B](t: OrderedTable[A, B]): int		1527
+nim	add	src/fusion/btreetables.html#add,OrderedTable[A,B],A,B	proc add[A, B](t: var OrderedTable[A, B]; key: A; val: B)		1535
+nim	del	src/fusion/btreetables.html#del,OrderedTable[A,B],A	proc del[A, B](t: var OrderedTable[A, B]; key: A)		1538
+nim	delete	src/fusion/btreetables.html#delete,OrderedTable[A,B],A	proc delete[A, B](t: var OrderedTable[A, B]; key: A)		1575
+nim	pop	src/fusion/btreetables.html#pop,OrderedTable[A,B],A,B	proc pop[A, B](t: var OrderedTable[A, B]; key: A; val: var B): bool		1606
+nim	clear	src/fusion/btreetables.html#clear,OrderedTable[A,B]	proc clear[A, B](t: var OrderedTable[A, B])		1635
+nim	`$`	src/fusion/btreetables.html#$,OrderedTable[A,B]	proc `$`[A, B](t: OrderedTable[A, B]): string		1664
+nim	`==`	src/fusion/btreetables.html#==,OrderedTable[A,B],OrderedTable[A,B]	proc `==`[A, B](s, t: OrderedTable[A, B]): bool		1669
+nim	pairs	src/fusion/btreetables.html#pairs.i,OrderedTable[A,B]	iterator pairs[A, B](t: OrderedTable[A, B]): (A, B)		1687
+nim	mpairs	src/fusion/btreetables.html#mpairs.i,OrderedTable[A,B]	iterator mpairs[A, B](t: var OrderedTable[A, B]): (A, var B)		1715
+nim	keys	src/fusion/btreetables.html#keys.i,OrderedTable[A,B]	iterator keys[A, B](t: OrderedTable[A, B]): A		1735
+nim	values	src/fusion/btreetables.html#values.i,OrderedTable[A,B]	iterator values[A, B](t: OrderedTable[A, B]): B		1754
+nim	mvalues	src/fusion/btreetables.html#mvalues.i,OrderedTable[A,B]	iterator mvalues[A, B](t: var OrderedTable[A, B]): var B		1772
+nim	newOrderedTable	src/fusion/btreetables.html#newOrderedTable,int	proc newOrderedTable[A, B](initialSize = 64): OrderedTableRef[A, B]		1804
+nim	newOrderedTable	src/fusion/btreetables.html#newOrderedTable,openArray[]	proc newOrderedTable[A, B](pairs: openArray[(A, B)]): OrderedTableRef[A, B]		1819
+nim	`[]`	src/fusion/btreetables.html#[],OrderedTableRef[A,B],A	proc `[]`[A, B](t: OrderedTableRef[A, B]; key: A): var B		1837
+nim	`[]=`	src/fusion/btreetables.html#[]=,OrderedTableRef[A,B],A,B	proc `[]=`[A, B](t: OrderedTableRef[A, B]; key: A; val: B)		1860
+nim	hasKey	src/fusion/btreetables.html#hasKey,OrderedTableRef[A,B],A	proc hasKey[A, B](t: OrderedTableRef[A, B]; key: A): bool		1876
+nim	contains	src/fusion/btreetables.html#contains,OrderedTableRef[A,B],A	proc contains[A, B](t: OrderedTableRef[A, B]; key: A): bool		1894
+nim	hasKeyOrPut	src/fusion/btreetables.html#hasKeyOrPut,OrderedTableRef[A,B],A,B	proc hasKeyOrPut[A, B](t: var OrderedTableRef[A, B]; key: A; val: B): bool		1904
+nim	getOrDefault	src/fusion/btreetables.html#getOrDefault,OrderedTableRef[A,B],A	proc getOrDefault[A, B](t: OrderedTableRef[A, B]; key: A): B		1924
+nim	getOrDefault	src/fusion/btreetables.html#getOrDefault,OrderedTableRef[A,B],A,B	proc getOrDefault[A, B](t: OrderedTableRef[A, B]; key: A; default: B): B		1943
+nim	mgetOrPut	src/fusion/btreetables.html#mgetOrPut,OrderedTableRef[A,B],A,B	proc mgetOrPut[A, B](t: OrderedTableRef[A, B]; key: A; val: B): var B		1961
+nim	len	src/fusion/btreetables.html#len,OrderedTableRef[A,B]	proc len[A, B](t: OrderedTableRef[A, B]): int		1982
+nim	del	src/fusion/btreetables.html#del,OrderedTableRef[A,B],A	proc del[A, B](t: OrderedTableRef[A, B]; key: A)		1991
+nim	delete	src/fusion/btreetables.html#delete,OrderedTableRef[A,B],A	proc delete[A, B](t: OrderedTableRef[A, B]; key: A)		2013
+nim	pop	src/fusion/btreetables.html#pop,OrderedTableRef[A,B],A,B	proc pop[A, B](t: OrderedTableRef[A, B]; key: A; val: var B): bool		2032
+nim	clear	src/fusion/btreetables.html#clear,OrderedTableRef[A,B]	proc clear[A, B](t: OrderedTableRef[A, B])		2055
+nim	`$`	src/fusion/btreetables.html#$,OrderedTableRef[A,B]	proc `$`[A, B](t: OrderedTableRef[A, B]): string		2068
+nim	`==`	src/fusion/btreetables.html#==,OrderedTableRef[A,B],OrderedTableRef[A,B]	proc `==`[A, B](s, t: OrderedTableRef[A, B]): bool		2073
+nim	keys	src/fusion/btreetables.html#keys.i,OrderedTableRef[A,B]	iterator keys[A, B](t: OrderedTableRef[A, B]): A		2089
+nim	values	src/fusion/btreetables.html#values.i,OrderedTableRef[A,B]	iterator values[A, B](t: OrderedTableRef[A, B]): B		2108
+nim	mvalues	src/fusion/btreetables.html#mvalues.i,OrderedTableRef[A,B]	iterator mvalues[A, B](t: OrderedTableRef[A, B]): var B		2126
+nim	pairs	src/fusion/btreetables.html#pairs.i,OrderedTableRef[A,B]	iterator pairs[A, B](t: OrderedTableRef[A, B]): (A, B)		2146
+nim	mpairs	src/fusion/btreetables.html#mpairs.i,OrderedTableRef[A,B]	iterator mpairs[A, B](t: OrderedTableRef[A, B]): (A, var B)		2175
+nim	CountTable	src/fusion/btreetables.html#CountTable	object CountTable		2204
+nim	CountTableRef	src/fusion/btreetables.html#CountTableRef	type CountTableRef		2211
+nim	inc	src/fusion/btreetables.html#inc,CountTable[A],A,Positive	proc inc[A](t: var CountTable[A]; key: A; val: Positive = 1)		2217
+nim	initCountTable	src/fusion/btreetables.html#initCountTable,int	proc initCountTable[A](initialSize = 64): CountTable[A]		2220
+nim	toCountTable	src/fusion/btreetables.html#toCountTable,openArray[A]	proc toCountTable[A](keys: openArray[A]): CountTable[A]		2232
+nim	`[]`	src/fusion/btreetables.html#[],CountTable[A],A	proc `[]`[A](t: CountTable[A]; key: A): int		2238
+nim	`[]=`	src/fusion/btreetables.html#[]=,CountTable[A],A,int	proc `[]=`[A](t: var CountTable[A]; key: A; val: int)		2252
+nim	smallest	src/fusion/btreetables.html#smallest,CountTable[A]	proc smallest[A](t: CountTable[A]): tuple[key: A, val: int]		2282
+nim	largest	src/fusion/btreetables.html#largest,CountTable[A]	proc largest[A](t: CountTable[A]): tuple[key: A, val: int]		2294
+nim	hasKey	src/fusion/btreetables.html#hasKey,CountTable[A],A	proc hasKey[A](t: CountTable[A]; key: A): bool		2306
+nim	contains	src/fusion/btreetables.html#contains,CountTable[A],A	proc contains[A](t: CountTable[A]; key: A): bool		2317
+nim	getOrDefault	src/fusion/btreetables.html#getOrDefault,CountTable[A],A,int	proc getOrDefault[A](t: CountTable[A]; key: A; default: int = 0): int		2322
+nim	len	src/fusion/btreetables.html#len,CountTable[A]	proc len[A](t: CountTable[A]): int		2332
+nim	del	src/fusion/btreetables.html#del,CountTable[A],A	proc del[A](t: var CountTable[A]; key: A)		2336
+nim	pop	src/fusion/btreetables.html#pop,CountTable[A],A,int	proc pop[A](t: var CountTable[A]; key: A; val: var int): bool		2355
+nim	clear	src/fusion/btreetables.html#clear,CountTable[A]	proc clear[A](t: var CountTable[A])		2377
+nim	merge	src/fusion/btreetables.html#merge,CountTable[A],CountTable[A]	proc merge[A](s: var CountTable[A]; t: CountTable[A])		2387
+nim	`$`	src/fusion/btreetables.html#$,CountTable[A]	proc `$`[A](t: CountTable[A]): string		2398
+nim	`==`	src/fusion/btreetables.html#==,CountTable[A],CountTable[A]	proc `==`[A](s, t: CountTable[A]): bool		2403
+nim	pairs	src/fusion/btreetables.html#pairs.i,CountTable[A]	iterator pairs[A](t: CountTable[A]): (A, int)		2413
+nim	mpairs	src/fusion/btreetables.html#mpairs.i,CountTable[A]	iterator mpairs[A](t: var CountTable[A]): (A, var int)		2443
+nim	keys	src/fusion/btreetables.html#keys.i,CountTable[A]	iterator keys[A](t: CountTable[A]): A		2459
+nim	values	src/fusion/btreetables.html#values.i,CountTable[A]	iterator values[A](t: CountTable[A]): int		2474
+nim	mvalues	src/fusion/btreetables.html#mvalues.i,CountTable[A]	iterator mvalues[A](t: var CountTable[A]): var int		2489
+nim	inc	src/fusion/btreetables.html#inc,CountTableRef[A],A,int	proc inc[A](t: CountTableRef[A]; key: A; val = 1)		2514
+nim	newCountTable	src/fusion/btreetables.html#newCountTable,int	proc newCountTable[A](initialSize = 64): CountTableRef[A]		2516
+nim	newCountTable	src/fusion/btreetables.html#newCountTable,openArray[A]	proc newCountTable[A](keys: openArray[A]): CountTableRef[A]		2527
+nim	`[]`	src/fusion/btreetables.html#[],CountTableRef[A],A	proc `[]`[A](t: CountTableRef[A]; key: A): int		2533
+nim	`[]=`	src/fusion/btreetables.html#[]=,CountTableRef[A],A,int	proc `[]=`[A](t: CountTableRef[A]; key: A; val: int)		2548
+nim	smallest	src/fusion/btreetables.html#smallest,CountTableRef[A]	proc smallest[A](t: CountTableRef[A]): (A, int)		2567
+nim	largest	src/fusion/btreetables.html#largest,CountTableRef[A]	proc largest[A](t: CountTableRef[A]): (A, int)		2574
+nim	hasKey	src/fusion/btreetables.html#hasKey,CountTableRef[A],A	proc hasKey[A](t: CountTableRef[A]; key: A): bool		2581
+nim	contains	src/fusion/btreetables.html#contains,CountTableRef[A],A	proc contains[A](t: CountTableRef[A]; key: A): bool		2592
+nim	getOrDefault	src/fusion/btreetables.html#getOrDefault,CountTableRef[A],A,int	proc getOrDefault[A](t: CountTableRef[A]; key: A; default: int): int		2597
+nim	len	src/fusion/btreetables.html#len,CountTableRef[A]	proc len[A](t: CountTableRef[A]): int		2607
+nim	del	src/fusion/btreetables.html#del,CountTableRef[A],A	proc del[A](t: CountTableRef[A]; key: A)		2611
+nim	pop	src/fusion/btreetables.html#pop,CountTableRef[A],A,int	proc pop[A](t: CountTableRef[A]; key: A; val: var int): bool		2621
+nim	clear	src/fusion/btreetables.html#clear,CountTableRef[A]	proc clear[A](t: CountTableRef[A])		2634
+nim	merge	src/fusion/btreetables.html#merge,CountTableRef[A],CountTableRef[A]	proc merge[A](s, t: CountTableRef[A])		2642
+nim	`$`	src/fusion/btreetables.html#$,CountTableRef[A]	proc `$`[A](t: CountTableRef[A]): string		2654
+nim	`==`	src/fusion/btreetables.html#==,CountTableRef[A],CountTableRef[A]	proc `==`[A](s, t: CountTableRef[A]): bool		2659
+nim	keys	src/fusion/btreetables.html#keys.i,CountTableRef[A]	iterator keys[A](t: CountTableRef[A]): A		2670
+nim	values	src/fusion/btreetables.html#values.i,CountTableRef[A]	iterator values[A](t: CountTableRef[A]): int		2685
+nim	mvalues	src/fusion/btreetables.html#mvalues.i,CountTableRef[A]	iterator mvalues[A](t: CountTableRef[A]): var int		2700
+nim	pairs	src/fusion/btreetables.html#pairs.i,CountTableRef[A]	iterator pairs[A](t: CountTableRef[A]): (A, int)		2715
+nim	mpairs	src/fusion/btreetables.html#mpairs.i,CountTableRef[A]	iterator mpairs[A](t: CountTableRef[A]): (A, var int)		2745
+nimgrp	contains	src/fusion/btreetables.html#contains-procs-all	proc		234
+nimgrp	newcounttable	src/fusion/btreetables.html#newCountTable-procs-all	proc		2516
+nimgrp	$	src/fusion/btreetables.html#$-procs-all	proc		812
+nimgrp	neworderedtable	src/fusion/btreetables.html#newOrderedTable-procs-all	proc		1804
+nimgrp	del	src/fusion/btreetables.html#del-procs-all	proc		529
+nimgrp	[]=	src/fusion/btreetables.html#[]=-procs-all	proc		73
+nimgrp	getordefault	src/fusion/btreetables.html#getOrDefault-procs-all	proc		104
+nimgrp	len	src/fusion/btreetables.html#len-procs-all	proc		594
+nimgrp	newtable	src/fusion/btreetables.html#newTable-procs-all	proc		854
+nimgrp	smallest	src/fusion/btreetables.html#smallest-procs-all	proc		2282
+nimgrp	haskey	src/fusion/btreetables.html#hasKey-procs-all	proc		218
+nimgrp	haskeyorput	src/fusion/btreetables.html#hasKeyOrPut-procs-all	proc		347
+nimgrp	largest	src/fusion/btreetables.html#largest-procs-all	proc		2294
+nimgrp	inc	src/fusion/btreetables.html#inc-procs-all	proc		2217
+nimgrp	delete	src/fusion/btreetables.html#delete-procs-all	proc		1575
+nimgrp	merge	src/fusion/btreetables.html#merge-procs-all	proc		2387
+nimgrp	clear	src/fusion/btreetables.html#clear-procs-all	proc		579
+nimgrp	take	src/fusion/btreetables.html#take-procs-all	proc		572
+nimgrp	mgetorput	src/fusion/btreetables.html#mgetOrPut-procs-all	proc		372
+nimgrp	[]	src/fusion/btreetables.html#[]-procs-all	proc		150
+nimgrp	==	src/fusion/btreetables.html#==-procs-all	proc		826
+nimgrp	pop	src/fusion/btreetables.html#pop-procs-all	proc		545
+nimgrp	values	src/fusion/btreetables.html#values-iterators-all	iterator		706
+nimgrp	mpairs	src/fusion/btreetables.html#mpairs-iterators-all	iterator		781
+nimgrp	pairs	src/fusion/btreetables.html#pairs-iterators-all	iterator		754
+nimgrp	mvalues	src/fusion/btreetables.html#mvalues-iterators-all	iterator		724
+nimgrp	keys	src/fusion/btreetables.html#keys-iterators-all	iterator		677

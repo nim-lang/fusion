@@ -1,0 +1,4 @@
+nimTitle	filepermissions	src/fusion/filepermissions.html	module src/fusion/filepermissions		0
+nim	toFilePermissions	src/fusion/filepermissions.html#toFilePermissions,Natural	proc toFilePermissions(perm: Natural): set[FilePermission]		5
+nim	fromFilePermissions	src/fusion/filepermissions.html#fromFilePermissions,set[FilePermission]	proc fromFilePermissions(perm: set[FilePermission]): uint		27
+nim	chmod	src/fusion/filepermissions.html#chmod,string,Natural	proc chmod(path: string; permissions: Natural)		53

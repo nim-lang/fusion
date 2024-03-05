@@ -1,0 +1,4 @@
+nimTitle	jsxmlserializer	src/fusion/js/jsxmlserializer.html	module src/fusion/js/jsxmlserializer		0
+nim	XMLSerializer	src/fusion/js/jsxmlserializer.html#XMLSerializer	type XMLSerializer		7
+nim	newXMLSerializer	src/fusion/js/jsxmlserializer.html#newXMLSerializer	proc newXMLSerializer(): XMLSerializer		9
+nim	serializeToString	src/fusion/js/jsxmlserializer.html#serializeToString,XMLSerializer,Node	proc serializeToString(this: XMLSerializer; node: Node): cstring		12

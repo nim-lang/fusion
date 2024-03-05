@@ -1,0 +1,3 @@
+nimTitle	ioutils	src/fusion/ioutils.html	module src/fusion/ioutils		0
+nim	duplicate	src/fusion/ioutils.html#duplicate,FileHandle	proc duplicate(oldfd: FileHandle): FileHandle		32
+nim	duplicateTo	src/fusion/ioutils.html#duplicateTo,FileHandle,FileHandle	proc duplicateTo(oldfd: FileHandle; newfd: FileHandle)		56

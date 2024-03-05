@@ -1,0 +1,87 @@
+nimTitle	matching	src/fusion/matching.html	module src/fusion/matching		0
+nim	nnkStrKinds	src/fusion/matching.html#nnkStrKinds	const nnkStrKinds		22
+nim	nnkIntKinds	src/fusion/matching.html#nnkIntKinds	const nnkIntKinds		26
+nim	nnkFloatKinds	src/fusion/matching.html#nnkFloatKinds	const nnkFloatKinds		30
+nim	nnkIdentKinds	src/fusion/matching.html#nnkIdentKinds	const nnkIdentKinds		34
+nim	nnkTokenKinds	src/fusion/matching.html#nnkTokenKinds	const nnkTokenKinds		38
+nim	varOfIteration	src/fusion/matching.html#varOfIteration.t,untyped	template varOfIteration(arg: untyped): untyped		61
+nim	getKindNames	src/fusion/matching.html#getKindNames,NimNode	proc getKindNames(head: NimNode): (string, seq[string])		271
+nim	hasKindImpl	src/fusion/matching.html#hasKindImpl.m,typed,untyped	macro hasKindImpl(head: typed; kind: untyped): untyped		296
+nim	hasKind	src/fusion/matching.html#hasKind.t,untyped,untyped	template hasKind(head, kindExpr: untyped): untyped		310
+nim	FieldIndex	src/fusion/matching.html#FieldIndex	type FieldIndex		330
+nim	`==`	src/fusion/matching.html#==,FieldIndex,SomeInteger	proc `==`(idx: FieldIndex; i: SomeInteger): bool		331
+nim	`[]`	src/fusion/matching.html#[].t,,static[FieldIndex]	template `[]`(t: tuple; idx: static[FieldIndex]): untyped		332
+nim	kItem	src/fusion/matching.html#kItem	MatchKind.kItem		340
+nim	kSeq	src/fusion/matching.html#kSeq	MatchKind.kSeq		340
+nim	kTuple	src/fusion/matching.html#kTuple	MatchKind.kTuple		340
+nim	kPairs	src/fusion/matching.html#kPairs	MatchKind.kPairs		340
+nim	kObject	src/fusion/matching.html#kObject	MatchKind.kObject		340
+nim	kSet	src/fusion/matching.html#kSet	MatchKind.kSet		340
+nim	kAlt	src/fusion/matching.html#kAlt	MatchKind.kAlt		340
+nim	MatchKind	src/fusion/matching.html#MatchKind	enum MatchKind		340
+nim	lkAny	src/fusion/matching.html#lkAny	SeqKeyword.lkAny		350
+nim	lkAll	src/fusion/matching.html#lkAll	SeqKeyword.lkAll		350
+nim	lkNone	src/fusion/matching.html#lkNone	SeqKeyword.lkNone		350
+nim	lkOpt	src/fusion/matching.html#lkOpt	SeqKeyword.lkOpt		350
+nim	lkUntil	src/fusion/matching.html#lkUntil	SeqKeyword.lkUntil		350
+nim	lkPref	src/fusion/matching.html#lkPref	SeqKeyword.lkPref		350
+nim	lkPos	src/fusion/matching.html#lkPos	SeqKeyword.lkPos		350
+nim	lkSlice	src/fusion/matching.html#lkSlice	SeqKeyword.lkSlice		350
+nim	lkTrail	src/fusion/matching.html#lkTrail	SeqKeyword.lkTrail		350
+nim	SeqKeyword	src/fusion/matching.html#SeqKeyword	enum SeqKeyword		350
+nim	SeqStructure	src/fusion/matching.html#SeqStructure	object SeqStructure		362
+nim	imkInfixEq	src/fusion/matching.html#imkInfixEq	ItemMatchKind.imkInfixEq		372
+nim	imkSubPattern	src/fusion/matching.html#imkSubPattern	ItemMatchKind.imkSubPattern		372
+nim	imkPredicate	src/fusion/matching.html#imkPredicate	ItemMatchKind.imkPredicate		372
+nim	ItemMatchKind	src/fusion/matching.html#ItemMatchKind	enum ItemMatchKind		372
+nim	KVPair	src/fusion/matching.html#KVPair	object KVPair		379
+nim	MatchError	src/fusion/matching.html#MatchError	type MatchError		383
+nim	Match	src/fusion/matching.html#Match	type Match		386
+nim	vkRegular	src/fusion/matching.html#vkRegular	VarKind.vkRegular		463
+nim	vkSequence	src/fusion/matching.html#vkSequence	VarKind.vkSequence		463
+nim	vkOption	src/fusion/matching.html#vkOption	VarKind.vkOption		463
+nim	vkSet	src/fusion/matching.html#vkSet	VarKind.vkSet		463
+nim	vkAlt	src/fusion/matching.html#vkAlt	VarKind.vkAlt		463
+nim	VarKind	src/fusion/matching.html#VarKind	enum VarKind		463
+nim	VarSpec	src/fusion/matching.html#VarSpec	object VarSpec		476
+nim	`$`	src/fusion/matching.html#$,Path	proc `$`(path: Path): string		527
+nim	`$`	src/fusion/matching.html#$,Match	proc `$`(match: Match): string		552
+nim	`$`	src/fusion/matching.html#$,KVPair	proc `$`(kvp: KVPair): string		554
+nim	`$`	src/fusion/matching.html#$,SeqStructure	proc `$`(ss: SeqStructure): string		558
+nim	toAccs	src/fusion/matching.html#toAccs,Path,NimNode,bool	proc toAccs(path: Path; name: NimNode; pathForType: bool): NimNode		711
+nim	parseMatchExpr	src/fusion/matching.html#parseMatchExpr,NimNode	proc parseMatchExpr(n: NimNode): Match		750
+nim	makeMatchExpr	src/fusion/matching.html#makeMatchExpr,Match,NimNode,bool,NimNode	proc makeMatchExpr(m: Match; mainExpr: NimNode; doRaise: bool;\n              originalMainExpr: NimNode): tuple[expr: NimNode, vtable: VarTable,\n    mixident: seq[string]]		2380
+nim	expand	src/fusion/matching.html#expand.m,typed	macro expand(body: typed): untyped		2447
+nim	`case`	src/fusion/matching.html#case.m,untyped	macro `case`(n: untyped): untyped		2498
+nim	assertMatch	src/fusion/matching.html#assertMatch.m,untyped,untyped	macro assertMatch(input, pattern: untyped): untyped		2502
+nim	matches	src/fusion/matching.html#matches.m,untyped,untyped	macro matches(input, pattern: untyped): untyped		2526
+nim	kind=	src/fusion/matching.html#kind=,NimNode,NimNodeKind	proc kind=(node: var NimNode; kind: NimNodeKind)		2667
+nim	str	src/fusion/matching.html#str,NimNode	proc str(node: NimNode): string		2670
+nim	str=	src/fusion/matching.html#str=,NimNode,string	proc str=(node: var NimNode; val: string)		2671
+nim	makeTree	src/fusion/matching.html#makeTree.t,typed,untyped	template makeTree(T: typed; pattern: untyped): untyped		2705
+nim	`:=`	src/fusion/matching.html#:=.t,untyped,untyped	template `:=`(lhs, rhs: untyped): untyped		2721
+nim	`?=`	src/fusion/matching.html#?=.t,untyped,untyped	template `?=`(lhs, rhs: untyped): untyped		2725
+nimgrp	$	src/fusion/matching.html#$-procs-all	proc		527
+heading	Quick reference	src/fusion/matching.html#quick-reference	 Quick reference		0
+heading	Supported match elements	src/fusion/matching.html#supported-match-elements	 Supported match elements		0
+heading	Element access	src/fusion/matching.html#element-access	 Element access		0
+heading	Checks	src/fusion/matching.html#checks	 Checks		0
+heading	Examples	src/fusion/matching.html#checks-examples	  Examples		0
+heading	Variable binding	src/fusion/matching.html#variable-binding	 Variable binding		0
+heading	Bind order	src/fusion/matching.html#variable-binding-bind-order	  Bind order		0
+heading	Bind variable type	src/fusion/matching.html#variable-binding-bind-variable-type	  Bind variable type		0
+heading	Matching different things	src/fusion/matching.html#matching-different-things	 Matching different things		0
+heading	Sequence matching	src/fusion/matching.html#matching-different-things-sequence-matching	  Sequence matching		0
+heading	Use examples	src/fusion/matching.html#sequence-matching-use-examples	   Use examples		0
+heading	Tuple matching	src/fusion/matching.html#matching-different-things-tuple-matching	  Tuple matching		0
+heading	Object matching	src/fusion/matching.html#matching-different-things-object-matching	  Object matching		0
+heading	Variant object matching	src/fusion/matching.html#matching-different-things-variant-object-matching	  Variant object matching		0
+heading	Custom unpackers	src/fusion/matching.html#matching-different-things-custom-unpackers	  Custom unpackers		0
+heading	Predicates and infix operators	src/fusion/matching.html#matching-different-things-predicates-and-infix-operators	  Predicates and infix operators		0
+heading	Infix operators	src/fusion/matching.html#predicates-and-infix-operators-infix-operators	   Infix operators		0
+heading	Custom predicates	src/fusion/matching.html#predicates-and-infix-operators-custom-predicates	   Custom predicates		0
+heading	Ref object matching	src/fusion/matching.html#matching-different-things-ref-object-matching	  Ref object matching		0
+heading	KV-pairs matching	src/fusion/matching.html#matching-different-things-kvminuspairs-matching	  KV-pairs matching		0
+heading	Option matching	src/fusion/matching.html#matching-different-things-option-matching	  Option matching		0
+heading	Tree matching	src/fusion/matching.html#tree-matching	 Tree matching		0
+heading	Tree construction	src/fusion/matching.html#tree-construction	 Tree construction		0

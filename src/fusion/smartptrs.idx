@@ -1,0 +1,32 @@
+nimTitle	smartptrs	src/fusion/smartptrs.html	module src/fusion/smartptrs		0
+nim	UniquePtr	src/fusion/smartptrs.html#UniquePtr	object UniquePtr		15
+nim	`=destroy`	src/fusion/smartptrs.html#=destroy,UniquePtr[T]	proc `=destroy`[T](p: var UniquePtr[T])		19
+nim	`=`	src/fusion/smartptrs.html#=,UniquePtr[T],UniquePtr[T]	proc `=`[T](dest: var UniquePtr[T]; src: UniquePtr[T])		28
+nim	newUniquePtr	src/fusion/smartptrs.html#newUniquePtr,sinkT	proc newUniquePtr[T](val: sink T): UniquePtr[T]		30
+nim	convertUniquePtrToObj	src/fusion/smartptrs.html#convertUniquePtrToObj.c,UniquePtr[T]	converter convertUniquePtrToObj[T](p: UniquePtr[T]): var T		41
+nim	isNil	src/fusion/smartptrs.html#isNil,UniquePtr[T]	proc isNil[T](p: UniquePtr[T]): bool		46
+nim	`[]`	src/fusion/smartptrs.html#[],UniquePtr[T]	proc `[]`[T](p: UniquePtr[T]): var T		49
+nim	`[]=`	src/fusion/smartptrs.html#[]=,UniquePtr[T],T	proc `[]=`[T](p: UniquePtr[T]; v: T)		54
+nim	`$`	src/fusion/smartptrs.html#$,UniquePtr[T]	proc `$`[T](p: UniquePtr[T]): string		56
+nim	SharedPtr	src/fusion/smartptrs.html#SharedPtr	object SharedPtr		63
+nim	`=destroy`	src/fusion/smartptrs.html#=destroy,SharedPtr[T]	proc `=destroy`[T](p: var SharedPtr[T])		67
+nim	`=`	src/fusion/smartptrs.html#=,SharedPtr[T],SharedPtr[T]	proc `=`[T](dest: var SharedPtr[T]; src: SharedPtr[T])		84
+nim	newSharedPtr	src/fusion/smartptrs.html#newSharedPtr,sinkT	proc newSharedPtr[T](val: sink T): SharedPtr[T]		94
+nim	convertSharedPtrToObj	src/fusion/smartptrs.html#convertSharedPtrToObj.c,SharedPtr[T]	converter convertSharedPtrToObj[T](p: SharedPtr[T]): var T		102
+nim	isNil	src/fusion/smartptrs.html#isNil,SharedPtr[T]	proc isNil[T](p: SharedPtr[T]): bool		107
+nim	`[]`	src/fusion/smartptrs.html#[],SharedPtr[T]	proc `[]`[T](p: SharedPtr[T]): var T		110
+nim	`[]=`	src/fusion/smartptrs.html#[]=,SharedPtr[T],T	proc `[]=`[T](p: SharedPtr[T]; v: T)		115
+nim	`$`	src/fusion/smartptrs.html#$,SharedPtr[T]	proc `$`[T](p: SharedPtr[T]): string		117
+nim	ConstPtr	src/fusion/smartptrs.html#ConstPtr	type ConstPtr		124
+nim	newConstPtr	src/fusion/smartptrs.html#newConstPtr,sinkT	proc newConstPtr[T](val: sink T): ConstPtr[T]		128
+nim	convertConstPtrToObj	src/fusion/smartptrs.html#convertConstPtrToObj.c,ConstPtr[T]	converter convertConstPtrToObj[T](p: ConstPtr[T]): lent T		131
+nim	isNil	src/fusion/smartptrs.html#isNil,ConstPtr[T]	proc isNil[T](p: ConstPtr[T]): bool		134
+nim	`[]`	src/fusion/smartptrs.html#[],ConstPtr[T]	proc `[]`[T](p: ConstPtr[T]): lent T		137
+nim	`[]=`	src/fusion/smartptrs.html#[]=.t,ConstPtr[T],T	template `[]=`[T](p: ConstPtr[T]; v: T)		142
+nim	`$`	src/fusion/smartptrs.html#$,ConstPtr[T]	proc `$`[T](p: ConstPtr[T]): string		144
+nimgrp	$	src/fusion/smartptrs.html#$-procs-all	proc		56
+nimgrp	isnil	src/fusion/smartptrs.html#isNil-procs-all	proc		46
+nimgrp	[]=	src/fusion/smartptrs.html#[]=-procs-all	proc		54
+nimgrp	=	src/fusion/smartptrs.html#=-procs-all	proc		28
+nimgrp	=destroy	src/fusion/smartptrs.html#=destroy-procs-all	proc		19
+nimgrp	[]	src/fusion/smartptrs.html#[]-procs-all	proc		49
