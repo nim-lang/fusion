@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/setup-node@v4
       - name: Checkout fusion
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: fusion
 
