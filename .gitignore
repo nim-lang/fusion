@@ -5,3 +5,5 @@
 nimcache/
 nimblecache/
 htmldocs/
+
+/build
