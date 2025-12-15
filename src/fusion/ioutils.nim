@@ -22,7 +22,7 @@ proc strerror(errnum: cint): cstring {.importc, header: "<string.h>".}
 when not defined(nimscript):
   var errno {.importc, header: "<errno.h>".}: cint ## error variable
 
-template checkError(ret: cint) =
+template checkError(ret: FileHandle) =
   if ret == -1:
     when not defined(nimscript):
       raise newException(IOError, $strerror(errno))
